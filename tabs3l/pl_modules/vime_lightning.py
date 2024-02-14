@@ -1,10 +1,10 @@
 from typing import Dict, Any, Type
 import torch
 from torch import nn
-from utils import BaseScorer
+from tabs3l.utils import BaseScorer
 
 from .base_module import TS3LLightining
-from models import VIME
+from tabs3l.models import VIME
 from copy import deepcopy
 
 class VIMELightning(TS3LLightining):

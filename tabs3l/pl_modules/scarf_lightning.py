@@ -1,8 +1,8 @@
 from typing import Dict, Any
 
 from base_module import TS3LLightining
-from models import SCARF
-from utils.scarf_utils import NTXentLoss
+from tabs3l.models import SCARF
+from tabs3l.utils.scarf_utils import NTXentLoss
 
 class SCARFLightning(TS3LLightining):
     

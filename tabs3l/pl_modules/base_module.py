@@ -1,5 +1,5 @@
 from typing import Dict, Any, Type
-from utils import BaseScorer
+from tabs3l.utils import BaseScorer
 
 from abc import ABC, abstractmethod
 

@@ -1,8 +1,8 @@
 from typing import Dict, Any, Tuple, Union
 
 from base_module import TS3LLightining
-from models import SubTab
-from utils.subtab_utils import JointLoss
+from tabs3l.models import SubTab
+from tabs3l.utils.subtab_utils import JointLoss
 from copy import deepcopy
 import torch
 
