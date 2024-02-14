@@ -1,0 +1,5 @@
+__pycache__/
+data_cache/
+lightning_logs/
+temporary_ckpt_data/
+*test*

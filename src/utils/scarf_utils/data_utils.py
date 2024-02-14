@@ -12,19 +12,23 @@ from torch.utils.data import Dataset
 class SCARFDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Union[NDArray[np.int_], NDArray[np.float_]],
-                        label_class: Union[torch.FloatTensor, torch.LongTensor] = torch.LongTensor
+                        is_regression: bool = False
                         ) -> None:
 
         self.data = torch.FloatTensor(X)
         
-        assert label_class in [torch.LongTensor, torch.FloatTensor], 'The label_class must be one of the following: "torch.LongTensor", or "Torch.FloatTensor"'
         
+        if is_regression:
+            self.label_class = torch.FloatTensor
+        else:
+            self.label_class = torch.LongTensor
+            
         if Y is None:
             self.label = None
         else:
-            self.label = label_class(Y)
+            self.label = self.label_class(Y)
             
-            if label_class == torch.LongTensor:
+            if self.label_class == torch.LongTensor:
                 class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]
                 num_samples = len(self.label)
 

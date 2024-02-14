@@ -107,7 +107,7 @@ class VIMESelfDataset(Dataset):
 class VIMESemiDataset(Dataset):
     """The dataset for the semi-supervised learning of VIME
     """
-    def __init__(self, X: pd.DataFrame, Y: Union[NDArray[np.int_], NDArray[np.float_]], data_hparams: Dict[str, Any], label_class: Union[torch.LongTensor, torch.FloatTensor],unlabeled_data: pd.DataFrame = None, continous_cols: List = None, category_cols: List = None, u_label = -1, is_test: bool = False):
+    def __init__(self, X: pd.DataFrame, Y: Union[NDArray[np.int_], NDArray[np.float_]], data_hparams: Dict[str, Any], is_regression: bool = False, unlabeled_data: pd.DataFrame = None, continous_cols: List = None, category_cols: List = None, u_label = -1, is_test: bool = False):
         """Initialize the semi-supervised learning dataset for the classification
 
         Args:
@@ -126,18 +126,20 @@ class VIMESemiDataset(Dataset):
         self.u_label = u_label
         self.is_test = is_test
         
-        assert label_class in [torch.LongTensor, torch.FloatTensor], 'The label_class must be one of the following: "torch.LongTensor", or "Torch.FloatTensor"'
-        self.label_class = label_class
+        if is_regression:
+            self.label_class = torch.FloatTensor
+        else:
+            self.label_class = torch.LongTensor
             
         if is_test is False:
             self.data_hparams = data_hparams
         
-            self.label = label_class(Y)
+            self.label = self.label_class(Y)
         
             if unlabeled_data is not None:
-                self.label = torch.concat((self.label, label_class([self.u_label for _ in range(len(unlabeled_data))])), dim=0)
+                self.label = torch.concat((self.label, self.label_class([self.u_label for _ in range(len(unlabeled_data))])), dim=0)
             
-            if label_class == torch.LongTensor:
+            if not is_regression:
                 class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]
                 num_samples = len(self.label)
 
@@ -209,7 +211,7 @@ class VIMESemiDataset(Dataset):
         else:
             return {
                     "input" : x,
-                    "label" : self.u_label,
+                    "label" : self.u_label
             }
 
     def __len__(self):
