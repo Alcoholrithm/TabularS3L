@@ -4,21 +4,22 @@ from numpy.typing import NDArray
 import torch
 from torch.utils.data import Dataset
 import numpy as np
+import pandas as pd
 
 class SubTabDataset(Dataset):
-    def __init__(self, data:torch.FloatTensor, 
-                        label:torch.LongTensor = None, 
+    def __init__(self, X: pd.DataFrame, 
+                        Y: Union[NDArray[np.int_], NDArray[np.float_]] = None,
                         label_class: Union[torch.FloatTensor, torch.LongTensor] = torch.LongTensor
                         ) -> None:
         
-        self.data = torch.FloatTensor(data)
+        self.data = torch.FloatTensor(X.values)
         
         assert label_class in [torch.LongTensor, torch.FloatTensor], 'The label_class must be one of the following: "torch.LongTensor", or "Torch.FloatTensor"'
         
-        if label is None:
+        if Y is None:
             self.label = None
         else:
-            self.label = label_class(label)
+            self.label = label_class(Y)
             
             if label_class == torch.LongTensor:
                 class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]

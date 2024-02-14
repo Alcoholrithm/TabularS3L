@@ -5,17 +5,16 @@ import itertools
 
 class JointLoss(nn.Module):
     """
-    Modifed from: https://github.com/sthalles/SimCLR/blob/master/loss/nt_xent.py
-    When computing loss, we are using a 2Nx2N similarity matrix, in which positve samples are on the diagonal of four
-    quadrants while negatives are all the other samples as shown below in 8x8 array, where we assume batch_size=4.
-                                        P . . . P . . .
-                                        . P . . . P . .
-                                        . . P . . . P .
-                                        . . . P . . . P
-                                        P . . . P . . .
-                                        . P . . . P . .
-                                        . . P . . . P .
-                                        . . . P . . . P
+    When computing loss, we use a similarity matrix of size (N x k) x N. The matrix includes k positive samples and all other samples are considered negatives. 
+    The matrix is shown below as an 8x4 array, assuming a batch size of 4 and 2 subsets.
+                                                        P . . .
+                                                        P . . .
+                                                        . P . .
+                                                        . P . .
+                                                        . . P .
+                                                        . . P .
+                                                        . . . P
+                                                        . . . P
     """
 
     def __init__(self,
