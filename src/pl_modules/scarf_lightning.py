@@ -2,6 +2,8 @@ from typing import Dict, Any
 
 from base_module import TS3LLightining
 from models import SCARF
+from utils.scarf_utils import NTXentLoss
+
 class SCARFLightning(TS3LLightining):
     
     def __init__(self, *args, **kwargs):
@@ -9,17 +11,16 @@ class SCARFLightning(TS3LLightining):
 
     def _initialize(self, model_hparams: Dict[str, Any]):
         self.model = SCARF(**model_hparams)
+        self.pretraining_loss = NTXentLoss()
     
-    def get_pretraining_loss(self, batch:Dict[str, Any]):
-        """Calculate the pretraining loss
+    def get_pretraining_loss(self, batch):
+        
+        x, y = batch
+        emb_anchor, emb_corrupted = self.model(x)
 
-        Args:
-            batch (Dict[str, Any]): The input batch
+        loss = self.pretraining_loss(emb_anchor, emb_corrupted)
 
-        Returns:
-            torch.FloatTensor: The final loss of pretraining step
-        """
-        pass
+        return loss
     
     def get_finetunning_loss(self, batch:Dict[str, Any]):
         """Calculate the finetunning loss
@@ -32,4 +33,9 @@ class SCARFLightning(TS3LLightining):
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """
-        pass
+        x, y = batch
+        y_hat = self(x)
+
+        loss = self.loss_fn(y_hat, y)
+        
+        return loss, y, y_hat
