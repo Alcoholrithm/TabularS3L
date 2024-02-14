@@ -8,7 +8,6 @@ from torch import nn
 
 import pytorch_lightning as pl
 
-
 class TS3LLightining(ABC, pl.LightningModule):
     """The pytorch lightning module of VIME
     """
@@ -65,6 +64,10 @@ class TS3LLightining(ABC, pl.LightningModule):
     def _initialize(self, model_hparams: Dict[str, Any]):
         pass
 
+    @abstractmethod
+    def _check_model_hparams(self, model_hparams: Dict[str, Any]):
+        pass
+    
     def configure_optimizers(self):
         """Configure the optimizer
         """

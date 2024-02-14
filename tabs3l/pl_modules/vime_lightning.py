@@ -59,7 +59,22 @@ class VIMELightning(TS3LLightining):
         del hparams["K"]
         
         self.model = VIME(**hparams)
+    
+    def _check_model_hparams(self, model_hparams: Dict[str, Any]):
+        requirements = [
+            "alpha1", "alpha2", "beta", "K", "encoder_dim", "predictor_hidden_dim", "predictor_output_dim"
+        ]
         
+        missings = []
+        for requirement in requirements:
+            if not requirement in model_hparams.keys():
+                missings.append(requirement)
+        
+        if len(missings) == 1:
+            raise KeyError("model_hparams requires {%s}" % missings[0])
+        elif len(missings) > 1:
+            raise KeyError("model_hparams requires {%s, and %s}" % (', '.join(missings[:-1]), missings[-1]))
+    
     def get_pretraining_loss(self, batch:Dict[str, Any]):
         """Calculate the pretraining loss
 

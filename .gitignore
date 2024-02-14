@@ -3,3 +3,5 @@ data_cache/
 lightning_logs/
 temporary_ckpt_data/
 *test*
+*egg*
+build/
