@@ -5,3 +5,4 @@ temporary_ckpt_data/
 *test*
 *egg*
 build/
+dist/

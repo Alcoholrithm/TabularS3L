@@ -26,8 +26,8 @@ with pathlib.Path('requirements.txt').open() as requirements_txt:
 
 setup(
     name='ts3l',
-    version='0.1',
-    description='A PyTorch-based library for self- and semi-supervised learning on tabular data.',
+    version='v0.10',
+    description='A PyTorch-based library for self- and semi-supervised learning tabular models.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/Alcoholrithm/TabularS3L/tree/dev',
