@@ -92,7 +92,7 @@ def test_scarf_classification():
         
         pretraining_path = checkpoint_callback.best_model_path
 
-        model = model.load_from_checkpoint(pretraining_path)
+        model = SCARFLightning.load_from_checkpoint(pretraining_path)
 
         model.do_finetunning()
         
@@ -134,7 +134,7 @@ def test_scarf_classification():
 
         trainer.fit(model, pl_datamodule)
 
-        model = model.load_from_checkpoint(checkpoint_callback.best_model_path)
+        model = SCARFLightning.load_from_checkpoint(checkpoint_callback.best_model_path)
         
         return model
 
