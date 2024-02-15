@@ -36,11 +36,18 @@ setup(
 
     # Note that this is a string of words separated by whitespace, not a list.
     keywords='tabular',
-    packages=find_packages(),
+    packages=find_packages(exclude=["pl_modules"]),
+    # packages=find_packages(),
     # packages=['tabs3l'],
     # package_dir={'': 'tabs3l'},
-    include_package_data=True,
+    # The `include_package_data` parameter in the `setup()` function is used to specify whether to
+    # include non-Python files (such as data files, configuration files, etc.) that are part of the
+    # package when it is installed.
+    include_package_data=False,
     # install_requires=['torch >= 1.8', 'torchvision', 'torchaudio', 'transformers', 'timm', 'progress', 'ruamel.yaml', 'scikit-image', 'scikit-learn', 'tensorflow', ''],
     install_requires=install_requires,
-    python_requires='>=3.8',
+    extras_require={
+        "PL": ["pytorch_lightning"],
+    },
+    python_requires='>=3.7',
 )
