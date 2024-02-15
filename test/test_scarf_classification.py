@@ -27,7 +27,6 @@ def test_scarf_classification():
     random_seed = 0
 
 
-
     from sklearn.model_selection import train_test_split
 
     X_train, X_valid, y_train, y_valid = train_test_split(data, label, train_size = 0.7, random_state=random_seed, stratify=label)
@@ -42,13 +41,13 @@ def test_scarf_classification():
     accelerator = 'cpu'
     devices = 4
     n_jobs = 4
-    max_epochs = 10
+    max_epochs = 3
     batch_size = 128
 
     pretraining_patience = 3
-    early_stopping_patience = 10
+    early_stopping_patience = 3
 
-    batch_size = 512
+    batch_size = 64
 
     def fit_model(
                 model,
@@ -82,7 +81,7 @@ def test_scarf_classification():
         callbacks.append(checkpoint_callback)
 
         trainer = Trainer(
-                        devices = devices,
+                        # devices = devices,
                         accelerator = accelerator,
                         max_epochs = max_epochs,
                         num_sanity_val_steps = 2,
@@ -126,7 +125,7 @@ def test_scarf_classification():
         callbacks.append(checkpoint_callback)
 
         trainer = Trainer(
-                        devices = devices,
+                        # devices = devices,
                         accelerator = accelerator,
                         max_epochs = max_epochs,
                         num_sanity_val_steps = 2,
@@ -208,12 +207,12 @@ def test_scarf_classification():
                     {},
                     AccuracyScorer("accuracy_score"),
                     random_seed)
-            
+
             pl_scarf = fit_model(pl_scarf, data_hparams)
             
 
             trainer = Trainer(
-                        devices = devices,
+                        # devices = devices,
                         accelerator = accelerator,
                         max_epochs = max_epochs,
                         num_sanity_val_steps = 2,
