@@ -11,13 +11,16 @@ from torch.utils.data import Dataset
 
 class SCARFDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
-                        Y: Union[NDArray[np.int_], NDArray[np.float_]],
+                        Y: Union[NDArray[np.int_], NDArray[np.float_]] = None,
+                        corruption_len: int = 0,
                         is_regression: bool = False
                         ) -> None:
 
-        self.data = torch.FloatTensor(X)
+        self.data = torch.FloatTensor(X.values)
         
-        
+        self.corruption_len = corruption_len
+        self.n_sampling_candidate , self.n_features = X.shape
+
         if is_regression:
             self.label_class = torch.FloatTensor
         else:
@@ -39,6 +42,17 @@ class SCARFDataset(Dataset):
     def __getitem__(self, idx):
         
         if self.label is None:
+            if self.corruption_len:
+                corruption_mask = torch.zeros((self.n_features), dtype=torch.bool)
+                corruption_idx = torch.randperm(self.n_features)[:self.corruption_len]
+
+                corruption_mask[corruption_idx] = True
+                
+                
+                x_random = torch.randint(0, self.n_sampling_candidate, corruption_mask.shape)
+                x_corrupted = torch.FloatTensor([self.data[:, i][x_random[i]] for i in range(self.n_features)])
+                x_corrupted = torch.where(corruption_mask, x_corrupted, self.data[idx])
+                return self.data[idx], x_corrupted
             return self.data[idx]
         else:
             return self.data[idx], self.label[idx]

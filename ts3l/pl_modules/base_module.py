@@ -1,5 +1,5 @@
 from typing import Dict, Any, Type
-from tabs3l.utils import BaseScorer
+from ts3l.utils import BaseScorer
 
 from abc import ABC, abstractmethod
 
@@ -180,7 +180,7 @@ class TS3LLightining(ABC, pl.LightningModule):
     
     def finetuning_step(self,
                       batch,
-                      batch_idx: int
+                      batch_idx: int = 0
     ) -> Dict[str, Any]:
         """Finetunning step of VIME
 
@@ -236,7 +236,7 @@ class TS3LLightining(ABC, pl.LightningModule):
     
     def predict_step(self, batch, batch_idx: int
     ) -> torch.FloatTensor:
-        """The perdict step of VIME
+        """The perdict step
 
         Args:
             batch (Dict[str, Any]): The input batch
@@ -245,6 +245,4 @@ class TS3LLightining(ABC, pl.LightningModule):
         Returns:
             torch.FloatTensor: The predicted output (logit)
         """
-        y_hat = self.model.finetunning_step(batch["input"])
-
-        return y_hat
+        pass

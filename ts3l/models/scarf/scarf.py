@@ -1,8 +1,11 @@
+from numpy.typing import NDArray
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.uniform import Uniform
 
+import numpy as np
 
 class MLP(torch.nn.Sequential):
     """Simple multi-layer perceptron with ReLu activation and optional dropout layer"""
@@ -25,14 +28,13 @@ class MLP(torch.nn.Sequential):
 class SCARF(nn.Module):
     def __init__(
         self,
+        # sampling_candidate: NDArray[np.float_],
         input_dim,
         emb_dim,
-        features_low,
-        features_high,
         encoder_depth=4,
         head_depth=2,
         dropout_rate = 0.3,
-        corruption_rate=0.6,
+        # corruption_rate=0.6,
         out_dim = 2,
     ):
         """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
@@ -62,33 +64,26 @@ class SCARF(nn.Module):
         self.encoder.apply(self._init_weights)
         self.pretraining_head.apply(self._init_weights)
         
+        # self.n_sampling_candidate = sampling_candidate.shape[0]
+        # self.sampling_candidate = torch.FloatTensor(sampling_candidate.T)
         
-        self.marginals = Uniform(torch.Tensor(features_low), torch.Tensor(features_high))
-        self.corruption_len = int(corruption_rate * input_dim)
+        # self.marginals = Uniform(torch.Tensor(features_low), torch.Tensor(features_high))
+        # self.corruption_len = int(corruption_rate * input_dim)
 
-
+    
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
             torch.nn.init.xavier_uniform_(module.weight)
             module.bias.data.fill_(0.01)
-
+            
     def do_pretraining(self):
         self.forward = self.pretraining_step
     
-    def do_finetuning(self):
-        self.forward = self.finetuning_step
+    def do_finetunning(self):
+        self.forward = self.finetunning_step
 
-    def pretraining_step(self, x):
+    def pretraining_step(self, x, x_corrupted):
         batch_size, m = x.size()
-
-        corruption_mask = torch.zeros_like(x, dtype=torch.bool, device=x.device)
-
-        for i in range(batch_size):
-            corruption_idx = torch.randperm(m)[: self.corruption_len]
-            corruption_mask[i, corruption_idx] = True
-
-        x_random = self.marginals.sample(torch.Size((batch_size,))).to(x.device)
-        x_corrupted = torch.where(corruption_mask, x_random, x)
 
         # compute embeddings
         emb_anchor = self.encoder(x)
@@ -102,7 +97,7 @@ class SCARF(nn.Module):
 
         return emb_anchor, emb_corrupted
     
-    def finetuning_step(self, x):
+    def finetunning_step(self, x):
         emb = self.encoder(x)
         output = self.head(emb)
 

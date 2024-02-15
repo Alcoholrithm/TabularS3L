@@ -1,10 +1,10 @@
 from typing import Dict, Any, Type
 import torch
 from torch import nn
-from tabs3l.utils import BaseScorer
+from ts3l.utils import BaseScorer
 
 from .base_module import TS3LLightining
-from tabs3l.models import VIME
+from ts3l.models import VIME
 from copy import deepcopy
 
 class VIMELightning(TS3LLightining):
@@ -130,3 +130,18 @@ class VIMELightning(TS3LLightining):
         loss = supervised_loss + self.beta * unsupervised_loss
         
         return loss, labeled_y, y_hat
+    
+    def predict_step(self, batch, batch_idx: int
+        ) -> torch.FloatTensor:
+            """The perdict step of VIME
+
+            Args:
+                batch (Dict[str, Any]): The input batch
+                batch_idx (int): For compatibility, do not use
+
+            Returns:
+                torch.FloatTensor: The predicted output (logit)
+            """
+            y_hat = self.model.finetunning_step(batch["input"])
+
+            return y_hat
