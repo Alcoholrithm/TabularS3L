@@ -36,6 +36,7 @@ X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+import pandas as pd
 
 gpus = None
 n_jobs = 4
@@ -52,7 +53,7 @@ def fit_model(
             data_hparams
     ):
 
-    train_ds = SCARFDataset(X_train.append(X_unlabeled), corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+    train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
     test_ds = SCARFDataset(X_valid, corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
     
     pl_datamodule = TabularS3LDataModule(train_ds, test_ds, batch_size=batch_size, train_sampler="random")
