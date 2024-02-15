@@ -37,7 +37,7 @@ X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
-gpus = []
+gpus = None
 n_jobs = 4
 max_epochs = 10
 batch_size = 128
@@ -80,7 +80,7 @@ def fit_model(
 
     trainer = Trainer(
                     devices = gpus,
-                    accelerator = "cuda" if len(gpus) >= 1 else 'cpu',
+                    accelerator = "cuda" if gpus != None else 'cpu',
                     max_epochs = max_epochs,
                     num_sanity_val_steps = 2,
                     callbacks = callbacks,
@@ -124,7 +124,7 @@ def fit_model(
 
     trainer = Trainer(
                     devices = gpus,
-                    accelerator = "cuda" if len(gpus) >= 1 else 'cpu',
+                    accelerator = "cuda" if gpus != None else 'cpu',
                     max_epochs = max_epochs,
                     num_sanity_val_steps = 2,
                     callbacks = callbacks,
@@ -211,7 +211,7 @@ def objective(      trial: optuna.trial.Trial,
 
         trainer = Trainer(
                     devices = gpus,
-                    accelerator = "cuda" if len(gpus)>= 1 else 'cpu',
+                    accelerator = "cuda" if gpus != None else 'cpu',
                     max_epochs = max_epochs,
                     num_sanity_val_steps = 2,
                     callbacks = None,
