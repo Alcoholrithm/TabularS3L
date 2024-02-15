@@ -6,13 +6,14 @@ from pytorch_lightning import LightningDataModule
 class TabularS3LDataModule(LightningDataModule):
     """The pytorch lightning datamodule for VIME
     """
-    def __init__(self, train_ds:Dataset, val_ds:Dataset, batch_size: int, train_sampler: Union["seq", "weighted", "random"], train_collate_fn = None, valid_collate_fn = None, n_gpus: int = 1, n_jobs: int = 32, drop_last: int = False, is_regression:bool = False):
+    def __init__(self, train_ds:Dataset, val_ds:Dataset, batch_size: int, train_sampler: str, train_collate_fn = None, valid_collate_fn = None, n_gpus: int = 1, n_jobs: int = 32, drop_last: int = False, is_regression:bool = False):
         """Initialize the datamodule
 
         Args:
             train_ds (Dataset): The training dataset
             val_ds (Dataset): The validation dataset
             batch_size (int): The batch size of the dataset
+            train_sampler (str): The training sampler for training dataset. It must be one of ["seq", "weighted", "random"]
             train_collate_fn (object): Collate function for train dataloader
             valid_collate_fn (object): Collate function for validation dataloader
             n_gpus (int, optional): The number of the gpus to use. Defaults to 1.

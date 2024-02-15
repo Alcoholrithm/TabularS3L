@@ -35,8 +35,8 @@ X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
-gpus = [1]
-n_jobs = 32
+gpus = []
+n_jobs = 2
 max_epochs = 10
 batch_size = 128
 
