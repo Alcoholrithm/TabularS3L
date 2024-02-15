@@ -40,4 +40,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test SCARF with pytest
       run: |
-        pytest test/scarf_classification.py
+        pytest test/test_scarf_classification.py
