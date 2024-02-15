@@ -244,7 +244,3 @@ def scarf_classification():
 
     print("  Accuracy: {}".format(trial.value))
     print("  Best hyperparameters: ", trial)
-    
-
-if __name__ == "__main__":
-    scarf_classification()
