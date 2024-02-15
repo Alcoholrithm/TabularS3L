@@ -5,7 +5,9 @@ from ts3l.utils import TabularS3LDataModule
 
 import torch.nn as nn
 
-from test.diabetes import load_diabetes
+import sys
+sys.path.append("/home/runner/work/TabularS3L/TabularS3L/test")
+from diabetes import load_diabetes
 
 data, label, continuous_cols, category_cols = load_diabetes()
 num_categoricals = len(continuous_cols)
