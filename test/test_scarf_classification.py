@@ -1,4 +1,12 @@
-def scarf_classification():
+from ts3l.utils.misc import BaseScorer
+class AccuracyScorer(BaseScorer):
+    def __init__(self, metric: str) -> None:
+        super().__init__(metric)
+    
+    def __call__(self, y, y_hat) -> float:
+        return self.metric(y, y_hat.argmax(1))
+
+def test_scarf_classification():
     from ts3l.pl_modules import SCARFLightning
     from ts3l.models import SCARF
     from ts3l.utils.scarf_utils import SCARFDataset
@@ -18,15 +26,7 @@ def scarf_classification():
     metric_params = {}
     random_seed = 0
 
-    from ts3l.utils.misc import BaseScorer
 
-
-    class AccuracyScorer(BaseScorer):
-        def __init__(self, metric: str) -> None:
-            super().__init__(metric)
-        
-        def __call__(self, y, y_hat) -> float:
-            return self.metric(y, y_hat.argmax(1))
 
     from sklearn.model_selection import train_test_split
 
