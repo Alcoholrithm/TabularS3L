@@ -30,20 +30,17 @@ setup(
     description='A PyTorch-based library for self- and semi-supervised learning tabular models.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/Alcoholrithm/TabularS3L/tree/dev',
+    url='https://github.com/Alcoholrithm/TabularS3L',
     author='Minwook Kim',
     author_email='kmiiiaa@pusan.ac.kr',
 
     # Note that this is a string of words separated by whitespace, not a list.
     keywords='tabular-data semi-supervised-learning self-supervised-learning VIME SubTab SCARF',
-    packages=find_packages(exclude=["pl_modules"]),
+    packages=find_packages(),
     # The `include_package_data` parameter in the `setup()` function is used to specify whether to
     # include non-Python files (such as data files, configuration files, etc.) that are part of the
     # package when it is installed.
     include_package_data=False,
     install_requires=install_requires,
-    extras_require={
-        "PL": ["pytorch_lightning"],
-    },
     python_requires='>=3.7',
 )
