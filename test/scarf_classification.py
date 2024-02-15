@@ -36,7 +36,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 gpus = []
-n_jobs = 2
+n_jobs = 4
 max_epochs = 10
 batch_size = 128
 
