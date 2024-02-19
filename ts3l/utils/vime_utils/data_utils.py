@@ -107,7 +107,7 @@ class VIMESelfDataset(Dataset):
 class VIMESemiDataset(Dataset):
     """The dataset for the semi-supervised learning of VIME
     """
-    def __init__(self, X: pd.DataFrame, Y: Union[NDArray[np.int_], NDArray[np.float_]], data_hparams: Dict[str, Any], is_regression: bool = False, unlabeled_data: pd.DataFrame = None, continous_cols: List = None, category_cols: List = None, u_label = -1, is_test: bool = False):
+    def __init__(self, X: pd.DataFrame, Y: Union[NDArray[np.int_], NDArray[np.float_]] = None, data_hparams: Dict[str, Any] = None, is_regression: bool = False, unlabeled_data: pd.DataFrame = None, continous_cols: List = None, category_cols: List = None, u_label = -1, is_test: bool = False):
         """Initialize the semi-supervised learning dataset for the classification
 
         Args:

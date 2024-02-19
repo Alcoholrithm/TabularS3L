@@ -6,9 +6,9 @@ class AccuracyScorer(BaseScorer):
     def __call__(self, y, y_hat) -> float:
         return self.metric(y, y_hat.argmax(1))
 
-def test_subtab_classification():
-    from ts3l.pl_modules import SubTabLightning
-    from ts3l.utils.subtab_utils import SubTabDataset, SubTabCollateFN
+def test_vime_classification():
+    from ts3l.pl_modules import VIMELightning
+    from ts3l.utils.vime_utils import VIMESelfDataset, VIMESemiDataset, VIMECollateFN
     from ts3l.utils import TS3LDataModule
 
     import torch.nn as nn
@@ -51,11 +51,11 @@ def test_subtab_classification():
                 model,
                 data_hparams
         ):
-
-        train_ds = SubTabDataset(pd.concat([X_train, X_unlabeled]))
-        test_ds = SubTabDataset(X_valid)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams), n_jobs = n_jobs)
+        train_ds = VIMESelfDataset(pd.concat([X_train, X_unlabeled]), data_hparams, continuous_cols, category_cols)
+        test_ds = VIMESelfDataset(X_valid, data_hparams, continuous_cols, category_cols)
+        
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', n_jobs = n_jobs)
 
         model.do_pretraining()
 
@@ -89,14 +89,14 @@ def test_subtab_classification():
         
         pretraining_path = checkpoint_callback.best_model_path
 
-        model = SubTabLightning.load_from_checkpoint(pretraining_path)
+        model = VIMELightning.load_from_checkpoint(pretraining_path)
 
         model.do_finetunning()
         
-        train_ds = SubTabDataset(X_train, y_train.values)
-        test_ds = SubTabDataset(X_valid, y_valid.values)
+        train_ds = VIMESemiDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols)
+        test_ds = VIMESemiDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols)
 
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams))
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMECollateFN())
             
         callbacks = [
             EarlyStopping(
@@ -129,25 +129,21 @@ def test_subtab_classification():
 
         trainer.fit(model, pl_datamodule)
 
-        model = SubTabLightning.load_from_checkpoint(checkpoint_callback.best_model_path)
+        model = VIMELightning.load_from_checkpoint(checkpoint_callback.best_model_path)
         
         return model
 
     hparams_range = {
         
-    'emb_dim' : ['suggest_int', ['emb_dim', 4, 1024]],
+    'predictor_hidden_dim' : ['suggest_int', ['predictor_hidden_dim', 16, 512]],
+    # 'predictor_output_dim' : ['suggest_int', ['emb_dim', 16, 512]],
     
-    'tau' : ["suggest_float", ["tau", 0.05, 0.15]],
-    "use_cosine_similarity" : ["suggest_categorical", ["use_cosine_similarity", [True, False]]],
-    "use_contrastive" : ["suggest_categorical", ["use_contrastive", [True, False]]],
-    "use_distance" : ["suggest_categorical", ["use_distance", [True, False]]],
-    
-    "n_subsets" : ["suggest_int", ["n_subsets", 2, 7]],
-    "overlap_ratio" : ["suggest_float", ["overlap_ratio", 0., 1]],
-    
-    "mask_ratio" : ["suggest_float", ["mask_ratio", 0.1, 0.3]],
-    "noise_level" : ["suggest_float", ["noise_level", 0.5, 2]],
-    "noise_type" : ["suggest_categorical", ["noise_type", ["Swap", "Gaussian", "Zero_Out"]]],
+    'p_m' : ["suggest_float", ["p_m", 0.1, 0.9]],
+    'alpha1' : ["suggest_float", ["alpha1", 0.1, 5]],
+    'alpha2' : ["suggest_float", ["alpha2", 0.1, 5]],
+    'beta' : ["suggest_float", ["beta", 0.1, 10]],
+    'K' : ["suggest_int", ["K", 2, 20]],
+
 
     'lr' : ['suggest_float', ['lr', 0.0001, 0.05]],
     'gamma' : ['suggest_float', ['gamma', 0.1, 0.95]],
@@ -173,25 +169,18 @@ def test_subtab_classification():
             """
 
             model_hparams = {
-                "input_dim" : data.shape[1],
-                "out_dim" : 2,
-                "batch_size" : batch_size,
-                'emb_dim' : None,
-                "tau" : None,
-                "use_cosine_similarity" : None,
-                "use_contrastive" : None,
-                "use_distance" : None,
-                "n_subsets" : None,
-                "overlap_ratio" : None
+                "encoder_dim" : data.shape[1],
+                "predictor_hidden_dim" : None,
+                "predictor_output_dim" : 2,
+                'alpha1' : None,
+                'alpha2' : None,
+                'beta' : None,
+                'K' : None
             }
-        
+            
             data_hparams = {
-                "n_subsets" : None,
-                "overlap_ratio" : None,
-                "mask_ratio" : None,
-                "noise_type" : None,
-                "noise_level" : None,
-                "n_column" : data.shape[1]
+                "K" : None,
+                "p_m" : None
             }
             optim_hparams = {
                 "lr" : None
@@ -211,9 +200,10 @@ def test_subtab_classification():
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
 
-            pl_subtab = SubTabLightning(
+            pl_subtab = VIMELightning(
                     model_hparams,
                     "Adam", optim_hparams, "StepLR", scheduler_hparams,
+                    num_categoricals, num_continuous, -1,
                     loss_fn,
                     {},
                     AccuracyScorer("accuracy_score"),
@@ -229,10 +219,10 @@ def test_subtab_classification():
                         callbacks = None,
             )
 
-            test_ds = SubTabDataset(X_valid)
+            test_ds = VIMESemiDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_test = True)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
-            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs, collate_fn=SubTabCollateFN(data_hparams))
+            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs)
 
             preds = trainer.predict(pl_subtab, test_dl)
             
@@ -256,4 +246,4 @@ def test_subtab_classification():
     
 
 if __name__ == "__main__":
-    test_subtab_classification()
+    test_vime_classification()

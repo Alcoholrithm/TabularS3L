@@ -6,3 +6,4 @@ temporary_ckpt_data/
 *egg*
 build/
 dist/
+.pytest_cache/

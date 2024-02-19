@@ -44,3 +44,7 @@ jobs:
     - name: Test SubTab with pytest
       run: |
         pytest test/test_subtab.py
+
+    - name: Test VIME with pytest
+      run: |
+        pytest test/test_vime.py
