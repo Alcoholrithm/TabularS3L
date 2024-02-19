@@ -1,6 +1,7 @@
 # TabularS3L
-A PyTorch-based library for self- and semi-supervised learning tabular models.
-Currently, [VIME](https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html), [SubTab](https://proceedings.neurips.cc/paper/2021/hash/9c8661befae6dbcd08304dbf4dcaf0db-Abstract.html) and [SCARF](https://iclr.cc/virtual/2022/spotlight/6297) are available.
+TabularS3L is a PyTorch-based library designed to facilitate self- and semi-supervised learning with tabular data. While numerous self- and semi-supervised learning tabular models have been proposed, there lacks a comprehensive library catering to the needs of tabular practitioners. This library aims to address this gap by offering a unified PyTorch-based framework for studying and deploying such models.
+
+Currently, VIME ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html)), SubTab ([NeurIPS'21](https://proceedings.neurips.cc/paper/2021/hash/9c8661befae6dbcd08304dbf4dcaf0db-Abstract.html)) and SCARF ([ICLR'22](https://iclr.cc/virtual/2022/spotlight/6297)) are available.
 
 #### To DO
 
@@ -8,11 +9,17 @@ Currently, [VIME](https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056ac
   - [x] VIME
   - [x] SubTab
   - [x] SCARF
-- [ ] Launch pytorch lightning modules of VIME, SubTab, and SCARF
+- [ ] Launch LightningModules of VIME, SubTab, and SCARF
   - [ ] VIME
   - [ ] SubTab
   - [ ] SCARF
-- Finish README.md
+- [ ] Add Denoising AutoEncoder
+  - [ ] nn.Module
+  - [ ] LightningModule
+- [ ] Add SwitchTab
+  - [ ] nn.Module
+  - [ ] LightningModule
+- [ ] Finish README.md
 
 ## Installation
 We provide a Python package ts3l of TabularS3L for users who want to use semi- and self-supervised learning tabular models.
