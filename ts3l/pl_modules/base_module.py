@@ -233,7 +233,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         self.finetunning_step_outputs = []      
         return super().on_validation_epoch_end()
     
-    
+    @abstractmethod
     def predict_step(self, batch, batch_idx: int
     ) -> torch.FloatTensor:
         """The perdict step

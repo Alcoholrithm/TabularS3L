@@ -30,7 +30,10 @@ class SubTabLightning(TS3LLightining):
                                           use_cosine_similarity = model_hparams["use_cosine_similarity"])
 
         self.n_subsets = model_hparams["n_subsets"]
-        
+    
+    def _check_model_hparams(self, model_hparams: Dict[str, Any]):
+        pass
+    
     def get_recon_label(self, x: torch.FloatTensor) -> torch.FloatTensor:
         recon_label = x
         for _ in range(1, self.n_subsets):
@@ -81,3 +84,8 @@ class SubTabLightning(TS3LLightining):
         loss = self.loss_fn(y_hat, y)
         
         return loss, y, y_hat
+    
+    def predict_step(self, batch, batch_idx: int) -> torch.FloatTensor:
+        x, _, _ = batch
+        y_hat = self(x)
+        return y_hat

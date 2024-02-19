@@ -26,7 +26,7 @@ with pathlib.Path('requirements.txt').open() as requirements_txt:
 
 setup(
     name='ts3l',
-    version='v0.10',
+    version='v0.20',
     description='A PyTorch-based library for self- and semi-supervised learning tabular models.',
     long_description=long_description,
     long_description_content_type='text/markdown',

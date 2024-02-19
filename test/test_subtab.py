@@ -6,11 +6,10 @@ class AccuracyScorer(BaseScorer):
     def __call__(self, y, y_hat) -> float:
         return self.metric(y, y_hat.argmax(1))
 
-def test_scarf_classification():
-    from ts3l.pl_modules import SCARFLightning
-    from ts3l.models import SCARF
-    from ts3l.utils.scarf_utils import SCARFDataset
-    from ts3l.utils import TabularS3LDataModule
+def test_subtab_classification():
+    from ts3l.pl_modules import SubTabLightning
+    from ts3l.utils.subtab_utils import SubTabDataset, SubTabCollateFN
+    from ts3l.utils import TS3LDataModule
 
     import torch.nn as nn
 
@@ -39,7 +38,6 @@ def test_scarf_classification():
     import pandas as pd
 
     accelerator = 'cpu'
-    devices = 4
     n_jobs = 4
     max_epochs = 3
     batch_size = 128
@@ -54,10 +52,10 @@ def test_scarf_classification():
                 data_hparams
         ):
 
-        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
-        test_ds = SCARFDataset(X_valid, corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+        train_ds = SubTabDataset(pd.concat([X_train, X_unlabeled]))
+        test_ds = SubTabDataset(X_valid)
         
-        pl_datamodule = TabularS3LDataModule(train_ds, test_ds, batch_size=batch_size, train_sampler="random")
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams), n_jobs = n_jobs)
 
         model.do_pretraining()
 
@@ -81,7 +79,6 @@ def test_scarf_classification():
         callbacks.append(checkpoint_callback)
 
         trainer = Trainer(
-                        # devices = devices,
                         accelerator = accelerator,
                         max_epochs = max_epochs,
                         num_sanity_val_steps = 2,
@@ -92,15 +89,14 @@ def test_scarf_classification():
         
         pretraining_path = checkpoint_callback.best_model_path
 
-        model = SCARFLightning.load_from_checkpoint(pretraining_path)
+        model = SubTabLightning.load_from_checkpoint(pretraining_path)
 
         model.do_finetunning()
         
-            
-        train_ds = SCARFDataset(X_train, y_train.values)
-        test_ds = SCARFDataset(X_valid, y_valid.values)
+        train_ds = SubTabDataset(X_train, y_train.values)
+        test_ds = SubTabDataset(X_valid, y_valid.values)
 
-        pl_datamodule = TabularS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted")
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams))
             
         callbacks = [
             EarlyStopping(
@@ -125,7 +121,6 @@ def test_scarf_classification():
         callbacks.append(checkpoint_callback)
 
         trainer = Trainer(
-                        # devices = devices,
                         accelerator = accelerator,
                         max_epochs = max_epochs,
                         num_sanity_val_steps = 2,
@@ -134,21 +129,29 @@ def test_scarf_classification():
 
         trainer.fit(model, pl_datamodule)
 
-        model = SCARFLightning.load_from_checkpoint(checkpoint_callback.best_model_path)
+        model = SubTabLightning.load_from_checkpoint(checkpoint_callback.best_model_path)
         
         return model
 
     hparams_range = {
         
-        'emb_dim' : ['suggest_int', ['emb_dim', 16, 512]],
-        'encoder_depth' : ['suggest_int', ['encoder_depth', 2, 6]],
-        'head_depth' : ['suggest_int', ['head_depth', 1, 3]],
-        'corruption_rate' : ['suggest_float', ['corruption_rate', 0.1, 0.7]],
-        'dropout_rate' : ['suggest_float', ['dropout_rate', 0.05, 0.3]],
+    'emb_dim' : ['suggest_int', ['emb_dim', 4, 1024]],
+    
+    'tau' : ["suggest_float", ["tau", 0.05, 0.15]],
+    "use_cosine_similarity" : ["suggest_categorical", ["use_cosine_similarity", [True, False]]],
+    "use_contrastive" : ["suggest_categorical", ["use_contrastive", [True, False]]],
+    "use_distance" : ["suggest_categorical", ["use_distance", [True, False]]],
+    
+    "n_subsets" : ["suggest_int", ["n_subsets", 2, 7]],
+    "overlap_ratio" : ["suggest_float", ["overlap_ratio", 0., 1]],
+    
+    "mask_ratio" : ["suggest_float", ["mask_ratio", 0.1, 0.3]],
+    "noise_level" : ["suggest_float", ["noise_level", 0.5, 2]],
+    "noise_type" : ["suggest_categorical", ["noise_type", ["Swap", "Gaussian", "Zero_Out"]]],
 
-        'lr' : ['suggest_float', ['lr', 0.0001, 0.05]],
-        'gamma' : ['suggest_float', ['gamma', 0.1, 0.95]],
-        'step_size' : ['suggest_int', ['step_size', 10, 100]],
+    'lr' : ['suggest_float', ['lr', 0.0001, 0.05]],
+    'gamma' : ['suggest_float', ['gamma', 0.1, 0.95]],
+    'step_size' : ['suggest_int', ['step_size', 10, 100]],
     }
 
     import optuna
@@ -168,19 +171,27 @@ def test_scarf_classification():
             Returns:
                 A score of given hyperparameters.
             """
+
             model_hparams = {
                 "input_dim" : data.shape[1],
-                "emb_dim" : None,
-                "encoder_depth" : None,
-                "head_depth" : None,
-                'dropout_rate' : None,
                 "out_dim" : 2,
-                # "sampling_candidate" : X_train.values
-                # "features_low" : data.min().values,
-                # "features_high" : data.max().values,
+                "batch_size" : batch_size,
+                'emb_dim' : None,
+                "tau" : None,
+                "use_cosine_similarity" : None,
+                "use_contrastive" : None,
+                "use_distance" : None,
+                "n_subsets" : None,
+                "overlap_ratio" : None
             }
+        
             data_hparams = {
-                "corruption_rate" : None
+                "n_subsets" : None,
+                "overlap_ratio" : None,
+                "mask_ratio" : None,
+                "noise_type" : None,
+                "noise_level" : None,
+                "n_column" : data.shape[1]
             }
             optim_hparams = {
                 "lr" : None
@@ -200,7 +211,7 @@ def test_scarf_classification():
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
 
-            pl_scarf = SCARFLightning(
+            pl_subtab = SubTabLightning(
                     model_hparams,
                     "Adam", optim_hparams, "StepLR", scheduler_hparams,
                     loss_fn,
@@ -208,24 +219,25 @@ def test_scarf_classification():
                     AccuracyScorer("accuracy_score"),
                     random_seed)
 
-            pl_scarf = fit_model(pl_scarf, data_hparams)
-            
+            pl_subtab = fit_model(pl_subtab, data_hparams)
+            pl_subtab.do_finetunning()
 
             trainer = Trainer(
-                        # devices = devices,
                         accelerator = accelerator,
                         max_epochs = max_epochs,
                         num_sanity_val_steps = 2,
                         callbacks = None,
             )
 
-            test_ds = SCARFDataset(X_valid)
+            test_ds = SubTabDataset(X_valid)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
-            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs)
+            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs, collate_fn=SubTabCollateFN(data_hparams))
 
-            preds = trainer.predict(pl_scarf, test_dl)
-
+            preds = trainer.predict(pl_subtab, test_dl)
+            
+            # print(len(preds), len(preds[0]))
+            # print(preds[0])
             preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
 
             accuracy = accuracy_score(y_valid, preds.argmax(1))
@@ -243,3 +255,7 @@ def test_scarf_classification():
 
     print("  Accuracy: {}".format(trial.value))
     print("  Best hyperparameters: ", trial)
+    
+
+if __name__ == "__main__":
+    test_subtab_classification()
