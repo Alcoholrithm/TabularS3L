@@ -152,7 +152,7 @@ class VIMESemiDataset(Dataset):
                     self.weights.extend([unlabeled_weight for _ in range(len(unlabeled_data))])
         
         if unlabeled_data is not None:
-            X = X.append(unlabeled_data)
+            X = pd.concat([X, unlabeled_data])
             
         self.cont_data = torch.FloatTensor(X[continous_cols].values)
         self.cat_data = torch.FloatTensor(X[category_cols].values)
