@@ -37,9 +37,9 @@ class VIMELightning(TS3LLightining):
         self.num_categoricals, self.num_continuous = num_categoricals, num_continuous
         self.u_label = u_label
         
-        self.pretraining_mask_loss = nn.BCELoss()
-        self.pretraining_feature_loss1 = nn.CrossEntropyLoss()
-        self.pretraining_feature_loss2 = nn.MSELoss()
+        self.first_phase_mask_loss = nn.BCELoss()
+        self.first_phase_feature_loss1 = nn.CrossEntropyLoss()
+        self.first_phase_feature_loss2 = nn.MSELoss()
         
         self.consistency_loss = nn.MSELoss()
 
@@ -75,35 +75,35 @@ class VIMELightning(TS3LLightining):
         elif len(missings) > 1:
             raise KeyError("model_hparams requires {%s, and %s}" % (', '.join(missings[:-1]), missings[-1]))
     
-    def get_pretraining_loss(self, batch:Dict[str, Any]):
-        """Calculate the pretraining loss
+    def get_first_phase_loss(self, batch:Dict[str, Any]):
+        """Calculate the first phase loss
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of pretraining step
+            torch.FloatTensor: The final loss of first phase step
         """
-        mask_output, feature_output = self.model.pretraining_step(batch["input"])
+        mask_output, feature_output = self.model(batch["input"])
         
-        mask_loss = self.pretraining_mask_loss(mask_output, batch["label"][0])
+        mask_loss = self.first_phase_mask_loss(mask_output, batch["label"][0])
         feature_loss1, feature_loss2 = 0, 0
         if self.num_categoricals > 0:
-            feature_loss1 = self.pretraining_feature_loss1(feature_output[:, :self.num_categoricals], batch["label"][1][:, :self.num_categoricals])
+            feature_loss1 = self.first_phase_feature_loss1(feature_output[:, :self.num_categoricals], batch["label"][1][:, :self.num_categoricals])
         if self.num_continuous > 0:
-            feature_loss2 = self.pretraining_feature_loss2(feature_output[:, self.num_categoricals:], batch["label"][1][:, self.num_categoricals:])
+            feature_loss2 = self.first_phase_feature_loss2(feature_output[:, self.num_categoricals:], batch["label"][1][:, self.num_categoricals:])
         final_loss = mask_loss + self.alpha1 * feature_loss1 + self.alpha2 * feature_loss2
 
         return final_loss
     
-    def get_finetunning_loss(self, batch:Dict[str, Any]):
-        """Calculate the finetunning loss
+    def get_second_phase_loss(self, batch:Dict[str, Any]):
+        """Calculate the second phase loss
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of finetunning step
+            torch.FloatTensor: The final loss of second phase step
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """
@@ -114,7 +114,7 @@ class VIMELightning(TS3LLightining):
         unlabeled = x[y == self.u_label]
 
         if len(unlabeled) > 0:
-            u_y_hat = self.model.finetunning_step(unlabeled)
+            u_y_hat = self.model(unlabeled)
             target = u_y_hat[::self.consistency_len]
             target = target.repeat(1, self.K).reshape((-1, u_y_hat.shape[-1]))
             preds = torch.stack([u_y_hat[i, :] for i in range(len(u_y_hat)) if i % self.consistency_len != 0], dim = 0)
@@ -123,7 +123,7 @@ class VIMELightning(TS3LLightining):
         labeled_x = x[y != self.u_label].squeeze()
         labeled_y = y[y != self.u_label].squeeze()
 
-        y_hat = self.model.finetunning_step(labeled_x).squeeze()
+        y_hat = self.model(labeled_x).squeeze()
 
         supervised_loss = self.loss_fn(y_hat, labeled_y)
         
@@ -133,7 +133,7 @@ class VIMELightning(TS3LLightining):
     
     def predict_step(self, batch, batch_idx: int
         ) -> torch.FloatTensor:
-            """The perdict step of VIME
+            """The predict step of VIME
 
             Args:
                 batch (Dict[str, Any]): The input batch
@@ -142,6 +142,6 @@ class VIMELightning(TS3LLightining):
             Returns:
                 torch.FloatTensor: The predicted output (logit)
             """
-            y_hat = self.model.finetunning_step(batch["input"])
+            y_hat = self.model.second_phase_step(batch["input"])
 
             return y_hat

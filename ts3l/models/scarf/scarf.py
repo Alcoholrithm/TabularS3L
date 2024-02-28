@@ -64,11 +64,6 @@ class SCARF(nn.Module):
         self.encoder.apply(self._init_weights)
         self.pretraining_head.apply(self._init_weights)
         
-        # self.n_sampling_candidate = sampling_candidate.shape[0]
-        # self.sampling_candidate = torch.FloatTensor(sampling_candidate.T)
-        
-        # self.marginals = Uniform(torch.Tensor(features_low), torch.Tensor(features_high))
-        # self.corruption_len = int(corruption_rate * input_dim)
 
     
     def _init_weights(self, module):
@@ -76,16 +71,14 @@ class SCARF(nn.Module):
             torch.nn.init.xavier_uniform_(module.weight)
             module.bias.data.fill_(0.01)
             
-    def do_pretraining(self):
-        self.forward = self.pretraining_step
+    def set_first_phase(self):
+        self.forward = self.first_phase_step
     
-    def do_finetunning(self):
-        self.forward = self.finetunning_step
+    def set_second_phase(self):
+        self.forward = self.second_phase_step
 
-    def pretraining_step(self, x, x_corrupted):
-        batch_size, m = x.size()
+    def first_phase_step(self, x, x_corrupted):
 
-        # compute embeddings
         emb_anchor = self.encoder(x)
         emb_anchor = self.pretraining_head(emb_anchor)
 
@@ -97,7 +90,7 @@ class SCARF(nn.Module):
 
         return emb_anchor, emb_corrupted
     
-    def finetunning_step(self, x):
+    def second_phase_step(self, x):
         emb = self.encoder(x)
         output = self.head(emb)
 

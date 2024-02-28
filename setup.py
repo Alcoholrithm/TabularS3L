@@ -1,4 +1,4 @@
-# Copyright Alcoholrithm
+# Copyright (c) Alcoholrithm
 # Licensed under the MIT License.
 
 """ Setup

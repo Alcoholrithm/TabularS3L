@@ -38,7 +38,8 @@ class SCARFLightning(TS3LLightining):
     
     def _check_model_hparams(self, model_hparams: Dict[str, Any]):
         pass
-    def get_pretraining_loss(self, batch):
+    
+    def get_first_phase_loss(self, batch):
         
         x, x_corrupted = batch
         emb_anchor, emb_corrupted = self.model(x, x_corrupted)
@@ -47,8 +48,8 @@ class SCARFLightning(TS3LLightining):
 
         return loss
     
-    def get_finetunning_loss(self, batch:Dict[str, Any]):
-        """Calculate the finetunning loss
+    def get_second_phase_loss(self, batch:Dict[str, Any]):
+        """Calculate the second phase loss
 
         Args:
             batch (Dict[str, Any]): The input batch
@@ -67,7 +68,7 @@ class SCARFLightning(TS3LLightining):
     
     def predict_step(self, batch, batch_idx: int
     ) -> torch.FloatTensor:
-        """The perdict step of VIME
+        """The perdict step of SCARF
 
         Args:
             batch (Dict[str, Any]): The input batch
@@ -76,6 +77,6 @@ class SCARFLightning(TS3LLightining):
         Returns:
             torch.FloatTensor: The predicted output (logit)
         """
-        y_hat = self.model.finetunning_step(batch)
+        y_hat = self.model.second_phase_step(batch)
 
         return y_hat

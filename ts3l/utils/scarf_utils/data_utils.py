@@ -48,7 +48,6 @@ class SCARFDataset(Dataset):
 
                 corruption_mask[corruption_idx] = True
                 
-                
                 x_random = torch.randint(0, self.n_sampling_candidate, corruption_mask.shape)
                 x_corrupted = torch.FloatTensor([self.data[:, i][x_random[i]] for i in range(self.n_features)])
                 x_corrupted = torch.where(corruption_mask, x_corrupted, self.data[idx])

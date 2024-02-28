@@ -18,20 +18,20 @@ class VIME(nn.Module):
         self.self_net = VIMESelfSupervised(encoder_dim)
         self.semi_net = VIMESemiSupervised(encoder_dim, predictor_hidden_dim, predictor_output_dim)
         
-        self.do_pretraining()
+        self.set_first_phase()
     
-    def do_pretraining(self):
-        """Set pretraining step as the forward pass
+    def set_first_phase(self):
+        """Set first phase step as the forward pass
         """
-        self.forward = self.pretraining_step
+        self.forward = self.first_phase_step
     
-    def do_finetunning(self):
-        """Set finetunning step as the forward pass
+    def set_second_phase(self):
+        """Set second phase step as the forward pass
         """
-        self.forward = self.finetunning_step
+        self.forward = self.second_phase_step
         
-    def pretraining_step(self, x):
-        """The pretraining step of VIME
+    def first_phase_step(self, x):
+        """The first phase step of VIME
 
         Args:
             x (torch.FloatTensor): The input batch
@@ -44,8 +44,8 @@ class VIME(nn.Module):
         return mask_output, feature_output
     
     
-    def finetunning_step(self, x):
-        """The finetunning step of VIME
+    def second_phase_step(self, x):
+        """The second phase step of VIME
 
         Args:
             x (torch.FloatTensor): The input batch.

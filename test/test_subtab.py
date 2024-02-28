@@ -14,7 +14,8 @@ def test_subtab_classification():
     import torch.nn as nn
 
     import sys
-    sys.path.append("/home/runner/work/TabularS3L/TabularS3L/test")
+    sys.path.append('.')
+    
     from diabetes import load_diabetes
 
     data, label, continuous_cols, category_cols = load_diabetes()
@@ -57,7 +58,7 @@ def test_subtab_classification():
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams), n_jobs = n_jobs)
 
-        model.do_pretraining()
+        model.set_first_phase()
 
         callbacks = [
             EarlyStopping(
@@ -91,7 +92,7 @@ def test_subtab_classification():
 
         model = SubTabLightning.load_from_checkpoint(pretraining_path)
 
-        model.do_finetunning()
+        model.set_second_phase()
         
         train_ds = SubTabDataset(X_train, y_train.values)
         test_ds = SubTabDataset(X_valid, y_valid.values)
@@ -220,7 +221,7 @@ def test_subtab_classification():
                     random_seed)
 
             pl_subtab = fit_model(pl_subtab, data_hparams)
-            pl_subtab.do_finetunning()
+            pl_subtab.set_second_phase()
 
             trainer = Trainer(
                         accelerator = accelerator,

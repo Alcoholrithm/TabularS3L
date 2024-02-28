@@ -47,17 +47,17 @@ class TS3LLightining(ABC, pl.LightningModule):
         self.optim = getattr(torch.optim, optim)
         self.optim_hparams = optim_hparams
 
-        self.scheduler = getattr(torch.optim.lr_scheduler, scheduler)
+        self.sched = getattr(torch.optim.lr_scheduler, scheduler) if scheduler is not None else None
         self.scheduler_hparams = scheduler_hparams
         
         self.loss_fn = loss_fn(**loss_hparams)
         
         self.scorer = scorer
             
-        self.do_pretraining()
+        self.set_first_phase()
 
-        self.pretraining_step_outputs = []
-        self.finetunning_step_outputs = []
+        self.first_phase_step_outputs = []
+        self.second_phase_step_outputs = []
         self.save_hyperparameters()
     
     @abstractmethod
@@ -72,28 +72,28 @@ class TS3LLightining(ABC, pl.LightningModule):
         """Configure the optimizer
         """
         self.optimizer = self.optim(self.parameters(), **self.optim_hparams)
-        if len(self.scheduler_hparams) == 0:
+        if self.sched is None:
             return [self.optimizer]
-        self.scheduler = self.scheduler(self.optimizer, **self.scheduler_hparams)
+        self.scheduler = self.sched(self.optimizer, **self.scheduler_hparams)
         return [self.optimizer], [{'scheduler': self.scheduler, 'interval': 'step'} ]
 
-    def do_pretraining(self) -> None:
+    def set_first_phase(self) -> None:
         """Set the module to pretraining
         """
-        self.model.do_pretraining()
-        self.training_step = self.pretraining_step
-        self.on_validation_start = self.on_pretraining_validation_start
-        self.validation_step = self.pretraining_step
-        self.on_validation_epoch_end = self.pretraining_validation_epoch_end
+        self.model.set_first_phase()
+        self.training_step = self.first_phase_step
+        self.on_validation_start = self.on_first_phase_validation_start
+        self.validation_step = self.first_phase_step
+        self.on_validation_epoch_end = self.first_phase_validation_epoch_end
 
-    def do_finetunning(self) -> None:
+    def set_second_phase(self) -> None:
         """Set the module to finetunning
         """
-        self.model.do_finetunning()
-        self.training_step = self.finetuning_step
-        self.on_validation_start = self.on_finetunning_validation_start
-        self.validation_step = self.finetuning_step
-        self.on_validation_epoch_end = self.finetuning_validation_epoch_end
+        self.model.set_second_phase()
+        self.training_step = self.second_phase_step
+        self.on_validation_start = self.on_second_phase_validation_start
+        self.validation_step = self.second_phase_step
+        self.on_validation_epoch_end = self.second_phase_validation_epoch_end
 
     def forward(self,
                 batch:Dict[str, Any]
@@ -110,89 +110,89 @@ class TS3LLightining(ABC, pl.LightningModule):
     
 
     @abstractmethod
-    def get_pretraining_loss(self, batch:Dict[str, Any]):
-        """Calculate the pretraining loss
+    def get_first_phase_loss(self, batch:Dict[str, Any]):
+        """Calculate the first phase loss
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of pretraining step
+            torch.FloatTensor: The final loss of first phase step
         """
         pass
     
-    def pretraining_step(self,
+    def first_phase_step(self,
                       batch,
                       batch_idx: int
     ) -> Dict[str, Any]:
-        """Pretraining step of VIME
+        """The first phase step of TabularS3L
 
         Args:
             batch (Dict[str, Any]): The input batch
-            batch_idx (int): For compatibility, do not use
+            batch_idx (int): Only for compatibility
 
         Returns:
-            Dict[str, Any]: The loss of the pretraining step
+            Dict[str, Any]: The loss of the first phase step
         """
 
-        loss = self.get_pretraining_loss(batch)
-        self.pretraining_step_outputs.append({
+        loss = self.get_first_phase_loss(batch)
+        self.first_phase_step_outputs.append({
             "loss" : loss
         })
         return {
             "loss" : loss
         }
 
-    def on_pretraining_validation_start(self):
-        """Log the training loss of the pretraining
+    def on_first_phase_validation_start(self):
+        """Log the training loss of the first_phase
         """
-        if len(self.pretraining_step_outputs) > 0:
-            train_loss = torch.Tensor([out["loss"] for out in self.pretraining_step_outputs]).cpu().mean()
+        if len(self.first_phase_step_outputs) > 0:
+            train_loss = torch.Tensor([out["loss"] for out in self.first_phase_step_outputs]).cpu().mean()
             
             self.log("train_loss", train_loss, prog_bar = True)
             
-            self.pretraining_step_outputs = []    
+            self.first_phase_step_outputs = []    
         return super().on_validation_start() 
     
-    def pretraining_validation_epoch_end(self) -> None:
-        """Log the validation loss of the pretraining
+    def first_phase_validation_epoch_end(self) -> None:
+        """Log the validation loss of the first phase
         """
-        val_loss = torch.Tensor([out["loss"] for out in self.pretraining_step_outputs]).cpu().mean()
+        val_loss = torch.Tensor([out["loss"] for out in self.first_phase_step_outputs]).cpu().mean()
 
         self.log("val_loss", val_loss, prog_bar = True)
-        self.pretraining_step_outputs = []
+        self.first_phase_step_outputs = []
         return super().on_validation_epoch_end()
 
     @abstractmethod
-    def get_finetunning_loss(self, batch:Dict[str, Any]):
-        """Calculate the finetunning loss
+    def get_second_phase_loss(self, batch:Dict[str, Any]):
+        """Calculate the second phase loss
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of finetunning step
+            torch.FloatTensor: The final loss of second phase step
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """
         pass
         
     
-    def finetuning_step(self,
+    def second_phase_step(self,
                       batch,
                       batch_idx: int = 0
     ) -> Dict[str, Any]:
-        """Finetunning step of VIME
+        """The second phase step of TabularS3L
 
         Args:
             batch (Dict[str, Any]): The input batch
-            batch_idx (int): For compatibility, do not use
+            batch_idx (int): Only for compatibility
 
         Returns:
-            Dict[str, Any]: The loss of the finetunning step
+            Dict[str, Any]: The loss of the second phase step
         """
-        loss, y, y_hat = self.get_finetunning_loss(batch)
-        self.finetunning_step_outputs.append(
+        loss, y, y_hat = self.get_second_phase_loss(batch)
+        self.second_phase_step_outputs.append(
             {
             "loss" : loss,
             "y" : y,
@@ -203,34 +203,34 @@ class TS3LLightining(ABC, pl.LightningModule):
             "loss" : loss
         }
     
-    def on_finetunning_validation_start(self):
-        """Log the training loss and the performance of the finetunning
+    def on_second_phase_validation_start(self):
+        """Log the training loss and the performance of the second phase
         """
-        if len(self.finetunning_step_outputs) > 0:
-            train_loss = torch.Tensor([out["loss"] for out in self.finetunning_step_outputs]).cpu().mean()
-            y = torch.cat([out["y"] for out in self.finetunning_step_outputs]).cpu().detach().numpy()
-            y_hat = torch.cat([out["y_hat"] for out in self.finetunning_step_outputs]).cpu().detach().numpy()
+        if len(self.second_phase_step_outputs) > 0:
+            train_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).cpu().mean()
+            y = torch.cat([out["y"] for out in self.second_phase_step_outputs]).cpu().detach().numpy()
+            y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs]).cpu().detach().numpy()
             
             train_score = self.scorer(y, y_hat)
             
             self.log("train_loss", train_loss, prog_bar = True)
             self.log("train_" + self.scorer.__name__, train_score, prog_bar = True)
-            self.finetunning_step_outputs = []   
+            self.second_phase_step_outputs = []   
             
         return super().on_validation_start()
     
-    def finetuning_validation_epoch_end(self) -> None:
-        """Log the validation loss and the performance of the finetunning
+    def second_phase_validation_epoch_end(self) -> None:
+        """Log the validation loss and the performance of the second phase
         """
-        val_loss = torch.Tensor([out["loss"] for out in self.finetunning_step_outputs]).cpu().mean()
+        val_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).cpu().mean()
 
-        y = torch.cat([out["y"] for out in self.finetunning_step_outputs]).cpu().numpy()
-        y_hat = torch.cat([out["y_hat"] for out in self.finetunning_step_outputs]).cpu().numpy()
+        y = torch.cat([out["y"] for out in self.second_phase_step_outputs]).cpu().numpy()
+        y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs]).cpu().numpy()
         val_score = self.scorer(y, y_hat)
 
         self.log("val_" + self.scorer.__name__, val_score, prog_bar = True)
         self.log("val_loss", val_loss, prog_bar = True)
-        self.finetunning_step_outputs = []      
+        self.second_phase_step_outputs = []      
         return super().on_validation_epoch_end()
     
     @abstractmethod
@@ -240,7 +240,7 @@ class TS3LLightining(ABC, pl.LightningModule):
 
         Args:
             batch (Dict[str, Any]): The input batch
-            batch_idx (int): For compatibility, do not use
+            batch_idx (int): Only for compatibility
 
         Returns:
             torch.FloatTensor: The predicted output (logit)

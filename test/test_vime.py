@@ -14,7 +14,8 @@ def test_vime_classification():
     import torch.nn as nn
 
     import sys
-    sys.path.append("/home/runner/work/TabularS3L/TabularS3L/test")
+    sys.path.append('.')
+    
     from diabetes import load_diabetes
 
     data, label, continuous_cols, category_cols = load_diabetes()
@@ -57,7 +58,7 @@ def test_vime_classification():
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', n_jobs = n_jobs)
 
-        model.do_pretraining()
+        model.set_first_phase()
 
         callbacks = [
             EarlyStopping(
@@ -91,7 +92,7 @@ def test_vime_classification():
 
         model = VIMELightning.load_from_checkpoint(pretraining_path)
 
-        model.do_finetunning()
+        model.set_second_phase()
         
         train_ds = VIMESemiDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols)
         test_ds = VIMESemiDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols)
@@ -210,7 +211,7 @@ def test_vime_classification():
                     random_seed)
 
             pl_subtab = fit_model(pl_subtab, data_hparams)
-            pl_subtab.do_finetunning()
+            pl_subtab.set_second_phase()
 
             trainer = Trainer(
                         accelerator = accelerator,

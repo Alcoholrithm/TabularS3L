@@ -15,7 +15,8 @@ def test_scarf_classification():
     import torch.nn as nn
 
     import sys
-    sys.path.append("/home/runner/work/TabularS3L/TabularS3L/test")
+    sys.path.append('.')
+    
     from diabetes import load_diabetes
 
     data, label, continuous_cols, category_cols = load_diabetes()
@@ -58,7 +59,7 @@ def test_scarf_classification():
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size=batch_size, train_sampler="random")
 
-        model.do_pretraining()
+        model.set_first_phase()
 
         callbacks = [
             EarlyStopping(
@@ -92,7 +93,7 @@ def test_scarf_classification():
 
         model = SCARFLightning.load_from_checkpoint(pretraining_path)
 
-        model.do_finetunning()
+        model.set_second_phase()
         
             
         train_ds = SCARFDataset(X_train, y_train.values)

@@ -22,7 +22,7 @@ class SubTabLightning(TS3LLightining):
         
         self.model = SubTab(**hparams)
         
-        self.pretraining_loss = JointLoss(model_hparams["batch_size"],
+        self.second_phase_loss = JointLoss(model_hparams["batch_size"],
                                           model_hparams["tau"],
                                           model_hparams["n_subsets"],
                                           model_hparams["use_contrastive"],
@@ -47,14 +47,14 @@ class SubTabLightning(TS3LLightining):
         projections = projections.reshape((self.n_subsets, samples, dim))
         return torch.concat([projections[:, i] for i in range(samples)])
 
-    def get_pretraining_loss(self, batch:Tuple[torch.FloatTensor, Union[torch.FloatTensor, torch.LongTensor]]):
-        """Calculate the pretraining loss
+    def get_first_phase_loss(self, batch:Tuple[torch.FloatTensor, Union[torch.FloatTensor, torch.LongTensor]]):
+        """Calculate the first phase loss
 
         Args:
             batch (Tuple[torch.FloatTensor, Union[torch.FloatTensor, torch.LongTensor]]): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of pretraining step
+            torch.FloatTensor: The final loss of first phase step
         """
         x, y_recons, y = batch
         projections, x_recons, x = self.model(x)
@@ -63,18 +63,18 @@ class SubTabLightning(TS3LLightining):
         
         projections = self.arange_subsets(projections)
         
-        total_loss, contrastive_loss, recon_loss, dist_loss = self.pretraining_loss(projections, x_recons, recon_label)
+        total_loss, contrastive_loss, recon_loss, dist_loss = self.second_phase_loss(projections, x_recons, recon_label)
 
         return total_loss
     
-    def get_finetunning_loss(self, batch:Dict[str, Any]):
-        """Calculate the finetunning loss
+    def get_second_phase_loss(self, batch:Dict[str, Any]):
+        """Calculate the second phase loss
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of finetunning step
+            torch.FloatTensor: The final loss of second phase step
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """

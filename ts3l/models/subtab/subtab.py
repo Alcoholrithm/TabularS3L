@@ -94,19 +94,19 @@ class SubTab(nn.Module):
         self.ae = AutoEncoder(self.feat_dim, emb_dim, n_subsets, overlap_ratio)
         
         self.head = nn.Sequential(
-            nn.Linear(emb_dim, out_dim) ## dropout 넣?말
+            nn.Linear(emb_dim, out_dim)
         )
-        self.do_pretraining()
+        self.set_first_phase()
         
     
 
-    def do_pretraining(self) -> None:
-        self.forward = self.pretraining_step
+    def set_first_phase(self) -> None:
+        self.forward = self.first_phase_step
     
-    def do_finetunning(self) -> None:
-        self.forward = self.finetunning_step
+    def set_second_phase(self) -> None:
+        self.forward = self.second_phase_step
 
-    def pretraining_step(self, x : torch.Tensor) -> torch.Tensor:
+    def first_phase_step(self, x : torch.Tensor) -> torch.Tensor:
 
         latents, projections, x_recons = self.ae(x)
         
@@ -119,7 +119,7 @@ class SubTab(nn.Module):
         latent = latent.reshape((self.n_subsets, samples, dim))
         return torch.concat([latent[:, i] for i in range(samples)])
     
-    def finetunning_step(self, 
+    def second_phase_step(self, 
                   x : torch.Tensor,
                   return_embeddings : bool = False) -> torch.Tensor:
 
