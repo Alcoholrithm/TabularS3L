@@ -55,7 +55,7 @@ class SubTabCollateFN(object):
         self.n_overlap = int(self.overlap_ratio * self.n_column_subset)
         self.column_idx = np.array(range(self.n_column))
     
-    def generate_noisy_xbar(self, x : torch.FloatTensor) -> torch.Tensor:
+    def __generate_noisy_xbar(self, x : torch.FloatTensor) -> torch.Tensor:
         """Generates noisy version of the samples x
         """
         no, dim = x.shape
@@ -71,9 +71,9 @@ class SubTabCollateFN(object):
 
         return x_bar
     
-    def generate_x_tilde(self, x: torch.FloatTensor, subset_column_idx: NDArray[np.int32]) -> torch.FloatTensor:
+    def __generate_x_tilde(self, x: torch.FloatTensor, subset_column_idx: NDArray[np.int32]) -> torch.FloatTensor:
         x_bar = x[:, subset_column_idx]
-        x_bar_noisy = self.generate_noisy_xbar(x_bar)
+        x_bar_noisy = self.__generate_noisy_xbar(x_bar)
         
         mask = torch.distributions.binomial.Binomial(total_count = 1, probs = self.mask_ratio).sample(x_bar.shape).to(x_bar.device)
         
@@ -81,7 +81,7 @@ class SubTabCollateFN(object):
         
         return x_bar
     
-    def generate_subset(self,
+    def __generate_subset(self,
                         x : torch.Tensor,
     ) -> torch.FloatTensor:
 
@@ -97,13 +97,13 @@ class SubTabCollateFN(object):
         if len(subset_column_indice) == 1:
             subset_column_indice = np.concatenate([subset_column_indice, subset_column_indice])
         
-        x_tildes = torch.concat([self.generate_x_tilde(x, subset_column_indice[i]) for i in range(self.n_subsets)]) # [subset1, subset2, ... ,  subsetN]
+        x_tildes = torch.concat([self.__generate_x_tilde(x, subset_column_indice[i]) for i in range(self.n_subsets)]) # [subset1, subset2, ... ,  subsetN]
 
         return x_tildes
     
     def __call__(self, batch):
         y_recons = torch.stack([sample[0] for sample in batch])
-        x = self.generate_subset(y_recons)
+        x = self.__generate_subset(y_recons)
         y = torch.tensor([sample[1] for sample in batch])
         
         return x, y_recons, y

@@ -11,17 +11,21 @@ class VIMELightning(TS3LLightining):
     
     def __init__(self, 
                  model_hparams: Dict[str, Any],
-                 optim: torch.optim,
-                 optim_hparams: Dict[str, Any],
-                 scheduler: torch.optim.lr_scheduler,
-                 scheduler_hparams: Dict[str, Any],
-                 num_categoricals: int,
-                 num_continuous: int,
-                 u_label: Any,
-                 loss_fn: nn.Module,
-                 loss_hparams: Dict[str, Any],
-                 scorer: Type[BaseScorer],
-                 random_seed: int = 0):
+                 optim: torch.optim = torch.optim.AdamW,
+                 optim_hparams: Dict[str, Any] = {
+                                                    "lr" : 0.0001,
+                                                    "weight_decay" : 0.00005
+                                                },
+                 scheduler: torch.optim.lr_scheduler = None,
+                 scheduler_hparams: Dict[str, Any] = {},
+                 num_categoricals: int = 0,
+                 num_continuous: int = 0,
+                 u_label: Any = -1,
+                 loss_fn: nn.Module = nn.CrossEntropyLoss,
+                 loss_hparams: Dict[str, Any] = {},
+                 scorer: Type[BaseScorer] = None,
+                 random_seed: int = 0
+    ):
         
         super(VIMELightning, self).__init__(
                  model_hparams,
@@ -75,7 +79,7 @@ class VIMELightning(TS3LLightining):
         elif len(missings) > 1:
             raise KeyError("model_hparams requires {%s, and %s}" % (', '.join(missings[:-1]), missings[-1]))
     
-    def get_first_phase_loss(self, batch:Dict[str, Any]):
+    def _get_first_phase_loss(self, batch:Dict[str, Any]):
         """Calculate the first phase loss
 
         Args:
@@ -96,7 +100,7 @@ class VIMELightning(TS3LLightining):
 
         return final_loss
     
-    def get_second_phase_loss(self, batch:Dict[str, Any]):
+    def _get_second_phase_loss(self, batch:Dict[str, Any]):
         """Calculate the second phase loss
 
         Args:
@@ -112,7 +116,7 @@ class VIMELightning(TS3LLightining):
         
         unsupervised_loss = 0
         unlabeled = x[y == self.u_label]
-
+        
         if len(unlabeled) > 0:
             u_y_hat = self.model(unlabeled)
             target = u_y_hat[::self.consistency_len]
@@ -137,11 +141,11 @@ class VIMELightning(TS3LLightining):
 
             Args:
                 batch (Dict[str, Any]): The input batch
-                batch_idx (int): For compatibility, do not use
+                batch_idx (int): Only for compatibility, do not use
 
             Returns:
                 torch.FloatTensor: The predicted output (logit)
             """
-            y_hat = self.model.second_phase_step(batch["input"])
+            y_hat = self(batch["input"])
 
             return y_hat

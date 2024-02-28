@@ -131,13 +131,13 @@ def test_vime_classification():
         trainer.fit(model, pl_datamodule)
 
         model = VIMELightning.load_from_checkpoint(checkpoint_callback.best_model_path)
+        model.set_second_phase()
         
         return model
 
     hparams_range = {
         
     'predictor_hidden_dim' : ['suggest_int', ['predictor_hidden_dim', 16, 512]],
-    # 'predictor_output_dim' : ['suggest_int', ['emb_dim', 16, 512]],
     
     'p_m' : ["suggest_float", ["p_m", 0.1, 0.9]],
     'alpha1' : ["suggest_float", ["alpha1", 0.1, 5]],
@@ -147,8 +147,6 @@ def test_vime_classification():
 
 
     'lr' : ['suggest_float', ['lr', 0.0001, 0.05]],
-    'gamma' : ['suggest_float', ['gamma', 0.1, 0.95]],
-    'step_size' : ['suggest_int', ['step_size', 10, 100]],
     }
 
     import optuna
@@ -187,8 +185,6 @@ def test_vime_classification():
                 "lr" : None
             }
             scheduler_hparams = {
-                'gamma' : None,
-                'step_size' : None
             }
 
             for k, v in hparams_range.items():
@@ -203,7 +199,7 @@ def test_vime_classification():
 
             pl_subtab = VIMELightning(
                     model_hparams,
-                    "Adam", optim_hparams, "StepLR", scheduler_hparams,
+                    "Adam", optim_hparams, None, scheduler_hparams,
                     num_categoricals, num_continuous, -1,
                     loss_fn,
                     {},

@@ -9,31 +9,32 @@ from torch import nn
 import pytorch_lightning as pl
 
 class TS3LLightining(ABC, pl.LightningModule):
-    """The pytorch lightning module of VIME
+    """The pytorch lightning module of TabularS3L
     """
     def __init__(self,
                  model_hparams: Dict[str, Any],
-                 optim: torch.optim,
-                 optim_hparams: Dict[str, Any],
-                 scheduler: torch.optim.lr_scheduler,
-                 scheduler_hparams: Dict[str, Any],
-                 loss_fn: nn.Module,
-                 loss_hparams: Dict[str, Any],
-                 scorer: Type[BaseScorer],
+                 optim: torch.optim = torch.optim.AdamW,
+                 optim_hparams: Dict[str, Any] = {
+                                                    "lr" : 0.0001,
+                                                    "weight_decay" : 0.00005
+                                                },
+                 scheduler: torch.optim.lr_scheduler = None,
+                 scheduler_hparams: Dict[str, Any] = {},
+                 loss_fn: nn.Module = nn.CrossEntropyLoss,
+                 loss_hparams: Dict[str, Any] = {},
+                 scorer: Type[BaseScorer] = None,
                  random_seed: int = 0
     ) -> None:
-        """Initialize the pytorch lightining module of VIME
+        """Initialize the pytorch lightining module of TabularS3L
 
         Args:
-            model_hparams (Dict[str, Any]): The hyperparameters of VIME
+            model_hparams (Dict[str, Any]): The hyperparameters of TabularS3L
             optim (torch.optim): The optimizer for training
             optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer
             scheduler (torch.optim.lr_scheduler): The scheduler for training
             scheduler_hparams (Dict[str, Any]): The hyperparameters of the scheduler
-            num_categoricals (int): The number of categorical features
-            num_continuous (int): The number of continuous features
-            u_label (Any): The specifier for unlabeled data.
             loss_fn (nn.Module): The loss function of pytorch
+            loss_hparams (Dict[str, Any]): The hyperparameters of the loss function
             scorer (BaseScorer): The scorer to measure the performance
             random_seed (int, optional): The random seed. Defaults to 0.
         """
@@ -81,19 +82,19 @@ class TS3LLightining(ABC, pl.LightningModule):
         """Set the module to pretraining
         """
         self.model.set_first_phase()
-        self.training_step = self.first_phase_step
-        self.on_validation_start = self.on_first_phase_validation_start
-        self.validation_step = self.first_phase_step
-        self.on_validation_epoch_end = self.first_phase_validation_epoch_end
+        self.training_step = self._first_phase_step
+        self.on_validation_start = self._on_first_phase_validation_start
+        self.validation_step = self._first_phase_step
+        self.on_validation_epoch_end = self._first_phase_validation_epoch_end
 
     def set_second_phase(self) -> None:
         """Set the module to finetunning
         """
         self.model.set_second_phase()
-        self.training_step = self.second_phase_step
-        self.on_validation_start = self.on_second_phase_validation_start
-        self.validation_step = self.second_phase_step
-        self.on_validation_epoch_end = self.second_phase_validation_epoch_end
+        self.training_step = self._second_phase_step
+        self.on_validation_start = self._on_second_phase_validation_start
+        self.validation_step = self._second_phase_step
+        self.on_validation_epoch_end = self._second_phase_validation_epoch_end
 
     def forward(self,
                 batch:Dict[str, Any]
@@ -110,7 +111,7 @@ class TS3LLightining(ABC, pl.LightningModule):
     
 
     @abstractmethod
-    def get_first_phase_loss(self, batch:Dict[str, Any]):
+    def _get_first_phase_loss(self, batch:Dict[str, Any]):
         """Calculate the first phase loss
 
         Args:
@@ -121,7 +122,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         """
         pass
     
-    def first_phase_step(self,
+    def _first_phase_step(self,
                       batch,
                       batch_idx: int
     ) -> Dict[str, Any]:
@@ -135,7 +136,7 @@ class TS3LLightining(ABC, pl.LightningModule):
             Dict[str, Any]: The loss of the first phase step
         """
 
-        loss = self.get_first_phase_loss(batch)
+        loss = self._get_first_phase_loss(batch)
         self.first_phase_step_outputs.append({
             "loss" : loss
         })
@@ -143,7 +144,7 @@ class TS3LLightining(ABC, pl.LightningModule):
             "loss" : loss
         }
 
-    def on_first_phase_validation_start(self):
+    def _on_first_phase_validation_start(self):
         """Log the training loss of the first_phase
         """
         if len(self.first_phase_step_outputs) > 0:
@@ -154,7 +155,7 @@ class TS3LLightining(ABC, pl.LightningModule):
             self.first_phase_step_outputs = []    
         return super().on_validation_start() 
     
-    def first_phase_validation_epoch_end(self) -> None:
+    def _first_phase_validation_epoch_end(self) -> None:
         """Log the validation loss of the first phase
         """
         val_loss = torch.Tensor([out["loss"] for out in self.first_phase_step_outputs]).cpu().mean()
@@ -164,7 +165,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         return super().on_validation_epoch_end()
 
     @abstractmethod
-    def get_second_phase_loss(self, batch:Dict[str, Any]):
+    def _get_second_phase_loss(self, batch:Dict[str, Any]):
         """Calculate the second phase loss
 
         Args:
@@ -178,7 +179,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         pass
         
     
-    def second_phase_step(self,
+    def _second_phase_step(self,
                       batch,
                       batch_idx: int = 0
     ) -> Dict[str, Any]:
@@ -191,7 +192,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         Returns:
             Dict[str, Any]: The loss of the second phase step
         """
-        loss, y, y_hat = self.get_second_phase_loss(batch)
+        loss, y, y_hat = self._get_second_phase_loss(batch)
         self.second_phase_step_outputs.append(
             {
             "loss" : loss,
@@ -203,7 +204,7 @@ class TS3LLightining(ABC, pl.LightningModule):
             "loss" : loss
         }
     
-    def on_second_phase_validation_start(self):
+    def _on_second_phase_validation_start(self):
         """Log the training loss and the performance of the second phase
         """
         if len(self.second_phase_step_outputs) > 0:
@@ -219,7 +220,7 @@ class TS3LLightining(ABC, pl.LightningModule):
             
         return super().on_validation_start()
     
-    def second_phase_validation_epoch_end(self) -> None:
+    def _second_phase_validation_epoch_end(self) -> None:
         """Log the validation loss and the performance of the second phase
         """
         val_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).cpu().mean()

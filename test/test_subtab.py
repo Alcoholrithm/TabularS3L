@@ -131,6 +131,7 @@ def test_subtab_classification():
         trainer.fit(model, pl_datamodule)
 
         model = SubTabLightning.load_from_checkpoint(checkpoint_callback.best_model_path)
+        model.set_second_phase()
         
         return model
 
@@ -151,8 +152,6 @@ def test_subtab_classification():
     "noise_type" : ["suggest_categorical", ["noise_type", ["Swap", "Gaussian", "Zero_Out"]]],
 
     'lr' : ['suggest_float', ['lr', 0.0001, 0.05]],
-    'gamma' : ['suggest_float', ['gamma', 0.1, 0.95]],
-    'step_size' : ['suggest_int', ['step_size', 10, 100]],
     }
 
     import optuna
@@ -198,8 +197,6 @@ def test_subtab_classification():
                 "lr" : None
             }
             scheduler_hparams = {
-                'gamma' : None,
-                'step_size' : None
             }
 
             for k, v in hparams_range.items():
@@ -214,7 +211,7 @@ def test_subtab_classification():
 
             pl_subtab = SubTabLightning(
                     model_hparams,
-                    "Adam", optim_hparams, "StepLR", scheduler_hparams,
+                    "Adam", optim_hparams, None, scheduler_hparams,
                     loss_fn,
                     {},
                     AccuracyScorer("accuracy_score"),

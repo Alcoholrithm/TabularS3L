@@ -133,7 +133,7 @@ def test_scarf_classification():
         trainer.fit(model, pl_datamodule)
 
         model = SCARFLightning.load_from_checkpoint(checkpoint_callback.best_model_path)
-        
+        model.set_second_phase()
         return model
 
     hparams_range = {
@@ -145,8 +145,6 @@ def test_scarf_classification():
         'dropout_rate' : ['suggest_float', ['dropout_rate', 0.05, 0.3]],
 
         'lr' : ['suggest_float', ['lr', 0.0001, 0.05]],
-        'gamma' : ['suggest_float', ['gamma', 0.1, 0.95]],
-        'step_size' : ['suggest_int', ['step_size', 10, 100]],
     }
 
     import optuna
@@ -181,8 +179,6 @@ def test_scarf_classification():
                 "lr" : None
             }
             scheduler_hparams = {
-                'gamma' : None,
-                'step_size' : None
             }
 
             for k, v in hparams_range.items():
@@ -197,7 +193,7 @@ def test_scarf_classification():
 
             pl_scarf = SCARFLightning(
                     model_hparams,
-                    "Adam", optim_hparams, "StepLR", scheduler_hparams,
+                    "Adam", optim_hparams, None, scheduler_hparams,
                     loss_fn,
                     {},
                     AccuracyScorer("accuracy_score"),
@@ -237,3 +233,6 @@ def test_scarf_classification():
 
     print("  Accuracy: {}".format(trial.value))
     print("  Best hyperparameters: ", trial)
+    
+if __name__ == "__main__":
+    test_scarf_classification()

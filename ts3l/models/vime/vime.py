@@ -23,14 +23,14 @@ class VIME(nn.Module):
     def set_first_phase(self):
         """Set first phase step as the forward pass
         """
-        self.forward = self.first_phase_step
+        self.forward = self.__first_phase_step
     
     def set_second_phase(self):
         """Set second phase step as the forward pass
         """
-        self.forward = self.second_phase_step
+        self.forward = self.__second_phase_step
         
-    def first_phase_step(self, x):
+    def __first_phase_step(self, x):
         """The first phase step of VIME
 
         Args:
@@ -44,7 +44,7 @@ class VIME(nn.Module):
         return mask_output, feature_output
     
     
-    def second_phase_step(self, x):
+    def __second_phase_step(self, x):
         """The second phase step of VIME
 
         Args:

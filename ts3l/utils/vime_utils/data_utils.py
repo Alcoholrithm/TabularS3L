@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 import numpy as np
 
 
-def mask_generator (p_m, x):
+def _mask_generator(p_m, x):
     """Generate mask vector.
     
     Args:
@@ -22,7 +22,7 @@ def mask_generator (p_m, x):
 
     return np.expand_dims(mask, axis=0)
 
-def pretext_generator (m, x, empirical_dist):  
+def _pretext_generator(m, x, empirical_dist):  
     """Generate corrupted samples.
     
     Args:
@@ -82,12 +82,12 @@ class VIMESelfDataset(Dataset):
             Dict[str, Any]: A pair of input and label for self-supervised learning
         """
         cat_samples = self.cat_data[idx]
-        m_unlab = mask_generator(self.data_hparams["p_m"], cat_samples)
-        cat_m_label, cat_x_tilde = pretext_generator(m_unlab, cat_samples, self.cat_data)
+        m_unlab = _mask_generator(self.data_hparams["p_m"], cat_samples)
+        cat_m_label, cat_x_tilde = _pretext_generator(m_unlab, cat_samples, self.cat_data)
         
         cont_samples = self.cont_data[idx]
-        m_unlab = mask_generator(self.data_hparams["p_m"], cont_samples)
-        cont_m_label, cont_x_tilde = pretext_generator(m_unlab, cont_samples, self.cont_data)
+        m_unlab = _mask_generator(self.data_hparams["p_m"], cont_samples)
+        cont_m_label, cont_x_tilde = _pretext_generator(m_unlab, cont_samples, self.cont_data)
 
         m_label = torch.concat((cat_m_label, cont_m_label)).float()
         x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
@@ -160,7 +160,7 @@ class VIMESemiDataset(Dataset):
         self.continuous_cols = continous_cols
         self.category_cols = category_cols
         
-    def generate_x_tildes(self, cat_samples: torch.FloatTensor, cont_samples:torch.FloatTensor) -> torch.FloatTensor:
+    def __generate_x_tildes(self, cat_samples: torch.FloatTensor, cont_samples:torch.FloatTensor) -> torch.FloatTensor:
         """Generate x_tilde for consistency regularization
 
         Args:
@@ -170,11 +170,11 @@ class VIMESemiDataset(Dataset):
         Returns:
             torch.FloatTensor: x_tilde for consistency regularization
         """
-        m_unlab = mask_generator(self.data_hparams["p_m"], cat_samples)
-        dcat_m_label, cat_x_tilde = pretext_generator(m_unlab, cat_samples, self.cat_data)
+        m_unlab = _mask_generator(self.data_hparams["p_m"], cat_samples)
+        dcat_m_label, cat_x_tilde = _pretext_generator(m_unlab, cat_samples, self.cat_data)
         
-        m_unlab = mask_generator(self.data_hparams["p_m"], cont_samples)
-        cont_m_label, cont_x_tilde = pretext_generator(m_unlab, cont_samples, self.cont_data)
+        m_unlab = _mask_generator(self.data_hparams["p_m"], cont_samples)
+        cont_m_label, cont_x_tilde = _pretext_generator(m_unlab, cont_samples, self.cont_data)
         x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
         
         return x_tilde
@@ -196,7 +196,7 @@ class VIMESemiDataset(Dataset):
             if self.label[idx] == self.u_label:
                 xs = [x]
                 
-                xs.extend([self.generate_x_tildes(cat_samples, cont_samples) for _ in range(self.data_hparams["K"])])
+                xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.data_hparams["K"])])
 
                 xs = torch.stack(xs)
                 return {

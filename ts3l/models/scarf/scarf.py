@@ -72,12 +72,12 @@ class SCARF(nn.Module):
             module.bias.data.fill_(0.01)
             
     def set_first_phase(self):
-        self.forward = self.first_phase_step
+        self.forward = self.__first_phase_step
     
     def set_second_phase(self):
-        self.forward = self.second_phase_step
+        self.forward = self.__second_phase_step
 
-    def first_phase_step(self, x, x_corrupted):
+    def __first_phase_step(self, x, x_corrupted):
 
         emb_anchor = self.encoder(x)
         emb_anchor = self.pretraining_head(emb_anchor)
@@ -90,7 +90,7 @@ class SCARF(nn.Module):
 
         return emb_anchor, emb_corrupted
     
-    def second_phase_step(self, x):
+    def __second_phase_step(self, x):
         emb = self.encoder(x)
         output = self.head(emb)
 

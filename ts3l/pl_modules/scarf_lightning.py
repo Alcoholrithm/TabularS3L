@@ -11,13 +11,16 @@ class SCARFLightning(TS3LLightining):
     
     def __init__(self,         
                  model_hparams: Dict[str, Any],
-                 optim: torch.optim,
-                 optim_hparams: Dict[str, Any],
-                 scheduler: torch.optim.lr_scheduler,
-                 scheduler_hparams: Dict[str, Any],
-                 loss_fn: nn.Module,
-                 loss_hparams: Dict[str, Any],
-                 scorer: Type[BaseScorer],
+                 optim: torch.optim = torch.optim.AdamW,
+                 optim_hparams: Dict[str, Any] = {
+                                                    "lr" : 0.0001,
+                                                    "weight_decay" : 0.00005
+                                                },
+                 scheduler: torch.optim.lr_scheduler = None,
+                 scheduler_hparams: Dict[str, Any] = {},
+                 loss_fn: nn.Module = nn.CrossEntropyLoss,
+                 loss_hparams: Dict[str, Any] = {},
+                 scorer: Type[BaseScorer] = None,
                  random_seed: int = 0
                 ):
         super(SCARFLightning, self).__init__(
@@ -39,7 +42,7 @@ class SCARFLightning(TS3LLightining):
     def _check_model_hparams(self, model_hparams: Dict[str, Any]):
         pass
     
-    def get_first_phase_loss(self, batch):
+    def _get_first_phase_loss(self, batch):
         
         x, x_corrupted = batch
         emb_anchor, emb_corrupted = self.model(x, x_corrupted)
@@ -48,14 +51,14 @@ class SCARFLightning(TS3LLightining):
 
         return loss
     
-    def get_second_phase_loss(self, batch:Dict[str, Any]):
+    def _get_second_phase_loss(self, batch:Dict[str, Any]):
         """Calculate the second phase loss
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of finetunning step
+            torch.FloatTensor: The final loss of second phase step
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """
@@ -77,6 +80,6 @@ class SCARFLightning(TS3LLightining):
         Returns:
             torch.FloatTensor: The predicted output (logit)
         """
-        y_hat = self.model.second_phase_step(batch)
+        y_hat = self(batch)
 
         return y_hat

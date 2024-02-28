@@ -101,30 +101,30 @@ class SubTab(nn.Module):
     
 
     def set_first_phase(self) -> None:
-        self.forward = self.first_phase_step
+        self.forward = self.__first_phase_step
     
     def set_second_phase(self) -> None:
-        self.forward = self.second_phase_step
+        self.forward = self.__second_phase_step
 
-    def first_phase_step(self, x : torch.Tensor) -> torch.Tensor:
+    def __first_phase_step(self, x : torch.Tensor) -> torch.Tensor:
 
         latents, projections, x_recons = self.ae(x)
         
         return projections, x_recons, x
     
-    def arange_subsets(self, latent: torch.FloatTensor) -> torch.FloatTensor:
+    def __arange_subsets(self, latent: torch.FloatTensor) -> torch.FloatTensor:
         no, dim = latent.shape
         samples = int(no / self.n_subsets)
         
         latent = latent.reshape((self.n_subsets, samples, dim))
         return torch.concat([latent[:, i] for i in range(samples)])
     
-    def second_phase_step(self, 
+    def __second_phase_step(self, 
                   x : torch.Tensor,
                   return_embeddings : bool = False) -> torch.Tensor:
 
         latent = self.ae.encode(x)
-        latent = self.arange_subsets(latent)
+        latent = self.__arange_subsets(latent)
         
         latent = latent.reshape(x.shape[0] // self.n_subsets, self.n_subsets, -1).mean(1)
         out = self.head(latent)

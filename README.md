@@ -5,21 +5,26 @@ Currently, VIME ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d9
 
 #### To DO
 
-- [x] Launch nn.Module and Dataset of VIME, SubTab, and SCARF
+- [x] Release nn.Module and Dataset of VIME, SubTab, and SCARF
   - [x] VIME
   - [x] SubTab
   - [x] SCARF
-- [ ] Launch LightningModules of VIME, SubTab, and SCARF
-  - [ ] VIME
-  - [ ] SubTab
-  - [ ] SCARF
-- [ ] Add Denoising AutoEncoder
+- [x] Release LightningModules of VIME, SubTab, and SCARF
+  - [x] VIME
+  - [x] SubTab
+  - [x] SCARF
+- [ ] Release Denoising AutoEncoder
   - [ ] nn.Module
   - [ ] LightningModule
-- [ ] Add SwitchTab
+- [ ] Release SwitchTab
   - [ ] nn.Module
   - [ ] LightningModule
-- [ ] Finish README.md
+- [ ] Release PTaRL
+  - [ ] Add Backbones
+    - [ ] MLP
+    - [ ] ResNet
+    - [ ] FT-Transformer
+  - [ ] LightningModule
 
 ## Installation
 We provide a Python package ts3l of TabularS3L for users who want to use semi- and self-supervised learning tabular models.
@@ -112,3 +117,7 @@ for epoch in range(2):
         optimizer.step()
 
 ```
+
+# Contributing
+
+Contributions to this implementation are highly appreciated. Whether it's suggesting improvements, reporting bugs, or proposing new features, feel free to open an issue or submit a pull request.
