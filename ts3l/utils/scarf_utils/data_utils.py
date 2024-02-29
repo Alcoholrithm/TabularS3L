@@ -57,6 +57,10 @@ class SCARFDataset(Dataset):
             return self.data[idx]
         else:
             return self.data[idx], self.label[idx]
+            if self.is_regression:
+                return self.data[idx], self.label[idx].unsqueeze(0)  
+            else:
+                return self.data[idx], self.label[idx]
 
     def __len__(self):
         return len(self.data)
