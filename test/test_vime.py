@@ -340,7 +340,7 @@ def test_vime_regression():
         train_ds = VIMESecondPhaseDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_regression=True)
         test_ds = VIMESecondPhaseDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols, is_regression=True)
 
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="random", train_collate_fn=VIMECollateFN())
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMECollateFN())
             
         callbacks = [
             EarlyStopping(

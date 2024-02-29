@@ -194,6 +194,7 @@ class TS3LLightining(ABC, pl.LightningModule):
             Dict[str, Any]: The loss of the second phase step
         """
         loss, y, y_hat = self._get_second_phase_loss(batch)
+
         self.second_phase_step_outputs.append(
             {
             "loss" : loss,
