@@ -467,6 +467,7 @@ def test_scarf_regression():
 
     print("  MSE: {}".format(trial.value))
     print("  Best hyperparameters: ", trial)
+    
 if __name__ == "__main__":
     test_scarf_classification()
     test_scarf_regression()

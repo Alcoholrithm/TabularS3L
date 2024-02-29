@@ -9,7 +9,7 @@ Currently, VIME ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d9
   - [x] VIME
   - [x] SubTab
   - [x] SCARF
-- [x] Release LightningModules of VIME, SubTab, and SCARF
+- [ ] Release LightningModules of VIME, SubTab, and SCARF
   - [x] VIME
   - [x] SubTab
   - [x] SCARF
@@ -25,6 +25,19 @@ Currently, VIME ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d9
     - [ ] ResNet
     - [ ] FT-Transformer
   - [ ] LightningModule
+
+## Available Models
+
+TabularS3L employs a two-phase learning approach, where the learning strategies differ between phases, and the datasets used may also vary. The table below details the available models, outlining the specific datasets and learning strategies employed in each phase.
+
+| Model | Category | First Phase | Second Phase |
+|:---:|:---:|:---:|:---:|
+| **VIME** | Dataset | VIMEFirstPhaseDataset | VIMESecondPhaseDataset |
+| | Learning Strategy | Self-SL | Semi-SL or SL |
+| **SubTab** | Dataset | SubTabDataset | SubTabDataset |
+| | Learning Strategy | Self-SL | SL |
+| **SCARF** | Dataset | SCARFDataset | SCARFDataset |
+| | Learning Strategy | Self-SL | SL |
 
 ## Installation
 We provide a Python package ts3l of TabularS3L for users who want to use semi- and self-supervised learning tabular models.
