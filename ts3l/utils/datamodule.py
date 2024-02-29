@@ -37,9 +37,9 @@ class TS3LDataModule(LightningDataModule):
         self.drop_last = drop_last
 
     def setup(self, stage: str):
-        """Setup the datamodule for pytorch lightning module of VIME
+        """Setup the datamodule for pytorch lightning module of TabularS3L
         
-        Use a weighted random sampler for the finetunning step of the classification task, otherwise use a random sampler.
+        Use a weighted random sampler for the second phase step of the classification task, otherwise use a random sampler.
         
         Args:
             stage (str): For compatibility, do not use

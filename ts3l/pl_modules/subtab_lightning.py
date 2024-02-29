@@ -35,6 +35,8 @@ class SubTabLightning(TS3LLightining):
             scorer,
             random_seed
         )
+        
+        self.save_hyperparameters()
 
     def _initialize(self, model_hparams: Dict[str, Any]):
         
@@ -47,7 +49,7 @@ class SubTabLightning(TS3LLightining):
         
         self.model = SubTab(**hparams)
         
-        self.second_phase_loss = JointLoss(model_hparams["batch_size"],
+        self.first_phase_loss = JointLoss(model_hparams["batch_size"],
                                           model_hparams["tau"],
                                           model_hparams["n_subsets"],
                                           model_hparams["use_contrastive"],
@@ -88,7 +90,7 @@ class SubTabLightning(TS3LLightining):
         
         projections = self.__arange_subsets(projections)
         
-        total_loss, contrastive_loss, recon_loss, dist_loss = self.second_phase_loss(projections, x_recons, recon_label)
+        total_loss, contrastive_loss, recon_loss, dist_loss = self.first_phase_loss(projections, x_recons, recon_label)
 
         return total_loss
     
@@ -104,13 +106,22 @@ class SubTabLightning(TS3LLightining):
             torch.Tensor: The predicted label of the labeled data
         """
         x, _, y = batch
-        y_hat = self(x)
+        y_hat = self(x).squeeze()
         
         loss = self.loss_fn(y_hat, y)
         
         return loss, y, y_hat
     
     def predict_step(self, batch, batch_idx: int) -> torch.FloatTensor:
+        """The perdict step of SubTab
+
+        Args:
+            batch (Dict[str, Any]): The input batch
+            batch_idx (int): For compatibility, do not use
+
+        Returns:
+            torch.FloatTensor: The predicted output (logit)
+        """
         x, _, _ = batch
         y_hat = self(x)
         return y_hat

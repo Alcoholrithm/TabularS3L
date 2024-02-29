@@ -18,9 +18,6 @@ class VIMELightning(TS3LLightining):
                                                 },
                  scheduler: torch.optim.lr_scheduler = None,
                  scheduler_hparams: Dict[str, Any] = {},
-                 num_categoricals: int = 0,
-                 num_continuous: int = 0,
-                 u_label: Any = -1,
                  loss_fn: nn.Module = nn.CrossEntropyLoss,
                  loss_hparams: Dict[str, Any] = {},
                  scorer: Type[BaseScorer] = None,
@@ -38,14 +35,7 @@ class VIMELightning(TS3LLightining):
                  scorer,
                  random_seed)
         
-        self.num_categoricals, self.num_continuous = num_categoricals, num_continuous
-        self.u_label = u_label
         
-        self.first_phase_mask_loss = nn.BCELoss()
-        self.first_phase_feature_loss1 = nn.CrossEntropyLoss()
-        self.first_phase_feature_loss2 = nn.MSELoss()
-        
-        self.consistency_loss = nn.MSELoss()
 
     def _initialize(self, model_hparams: Dict[str, Any]):
         hparams = deepcopy(model_hparams)
@@ -62,6 +52,20 @@ class VIMELightning(TS3LLightining):
         self.consistency_len = self.K + 1
         del hparams["K"]
         
+        self.num_categoricals, self.num_continuous = hparams["num_categoricals"], hparams["num_continuous"]
+        del hparams["num_categoricals"]
+        del hparams["num_continuous"]
+        
+        self.u_label = hparams["u_label"]
+        del hparams["u_label"]
+        
+        
+        self.first_phase_mask_loss = nn.BCELoss()
+        self.first_phase_feature_loss1 = nn.CrossEntropyLoss()
+        self.first_phase_feature_loss2 = nn.MSELoss()
+        
+        self.consistency_loss = nn.MSELoss()
+
         self.model = VIME(**hparams)
     
     def _check_model_hparams(self, model_hparams: Dict[str, Any]):

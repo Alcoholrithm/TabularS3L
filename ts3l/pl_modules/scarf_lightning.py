@@ -34,20 +34,29 @@ class SCARFLightning(TS3LLightining):
             scorer,
             random_seed
         )
+        
+        self.save_hyperparameters()
 
     def _initialize(self, model_hparams: Dict[str, Any]):
         self.model = SCARF(**model_hparams)
-        self.pretraining_loss = NTXentLoss()
+        self.first_phase_loss = NTXentLoss()
     
     def _check_model_hparams(self, model_hparams: Dict[str, Any]):
         pass
     
     def _get_first_phase_loss(self, batch):
-        
+        """Calculate the first phase loss
+
+        Args:
+            batch (Dict[str, Any]): The input batch
+
+        Returns:
+            torch.FloatTensor: The final loss of first phase step
+        """
         x, x_corrupted = batch
         emb_anchor, emb_corrupted = self.model(x, x_corrupted)
 
-        loss = self.pretraining_loss(emb_anchor, emb_corrupted)
+        loss = self.first_phase_loss(emb_anchor, emb_corrupted)
 
         return loss
     
@@ -63,7 +72,7 @@ class SCARFLightning(TS3LLightining):
             torch.Tensor: The predicted label of the labeled data
         """
         x, y = batch
-        y_hat = self(x)
+        y_hat = self(x).squeeze()
 
         loss = self.loss_fn(y_hat, y)
         

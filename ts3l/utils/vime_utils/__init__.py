@@ -1,3 +1,3 @@
-from .data_utils import VIMESelfDataset, VIMESemiDataset, VIMECollateFN
+from .data_utils import VIMEFirstPhaseDataset, VIMESecondPhaseDataset, VIMECollateFN
 
-__all__ = ["VIMESelfDataset", "VIMESemiDataset", "VIMECollateFN"]
+__all__ = ["VIMEFirstPhaseDataset", "VIMESecondPhaseDataset", "VIMECollateFN"]

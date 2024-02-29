@@ -47,10 +47,13 @@ def _pretext_generator(m, x, empirical_dist):
     x_tilde = x * (1-m) + x_bar * m  
     # Define new mask matrix
     m_new = 1 * (x != x_tilde)
+    
+    if dim != 1:
+        return m_new.squeeze(), x_tilde.squeeze()
+    else:
+        return m_new.squeeze().reshape(1), x_tilde.squeeze().reshape(1)
 
-    return m_new.squeeze(), x_tilde.squeeze()
-
-class VIMESelfDataset(Dataset):
+class VIMEFirstPhaseDataset(Dataset):
     """The dataset for the self-supervised learning of VIME
     """
     def __init__(self, X: pd.DataFrame, data_hparams: Dict[str, Any], continous_cols: List = None, category_cols: List = None):
@@ -84,7 +87,7 @@ class VIMESelfDataset(Dataset):
         cat_samples = self.cat_data[idx]
         m_unlab = _mask_generator(self.data_hparams["p_m"], cat_samples)
         cat_m_label, cat_x_tilde = _pretext_generator(m_unlab, cat_samples, self.cat_data)
-        
+
         cont_samples = self.cont_data[idx]
         m_unlab = _mask_generator(self.data_hparams["p_m"], cont_samples)
         cont_m_label, cont_x_tilde = _pretext_generator(m_unlab, cont_samples, self.cont_data)
@@ -93,7 +96,7 @@ class VIMESelfDataset(Dataset):
         x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
 
         x = torch.concat((cat_samples, cont_samples))
-        
+
         return {
                 "input" : x_tilde,
                 "label" : (m_label, x)
@@ -104,7 +107,7 @@ class VIMESelfDataset(Dataset):
         """
         return len(self.cat_data)
 
-class VIMESemiDataset(Dataset):
+class VIMESecondPhaseDataset(Dataset):
     """The dataset for the semi-supervised learning of VIME
     """
     def __init__(self, X: pd.DataFrame, Y: Union[NDArray[np.int_], NDArray[np.float_]] = None, data_hparams: Dict[str, Any] = None, is_regression: bool = False, unlabeled_data: pd.DataFrame = None, continous_cols: List = None, category_cols: List = None, u_label = -1, is_test: bool = False):

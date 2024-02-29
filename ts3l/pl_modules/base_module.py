@@ -59,6 +59,7 @@ class TS3LLightining(ABC, pl.LightningModule):
 
         self.first_phase_step_outputs = []
         self.second_phase_step_outputs = []
+        
         self.save_hyperparameters()
     
     @abstractmethod
