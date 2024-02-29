@@ -28,7 +28,7 @@ Currently, VIME ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d9
 
 ## Available Models
 
-TabularS3L employs a two-phase learning approach, where the learning strategies differ between phases, and the datasets used may also vary. The table below details the available models, outlining the specific datasets and learning strategies employed in each phase.
+TabularS3L employs a two-phase learning approach, where the learning strategies differ between phases, and the datasets used may also vary. The table below details the available models, outlining the specific datasets and learning strategies employed in each phase. The terms 'Self-SL', 'Semi-SL', and 'SL' denote self-supervised learning, semi-supervised learning, and supervised learning, respectively.
 
 | Model | Category | First Phase | Second Phase |
 |:---:|:---:|:---:|:---:|

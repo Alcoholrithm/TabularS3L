@@ -129,7 +129,7 @@ class VIMELightning(TS3LLightining):
             unsupervised_loss += self.consistency_loss(preds, target)
         
         labeled_x = x[y != self.u_label].squeeze()
-        labeled_y = y[y != self.u_label].squeeze()
+        labeled_y = y[y != self.u_label]
 
         y_hat = self.model(labeled_x).squeeze()
 
