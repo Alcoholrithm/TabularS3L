@@ -28,14 +28,14 @@ class TS3LLightining(ABC, pl.LightningModule):
         """Initialize the pytorch lightining module of TabularS3L
 
         Args:
-            model_hparams (Dict[str, Any]): The hyperparameters of TabularS3L
-            optim (torch.optim): The optimizer for training
-            optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer
-            scheduler (torch.optim.lr_scheduler): The scheduler for training
-            scheduler_hparams (Dict[str, Any]): The hyperparameters of the scheduler
-            loss_fn (nn.Module): The loss function of pytorch
-            loss_hparams (Dict[str, Any]): The hyperparameters of the loss function
-            scorer (BaseScorer): The scorer to measure the performance
+            model_hparams (Dict[str, Any]): The hyperparameters of TabularS3L.
+            optim (torch.optim): The optimizer for training. Defaults to torch.optim.AdamW.
+            optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer. Defaults to { "lr" : 0.0001, "weight_decay" : 0.00005 }.
+            scheduler (torch.optim.lr_scheduler): The scheduler for training. Defaults to None.
+            scheduler_hparams (Dict[str, Any]): The hyperparameters of the scheduler. Defaults to {}.
+            loss_fn (nn.Module): The loss function for VIME. Defaults to nn.CrossEntropyLoss.
+            loss_hparams (Dict[str, Any]): The hyperparameters of the loss function. Defaults to {}.
+            scorer (BaseScorer): The scorer to measure the performance. Defaults to None.
             random_seed (int, optional): The random seed. Defaults to 0.
         """
         super(TS3LLightining, self).__init__()

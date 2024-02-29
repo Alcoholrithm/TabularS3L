@@ -23,7 +23,31 @@ class VIMELightning(TS3LLightining):
                  scorer: Type[BaseScorer] = None,
                  random_seed: int = 0
     ):
-        
+        """Initialize the pytorch lightining module of VIME
+
+        Args:
+            model_hparams (Dict[str, Any]): The hyperparameters of VIME. 
+                                            It must have following keys: {
+                                                                            "encoder_dim": int, the input dimension of VIME.
+                                                                            "predictor_hidden_dim": int, the hidden dimension of predictor of VIME.
+                                                                            "predictor_output_dim": int, the output dimension of VIME.
+                                                                            'alpha1': float, A hyperparameter that is to control the trade-off between the mask estimation and categorical feature estimation loss during first phase.
+                                                                            'alpha2': None, A hyperparameter that is to control the trade-off between the mask estimation and continuous feature estimation loss during first phase.
+                                                                            'beta': float, A hyperparameter that is to control the trade-off between the supervised and unsupervised loss during second phase.
+                                                                            'K': int, The number of augmented samples for consistency regularization,
+                                                                            "num_categoricals": int, the number of categorical features.
+                                                                            "num_continuous": int, the number of continuous features. 
+                                                                            "u_label": Any, the special token for unlabeled samples.
+                                            }
+            optim (torch.optim): The optimizer for training. Defaults to torch.optim.AdamW.
+            optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer. Defaults to { "lr" : 0.0001, "weight_decay" : 0.00005 }.
+            scheduler (torch.optim.lr_scheduler): The scheduler for training. Defaults to None.
+            scheduler_hparams (Dict[str, Any]): The hyperparameters of the scheduler. Defaults to {}.
+            loss_fn (nn.Module): The loss function for VIME. Defaults to nn.CrossEntropyLoss.
+            loss_hparams (Dict[str, Any]): The hyperparameters of the loss function. Defaults to {}.
+            scorer (BaseScorer): The scorer to measure the performance. Defaults to None.
+            random_seed (int, optional): The random seed. Defaults to 0.
+        """
         super(VIMELightning, self).__init__(
                  model_hparams,
                  optim,
