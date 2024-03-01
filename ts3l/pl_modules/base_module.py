@@ -43,6 +43,8 @@ class TS3LLightining(ABC, pl.LightningModule):
         
         pl.seed_everything(random_seed)
         
+        self._check_model_hparams(model_hparams)
+        
         self._initialize(model_hparams)
         
         self.optim = getattr(torch.optim, optim)

@@ -122,13 +122,35 @@ class SubTabLightning(TS3LLightining):
         elif len(missings) > 1:
             raise KeyError("model_hparams requires {%s, and %s}" % (', '.join(missings[:-1]), missings[-1]))
     
-    def __get_recon_label(self, x: torch.FloatTensor) -> torch.FloatTensor:
-        recon_label = x
+    def __get_recon_label(self, label: torch.FloatTensor) -> torch.FloatTensor:
+        """Duplicates the input label tensor across the batch dimension to match the number of subsets for reconstruction loss.
+
+        Args:
+            label (torch.FloatTensor): The input tensor representing the label to be duplicated.
+
+        Returns:
+            torch.FloatTensor: A tensor with the input `label` duplicated `self.n_subsets` times along the batch dimension.
+        """
+        recon_label = label
         for _ in range(1, self.n_subsets):
-            recon_label = torch.concat((recon_label, x), dim = 0)
+            recon_label = torch.concat((recon_label, label), dim = 0)
         return recon_label
     
     def __arange_subsets(self, projections: torch.FloatTensor) -> torch.FloatTensor:
+        """
+        Rearranges the projections tensor into a sequence of subsets for first phase loss.
+        This method takes a tensor of projections and reshapes it into a format where each subset of projections is concatenated along the first dimension. 
+        The original tensor, which is assumed to represent a series of projections, is first reshaped into a tensor of shape `(n_subsets, samples, dim)` 
+        where `n_subsets` is the number of subsets, `samples` is the batch_size, and `dim` is the embedding dimension. 
+        The method then concatenates these subsets along the zeroth dimension to produce a sequence of projections suitable for first phase loss.
+
+        Args:
+            projections (torch.FloatTensor): A tensor of shape `(no, dim)` where `no` is the total number of observations and `dim` is the embedding dimension. 
+
+        Returns:
+            torch.FloatTensor: A reshaped tensor where subsets of projections are concatenated along the first dimension. 
+                                The resulting shape is `(no, dim)`, maintaining the original dimensionality but rearranging the order of observations to align with subset divisions.
+        """
         no, dim = projections.shape
         samples = int(no / self.n_subsets)
         
