@@ -24,6 +24,36 @@ class SubTabLightning(TS3LLightining):
                  scorer: Type[BaseScorer] = None,
                  random_seed: int = 0
                 ):
+        """Initialize the pytorch lightining module of SubTab
+
+        Args:
+            model_hparams (Dict[str, Any]): The hyperparameters of SubTab. 
+                                            It must have following keys: {
+                                                                            "input_dim": int, the input dimension of SubTab.
+                                                                            "out_dim": int, the output dimension of SubTab.
+                                                                            'emb_dim': int, the embedding dimension of encoder of SubTab.
+                                                                            'tau': float, A hyperparameter that is to scale similarity between 
+                                                                                            projections during the first phase.
+                                                                            'use_cosine_similarity': bool, A hyperparameter that is to select whether using cosine similarity 
+                                                                                                            or dot similarity when calculating similarity between projections 
+                                                                                                            during the first phase.
+                                                                            'use_contrastive': bool, A hyperparameter that is to select using contrastive loss or not during 
+                                                                                                    the first phase.
+                                                                            "use_distance": bool, A hyperparameter that is to select using distance loss or not during
+                                                                                                    the first phase.
+                                                                            "n_subsets": int, The number of subsets to generate different views of the data. 
+                                                                            "overlap_ratio": float, A hyperparameter that is to control the extent of overlapping between 
+                                                                                                    the subsets.
+                                                                        }
+            optim (torch.optim): The optimizer for training. Defaults to torch.optim.AdamW.
+            optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer. Defaults to { "lr" : 0.0001, "weight_decay" : 0.00005 }.
+            scheduler (torch.optim.lr_scheduler): The scheduler for training. Defaults to None.
+            scheduler_hparams (Dict[str, Any]): The hyperparameters of the scheduler. Defaults to {}.
+            loss_fn (nn.Module): The loss function for SubTab. Defaults to nn.CrossEntropyLoss.
+            loss_hparams (Dict[str, Any]): The hyperparameters of the loss function. Defaults to {}.
+            scorer (BaseScorer): The scorer to measure the performance. Defaults to None.
+            random_seed (int, optional): The random seed. Defaults to 0.
+        """
         super(SubTabLightning, self).__init__(
             model_hparams,
             optim,
@@ -39,9 +69,12 @@ class SubTabLightning(TS3LLightining):
         self.save_hyperparameters()
 
     def _initialize(self, model_hparams: Dict[str, Any]):
-        
+        """Initializes the model with specific hyperparameters and sets up various components of SubTabLightning.
+
+        Args:
+            model_hparams (Dict[str, Any]): The given hyperparameter set for SubTab. 
+        """
         hparams = deepcopy(model_hparams)
-        del hparams["batch_size"]
         del hparams["tau"],
         del hparams["use_contrastive"]
         del hparams["use_distance"]
@@ -49,7 +82,7 @@ class SubTabLightning(TS3LLightining):
         
         self.model = SubTab(**hparams)
         
-        self.first_phase_loss = JointLoss(model_hparams["batch_size"],
+        self.first_phase_loss = JointLoss(
                                           model_hparams["tau"],
                                           model_hparams["n_subsets"],
                                           model_hparams["use_contrastive"],
@@ -58,8 +91,36 @@ class SubTabLightning(TS3LLightining):
 
         self.n_subsets = model_hparams["n_subsets"]
     
-    def _check_model_hparams(self, model_hparams: Dict[str, Any]):
-        pass
+    def _check_model_hparams(self, model_hparams: Dict[str, Any]) -> None:
+        """Checks whether the provided hyperparameter set for SubTab is valid by ensuring all required hyperparameters are present.
+
+        This method verifies the presence of all necessary hyperparameters in the `model_hparams` dictionary. 
+        It is designed to ensure that the hyperparameter set provided for the SubTab model includes all required keys. 
+        The method raises a KeyError if any required hyperparameter is missing.
+
+        Args:
+            model_hparams (Dict[str, Any]): The given hyperparameter set for SubTab. 
+            This dictionary must include keys for all necessary hyperparameters, 
+            which are 'input_dim', 'out_dim', 'emb_dim', 'tau', 'use_cosine_similarity', 'use_contrastive', 
+                        'use_distance', 'n_subsets', and 'overlap_ratio'.
+
+        Raises:
+            KeyError: Raised with a message specifying the missing hyperparameter(s) if any required hyperparameters are missing from `model_hparams`. 
+            The message will list all missing hyperparameters, formatted appropriately depending on the number missing.
+        """
+        requirements = [
+            "input_dim", "out_dim", "emb_dim", "tau", "use_cosine_similarity", "use_contrastive", "use_distance", "n_subsets", "overlap_ratio"
+        ]
+        
+        missings = []
+        for requirement in requirements:
+            if not requirement in model_hparams.keys():
+                missings.append(requirement)
+        
+        if len(missings) == 1:
+            raise KeyError("model_hparams requires {%s}" % missings[0])
+        elif len(missings) > 1:
+            raise KeyError("model_hparams requires {%s, and %s}" % (', '.join(missings[:-1]), missings[-1]))
     
     def __get_recon_label(self, x: torch.FloatTensor) -> torch.FloatTensor:
         recon_label = x

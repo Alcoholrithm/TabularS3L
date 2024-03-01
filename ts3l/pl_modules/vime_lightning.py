@@ -28,17 +28,20 @@ class VIMELightning(TS3LLightining):
         Args:
             model_hparams (Dict[str, Any]): The hyperparameters of VIME. 
                                             It must have following keys: {
-                                                                            "encoder_dim": int, the input dimension of VIME.
-                                                                            "predictor_hidden_dim": int, the hidden dimension of predictor of VIME.
-                                                                            "predictor_output_dim": int, the output dimension of VIME.
-                                                                            'alpha1': float, A hyperparameter that is to control the trade-off between the mask estimation and categorical feature estimation loss during first phase.
-                                                                            'alpha2': None, A hyperparameter that is to control the trade-off between the mask estimation and continuous feature estimation loss during first phase.
-                                                                            'beta': float, A hyperparameter that is to control the trade-off between the supervised and unsupervised loss during second phase.
+                                                                            "encoder_dim": int, The input dimension of VIME.
+                                                                            "predictor_hidden_dim": int, The hidden dimension of predictor of VIME.
+                                                                            "predictor_output_dim": int, The output dimension of VIME.
+                                                                            'alpha1': float, A hyperparameter that is to control the trade-off between 
+                                                                                            the mask estimation and categorical feature estimation loss during first phase.
+                                                                            'alpha2': float, A hyperparameter that is to control the trade-off between 
+                                                                                            the mask estimation and continuous feature estimation loss during first phase.
+                                                                            'beta': float, A hyperparameter that is to control the trade-off between 
+                                                                                            the supervised and unsupervised loss during second phase.
                                                                             'K': int, The number of augmented samples for consistency regularization,
-                                                                            "num_categoricals": int, the number of categorical features.
-                                                                            "num_continuous": int, the number of continuous features. 
-                                                                            "u_label": Any, the special token for unlabeled samples.
-                                            }
+                                                                            "num_categoricals": int, The number of categorical features.
+                                                                            "num_continuous": int, The number of continuous features. 
+                                                                            "u_label": Any, The special token for unlabeled samples.
+                                                                        }
             optim (torch.optim): The optimizer for training. Defaults to torch.optim.AdamW.
             optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer. Defaults to { "lr" : 0.0001, "weight_decay" : 0.00005 }.
             scheduler (torch.optim.lr_scheduler): The scheduler for training. Defaults to None.
@@ -62,6 +65,11 @@ class VIMELightning(TS3LLightining):
         
 
     def _initialize(self, model_hparams: Dict[str, Any]):
+        """Initializes the model with specific hyperparameters and sets up various components of VIMELightning.
+
+        Args:
+            model_hparams (Dict[str, Any]): The given hyperparameter set for VIME. 
+        """
         hparams = deepcopy(model_hparams)
         
         self.alpha1 = hparams["alpha1"]
@@ -92,9 +100,25 @@ class VIMELightning(TS3LLightining):
 
         self.model = VIME(**hparams)
     
-    def _check_model_hparams(self, model_hparams: Dict[str, Any]):
+    def _check_model_hparams(self, model_hparams: Dict[str, Any]) -> None:
+        """Checks whether the provided hyperparameter set for VIME is valid by ensuring all required hyperparameters are present.
+
+        This method verifies the presence of all necessary hyperparameters in the `model_hparams` dictionary. 
+        It is designed to ensure that the hyperparameter set provided for the VIME model includes all required keys. 
+        The method raises a KeyError if any required hyperparameter is missing.
+
+        Args:
+            model_hparams (Dict[str, Any]): The given hyperparameter set for VIME. 
+            This dictionary must include keys for all necessary hyperparameters, 
+            which are 'alpha1', 'alpha2', 'beta', 'K', 'encoder_dim', 'predictor_hidden_dim', 
+                        'predictor_output_dim', 'num_categoricals', 'num_continuous', and 'u_label'.
+
+        Raises:
+            KeyError: Raised with a message specifying the missing hyperparameter(s) if any required hyperparameters are missing from `model_hparams`. 
+            The message will list all missing hyperparameters, formatted appropriately depending on the number missing.
+        """
         requirements = [
-            "alpha1", "alpha2", "beta", "K", "encoder_dim", "predictor_hidden_dim", "predictor_output_dim"
+            "alpha1", "alpha2", "beta", "K", "encoder_dim", "predictor_hidden_dim", "predictor_output_dim", "num_categoricals", "num_continuous", "u_label"
         ]
         
         missings = []

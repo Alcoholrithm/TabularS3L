@@ -25,6 +25,7 @@ Currently, VIME ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d9
     - [ ] ResNet
     - [ ] FT-Transformer
   - [ ] LightningModule
+- [ ] Add example codes
 
 ## Available Models
 
@@ -34,8 +35,10 @@ TabularS3L employs a two-phase learning approach, where the learning strategies 
 |:---:|:---:|:---:|:---:|
 | **VIME** | Dataset | VIMEFirstPhaseDataset | VIMESecondPhaseDataset |
 | | Learning Strategy | Self-SL | Semi-SL or SL |
+| | | | |
 | **SubTab** | Dataset | SubTabDataset | SubTabDataset |
 | | Learning Strategy | Self-SL | SL |
+| | | | |
 | **SCARF** | Dataset | SCARFDataset | SCARFDataset |
 | | Learning Strategy | Self-SL | SL |
 

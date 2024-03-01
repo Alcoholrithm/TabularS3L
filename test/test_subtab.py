@@ -182,7 +182,6 @@ def test_subtab_classification():
             model_hparams = {
                 "input_dim" : data.shape[1],
                 "out_dim" : 2,
-                "batch_size" : batch_size,
                 'emb_dim' : None,
                 "tau" : None,
                 "use_cosine_similarity" : None,
@@ -427,7 +426,7 @@ def test_subtab_regression():
             model_hparams = {
                 "input_dim" : data.shape[1],
                 "out_dim" : 1,
-                "batch_size" : batch_size,
+                # "batch_size" : batch_size,
                 'emb_dim' : None,
                 "tau" : None,
                 "use_cosine_similarity" : None,

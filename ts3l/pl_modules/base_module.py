@@ -67,7 +67,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         pass
 
     @abstractmethod
-    def _check_model_hparams(self, model_hparams: Dict[str, Any]):
+    def _check_model_hparams(self, model_hparams: Dict[str, Any]) -> None:
         pass
     
     def configure_optimizers(self):
