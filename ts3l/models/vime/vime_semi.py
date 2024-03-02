@@ -2,18 +2,18 @@ import torch
 import torch.nn as nn
 
 class VIMESemiSupervised(nn.Module):
-    def __init__(self, predictor_input_dim, predictor_hidden_dim, predictor_output_dim):
+    def __init__(self, input_dim:int, hidden_dim:int, output_dim:int):
         """_summary_
 
         Args:
-            predictor_input_dim (_type_): The input dimension of the predictor. Must be same to the dimension of the encoder.
-            predictor_hidden_dim (_type_): The hidden dimension of the predictor
-            predictor_output_dim (_type_): The output dimension of the predictor
+            input_dim (int): The input dimension of the predictor. Must be same to the dimension of the encoder.
+            hidden_dim (int): The hidden dimension of the predictor
+            output_dim (int): The output dimension of the predictor
         """
         super().__init__()
-        self.fc1 = nn.Linear(predictor_input_dim, predictor_hidden_dim)
-        self.fc2 = nn.Linear(predictor_hidden_dim, predictor_hidden_dim)
-        self.fc3 = nn.Linear(predictor_hidden_dim, predictor_output_dim)
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
         """The forward pass of semi-supervised module of VIME

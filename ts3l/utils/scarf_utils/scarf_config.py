@@ -4,8 +4,8 @@ from ts3l.utils.base_config import BaseConfig
 from typing import Any, List
 
 @dataclass
-class SubTabConfig(BaseConfig):
-    """ Configuration class for initializing components of the SubTabLightning Module, including hyperparameters of SubTab,
+class SCARFConfig(BaseConfig):
+    """ Configuration class for initializing components of the SCARFLightning Module, including hyperparameters of SCARF,
     optimizers, learning rate schedulers, and loss functions, along with their respective hyperparameters.
 
     Inherits Attributes:
@@ -24,19 +24,16 @@ class SubTabConfig(BaseConfig):
         input_dim (int): The dimension of the input.
         hidden_dim (int): The dimension of hidden layer. Default is 256.
         output_dim (int): The dimension of output.
-        tau (float): A hyperparameter that is to scale similarity between projections during the first phase.
-        use_cosine_similarity (bool):  A hyperparameter that is to select whether using cosine similarity or dot similarity when calculating similarity
-                                        between projections during the first phase. Default is False.
-        use_contrastive (bool): A hyperparameter that is to select using contrastive loss or not during the first phase. Default is True.
-        use_distance (bool): A hyperparameter that is to select using distance loss or not during the first phase. Default is True.
-        n_subsets (int): The number of subsets to generate different views of the data. Default is 4.
-        overlap_ratio (float): A hyperparameter that is to control the extent of overlapping between the subsets. Default is 0.75.
+        encoder_depth (bool):  The depth of encoder. Default is 4.
+        head_depth (bool): The depth of head. Default is 2.
+        dropout_rate (bool): A hyperparameter that is to control dropout layer. Default is 0.04.
+        tau (float): A hyperparameter that is to scale similarity between views during the first phase.
 
     Raises:
         ValueError: Inherited from `BaseConfig` for invalid task, optimizer, scheduler, loss function, or metric configurations.
         NotImplementedError: Inherited from `BaseConfig` for task, loss function or metric are not specified.
         
-        NotImplementedError: Raised if `input_dim` or `output_dim` are not specified, 
+        NotImplementedError: Raised if `input_dim`, `hidden_dim`, or `output_dim` are not specified, 
                             indicating these dimensions must be defined.                    
     """
     
@@ -46,17 +43,13 @@ class SubTabConfig(BaseConfig):
     
     output_dim: int = field(default=None)
     
+    encoder_depth: int = field(default=4)
+    
+    head_depth: int = field(default=2)
+    
+    dropout_rate: float = field(default=0.04)
+    
     tau: float = field(default=0.1)
-    
-    use_cosine_similarity: bool = field(default=False)
-    
-    use_contrastive: bool = field(default=True)
-    
-    use_distance: bool = field(default=True)
-    
-    n_subsets: int = field(default=4)
-    
-    overlap_ratio: float = field(default=0.75)
     
     def __post_init__(self):
         super().__post_init__()

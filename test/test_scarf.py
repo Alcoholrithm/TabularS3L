@@ -29,7 +29,7 @@ def test_scarf_classification():
     data, label, continuous_cols, category_cols = load_diabetes()
     num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
-    loss_fn = nn.CrossEntropyLoss
+    loss_fn = "CrossEntropyLoss"
     metric =  "accuracy_score"
     metric_params = {}
     random_seed = 0
@@ -61,8 +61,8 @@ def test_scarf_classification():
                 data_hparams
         ):
 
-        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
-        test_ds = SCARFDataset(X_valid, corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+        test_ds = SCARFDataset(X_valid, corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size=batch_size, train_sampler="random")
 
@@ -145,7 +145,7 @@ def test_scarf_classification():
 
     hparams_range = {
         
-        'emb_dim' : ['suggest_int', ['emb_dim', 16, 512]],
+        'hidden_dim' : ['suggest_int', ['hidden_dim', 16, 512]],
         'encoder_depth' : ['suggest_int', ['encoder_depth', 2, 6]],
         'head_depth' : ['suggest_int', ['head_depth', 1, 3]],
         'corruption_rate' : ['suggest_float', ['corruption_rate', 0.1, 0.7]],
@@ -173,11 +173,11 @@ def test_scarf_classification():
             """
             model_hparams = {
                 "input_dim" : data.shape[1],
-                "emb_dim" : None,
+                "hidden_dim" : None,
                 "encoder_depth" : None,
                 "head_depth" : None,
                 'dropout_rate' : None,
-                "out_dim" : 2,
+                "output_dim" : 2,
             }
             data_hparams = {
                 "corruption_rate" : None
@@ -198,13 +198,16 @@ def test_scarf_classification():
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
 
-            pl_scarf = SCARFLightning(
-                    model_hparams,
-                    "Adam", optim_hparams, None, scheduler_hparams,
-                    loss_fn,
-                    {},
-                    AccuracyScorer("accuracy_score"),
-                    random_seed)
+            from ts3l.utils.scarf_utils import SCARFConfig
+            config = SCARFConfig(
+            task="classification",
+            loss_fn=loss_fn, metric=metric, metric_hparams={},
+            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
+            hidden_dim=model_hparams["hidden_dim"],
+            encoder_depth=model_hparams["encoder_depth"], head_depth=model_hparams["head_depth"], 
+            dropout_rate=model_hparams["dropout_rate"]
+            )
+            pl_scarf = SCARFLightning(config)
 
             pl_scarf = fit_model(pl_scarf, data_hparams)
             
@@ -257,7 +260,7 @@ def test_scarf_regression():
     data, label, continuous_cols, category_cols = load_abalone()
     num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
-    loss_fn = nn.MSELoss
+    loss_fn = "MSELoss"
     metric =  "mean_squared_error"
     metric_params = {}
     random_seed = 0
@@ -289,8 +292,8 @@ def test_scarf_regression():
                 data_hparams
         ):
 
-        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
-        test_ds = SCARFDataset(X_valid, corruption_len=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+        test_ds = SCARFDataset(X_valid, corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size=batch_size, train_sampler="random")
 
@@ -373,7 +376,7 @@ def test_scarf_regression():
 
     hparams_range = {
         
-        'emb_dim' : ['suggest_int', ['emb_dim', 16, 512]],
+        'hidden_dim' : ['suggest_int', ['hidden_dim', 16, 512]],
         'encoder_depth' : ['suggest_int', ['encoder_depth', 2, 6]],
         'head_depth' : ['suggest_int', ['head_depth', 1, 3]],
         'corruption_rate' : ['suggest_float', ['corruption_rate', 0.1, 0.7]],
@@ -400,11 +403,11 @@ def test_scarf_regression():
             """
             model_hparams = {
                 "input_dim" : data.shape[1],
-                "emb_dim" : None,
+                "hidden_dim" : None,
                 "encoder_depth" : None,
                 "head_depth" : None,
                 'dropout_rate' : None,
-                "out_dim" : 1,
+                "output_dim" : 1,
             }
             data_hparams = {
                 "corruption_rate" : None
@@ -425,14 +428,16 @@ def test_scarf_regression():
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
 
-            pl_scarf = SCARFLightning(
-                    model_hparams,
-                    "Adam", optim_hparams, None, scheduler_hparams,
-                    loss_fn,
-                    {},
-                    MSEScorer("mean_squared_error"),
-                    random_seed)
-
+            from ts3l.utils.scarf_utils import SCARFConfig
+            config = SCARFConfig(
+            task="regression",
+            loss_fn=loss_fn, metric=metric, metric_hparams={},
+            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
+            hidden_dim=model_hparams["hidden_dim"],
+            encoder_depth=model_hparams["encoder_depth"], head_depth=model_hparams["head_depth"], 
+            dropout_rate=model_hparams["dropout_rate"]
+            )
+            pl_scarf = SCARFLightning(config)
             pl_scarf = fit_model(pl_scarf, data_hparams)
             
 

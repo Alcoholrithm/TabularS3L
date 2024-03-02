@@ -2,16 +2,16 @@ import torch
 import torch.nn as nn
 
 class VIMESelfSupervised(nn.Module):
-    def __init__(self, encoder_dim):
+    def __init__(self, input_dim:int):
         """Initialize self-supervised module of VIME
 
         Args:
-            encoder_dim (int): the dimension of the encoder
+            input_dim (int): The dimension of the encoder
         """
         super().__init__()
-        self.h = nn.Linear(encoder_dim, encoder_dim, bias=True)
-        self.mask_output = nn.Linear(encoder_dim, encoder_dim, bias=True)
-        self.feature_output = nn.Linear(encoder_dim, encoder_dim, bias=True)
+        self.h = nn.Linear(input_dim, input_dim, bias=True)
+        self.mask_output = nn.Linear(input_dim, input_dim, bias=True)
+        self.feature_output = nn.Linear(input_dim, input_dim, bias=True)
 
     def forward(self, x):
         """The forward pass of self-supervised module of VIME

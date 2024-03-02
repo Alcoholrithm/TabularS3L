@@ -21,9 +21,9 @@ class VIMEConfig(BaseConfig):
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
         
     New Attributes:
-        encoder_dim (int): The dimension of the encoder.
-        predictor_hidden_dim (int): The hidden dimension of predictor.
-        predictor_output_dim (int): The output dimension of predictor.
+        input_dim (int): The dimension of the input.
+        hidden_dim (int): The hidden dimension of predictor. Default is 256.
+        output_dim (int): The output dimension of predictor.
         num_categoricals int: The number of categorical features.
         num_continuous int: The number of continuous features.
         u_label (Any): The special token for unlabeled samples.
@@ -43,15 +43,14 @@ class VIMEConfig(BaseConfig):
         NotImplementedError: Inherited from `BaseConfig` for task, loss function or metric are not specified.
         
         ValueError: Raised if both `num_categoricals` and `num_continuous` are None, indicating that at least one attribute must be specified.
-        NotImplementedError: Raised if `encoder_dim`, `predictor_hidden_dim`, or `predictor_output_dim` are not specified, 
-                            indicating these dimensions must be defined.                    
+        NotImplementedError: Raised if `input_dim` or `output_dim` are not specified, indicating these dimensions must be defined.                    
     """
     
-    encoder_dim: int = field(default=None)
+    input_dim: int = field(default=None)
     
-    predictor_hidden_dim: int = field(default=None)
+    hidden_dim: int = field(default=256)
     
-    predictor_output_dim: int = field(default=None)
+    output_dim: int = field(default=None)
     
     num_categoricals: int = field(default=None)
     
@@ -70,14 +69,11 @@ class VIMEConfig(BaseConfig):
     def __post_init__(self):
         super().__post_init__()
         
-        if self.encoder_dim is None:
-            raise NotImplementedError("The dimension of encoder must be specified in the 'encoder_dim' attribute.")
+        if self.input_dim is None:
+            raise NotImplementedError("The dimension of input must be specified in the 'input_dim' attribute.")
         
-        if self.predictor_hidden_dim is None:
-            raise NotImplementedError("The dimension of predictor's hidden layer must be specified in the 'predictor_hidden_dim' attribute.")
-        
-        if self.predictor_output_dim is None:
-            raise NotImplementedError("The dimension of predictor's output must be specified in the 'predictor_output_dim' attribute.")
+        if self.output_dim is None:
+            raise NotImplementedError("The dimension of predictor's output must be specified in the 'output_dim' attribute.")
         
         if self.num_categoricals is None and self.num_continuous is None:
             raise ValueError("At least one attribute (num_categorical or num_continuous) must be specified.")

@@ -181,7 +181,7 @@ def test_subtab_classification():
 
             model_hparams = {
                 "input_dim" : data.shape[1],
-                "out_dim" : 2,
+                "output_dim" : 2,
                 'hidden_dim' : None,
                 "tau" : None,
                 "use_cosine_similarity" : None,
@@ -219,7 +219,7 @@ def test_subtab_classification():
             config = SubTabConfig(
             task="classification",
             loss_fn=loss_fn, metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], out_dim=model_hparams["out_dim"],
+            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
             hidden_dim=model_hparams["hidden_dim"],
             tau=model_hparams["tau"], use_cosine_similarity=model_hparams["use_cosine_similarity"], 
             use_contrastive=model_hparams["use_contrastive"], use_distance=model_hparams["use_distance"],
@@ -429,7 +429,7 @@ def test_subtab_regression():
 
             model_hparams = {
                 "input_dim" : data.shape[1],
-                "out_dim" : 1,
+                "output_dim" : 1,
                 # "batch_size" : batch_size,
                 'hidden_dim' : None,
                 "tau" : None,
@@ -467,7 +467,7 @@ def test_subtab_regression():
             config = SubTabConfig(
             task="regression",
             loss_fn=loss_fn, metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], out_dim=model_hparams["out_dim"],
+            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
             hidden_dim=model_hparams["hidden_dim"],
             tau=model_hparams["tau"], use_cosine_similarity=model_hparams["use_cosine_similarity"], 
             use_contrastive=model_hparams["use_contrastive"], use_distance=model_hparams["use_distance"],

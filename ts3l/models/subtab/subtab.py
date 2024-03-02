@@ -79,7 +79,7 @@ class SubTab(nn.Module):
 
     def __init__(self,
                  input_dim: int,
-                 out_dim: int,
+                 output_dim: int,
                  hidden_dim: int,
                  
                  n_subsets: int,
@@ -94,7 +94,7 @@ class SubTab(nn.Module):
         self.ae = AutoEncoder(self.feat_dim, hidden_dim, n_subsets, overlap_ratio)
         
         self.head = nn.Sequential(
-            nn.Linear(hidden_dim, out_dim)
+            nn.Linear(hidden_dim, output_dim)
         )
         self.set_first_phase()
         

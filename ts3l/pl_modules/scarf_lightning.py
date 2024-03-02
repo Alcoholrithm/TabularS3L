@@ -10,18 +10,7 @@ from ts3l.utils.scarf_utils import NTXentLoss
 class SCARFLightning(TS3LLightining):
     
     def __init__(self,         
-                 model_hparams: Dict[str, Any],
-                 optim: torch.optim = torch.optim.AdamW,
-                 optim_hparams: Dict[str, Any] = {
-                                                    "lr" : 0.0001,
-                                                    "weight_decay" : 0.00005
-                                                },
-                 scheduler: torch.optim.lr_scheduler = None,
-                 scheduler_hparams: Dict[str, Any] = {},
-                 loss_fn: nn.Module = nn.CrossEntropyLoss,
-                 loss_hparams: Dict[str, Any] = {},
-                 scorer: Type[BaseScorer] = None,
-                 random_seed: int = 0
+                 config
                 ):
         """Initialize the pytorch lightining module of SCARF
 
@@ -45,15 +34,7 @@ class SCARFLightning(TS3LLightining):
             random_seed (int, optional): The random seed. Defaults to 0.
         """
         super(SCARFLightning, self).__init__(
-            model_hparams,
-            optim,
-            optim_hparams,
-            scheduler,
-            scheduler_hparams,
-            loss_fn,
-            loss_hparams,
-            scorer,
-            random_seed
+            config
         )
         
         self.save_hyperparameters()
@@ -64,8 +45,10 @@ class SCARFLightning(TS3LLightining):
         Args:
             model_hparams (Dict[str, Any]): The given hyperparameter set for SCARF. 
         """
+        self.first_phase_loss = NTXentLoss(model_hparams["tau"])
+        del model_hparams["tau"]
+        
         self.model = SCARF(**model_hparams)
-        self.first_phase_loss = NTXentLoss()
     
     def _check_model_hparams(self, model_hparams: Dict[str, Any]) -> None:
         """Checks whether the provided hyperparameter set for SCARF is valid by ensuring all required hyperparameters are present.
@@ -142,6 +125,7 @@ class SCARFLightning(TS3LLightining):
         Returns:
             torch.FloatTensor: The predicted output (logit)
         """
+        
         y_hat = self(batch)
 
         return y_hat

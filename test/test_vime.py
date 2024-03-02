@@ -129,7 +129,7 @@ def test_vime_classification():
 
     hparams_range = {
         
-    'predictor_hidden_dim' : ['suggest_int', ['predictor_hidden_dim', 16, 512]],
+    'hidden_dim' : ['suggest_int', ['hidden_dim', 16, 512]],
     
     'p_m' : ["suggest_float", ["p_m", 0.1, 0.9]],
     'alpha1' : ["suggest_float", ["alpha1", 0.1, 5]],
@@ -160,9 +160,9 @@ def test_vime_classification():
             """
 
             model_hparams = {
-                "encoder_dim" : data.shape[1],
-                "predictor_hidden_dim" : None,
-                "predictor_output_dim" : 2,
+                "input_dim" : data.shape[1],
+                "hidden_dim" : None,
+                "output_dim" : 2,
                 'alpha1' : None,
                 'alpha2' : None,
                 'beta' : None,
@@ -196,8 +196,8 @@ def test_vime_classification():
             config = VIMEConfig(
             task="classification",
             loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-            encoder_dim=model_hparams["encoder_dim"], predictor_hidden_dim=model_hparams["predictor_hidden_dim"],
-            predictor_output_dim=model_hparams["predictor_output_dim"],
+            input_dim=model_hparams["input_dim"], hidden_dim=model_hparams["hidden_dim"],
+            output_dim=model_hparams["output_dim"],
             alpha1=model_hparams["alpha1"], alpha2=model_hparams["alpha2"], beta=model_hparams["beta"], K=model_hparams["K"],
             num_categoricals=num_categoricals, num_continuous=num_continuous
             )
@@ -376,7 +376,7 @@ def test_vime_regression():
 
     hparams_range = {
         
-    'predictor_hidden_dim' : ['suggest_int', ['predictor_hidden_dim', 16, 512]],
+    'hidden_dim' : ['suggest_int', ['hidden_dim', 16, 512]],
     
     'p_m' : ["suggest_float", ["p_m", 0.1, 0.9]],
     'alpha1' : ["suggest_float", ["alpha1", 0.1, 5]],
@@ -406,9 +406,9 @@ def test_vime_regression():
             """
 
             model_hparams = {
-                "encoder_dim" : data.shape[1],
-                "predictor_hidden_dim" : None,
-                "predictor_output_dim" : 1,
+                "input_dim" : data.shape[1],
+                "hidden_dim" : None,
+                "output_dim" : 1,
                 'alpha1' : None,
                 'alpha2' : None,
                 'beta' : None,
@@ -441,8 +441,8 @@ def test_vime_regression():
             config = VIMEConfig(
             task="regression",
             loss_fn="MSELoss", metric=metric, metric_hparams={},
-            encoder_dim=model_hparams["encoder_dim"], predictor_hidden_dim=model_hparams["predictor_hidden_dim"],
-            predictor_output_dim=model_hparams["predictor_output_dim"],
+            input_dim=model_hparams["input_dim"], hidden_dim=model_hparams["hidden_dim"],
+            output_dim=model_hparams["output_dim"],
             alpha1=model_hparams["alpha1"], alpha2=model_hparams["alpha2"], beta=model_hparams["beta"], K=model_hparams["K"],
             num_categoricals=num_categoricals, num_continuous=num_continuous
             )

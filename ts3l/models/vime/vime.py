@@ -5,18 +5,18 @@ from .vime_semi import VIMESemiSupervised
 
 class VIME(nn.Module):
     def __init__(self, 
-                encoder_dim: int, predictor_hidden_dim: int, predictor_output_dim: int):
+                input_dim: int, hidden_dim: int, output_dim: int):
         """Initialize VIME
 
         Args:
-            encoder_dim (int): The dimension of the encoder
-            predictor_hidden_dim (int): The hidden dimension of the predictor
-            predictor_output_dim (int): The output dimension of the predictor
+            input_dim (int): The dimension of the encoder
+            hidden_dim (int): The hidden dimension of the predictor
+            output_dim (int): The output dimension of the predictor
         """
         super().__init__()
         
-        self.self_net = VIMESelfSupervised(encoder_dim)
-        self.semi_net = VIMESemiSupervised(encoder_dim, predictor_hidden_dim, predictor_output_dim)
+        self.self_net = VIMESelfSupervised(input_dim)
+        self.semi_net = VIMESemiSupervised(input_dim, hidden_dim, output_dim)
         
         self.set_first_phase()
     

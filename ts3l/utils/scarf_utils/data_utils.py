@@ -12,13 +12,13 @@ from torch.utils.data import Dataset
 class SCARFDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Union[NDArray[np.int_], NDArray[np.float_]] = None,
-                        corruption_len: int = 0,
+                        corruption_rate: float = 0.0,
                         is_regression: bool = False
                         ) -> None:
 
         self.data = torch.FloatTensor(X.values)
         
-        self.corruption_len = corruption_len
+        self.corruption_len = int(X.shape[1] * corruption_rate)
         self.n_sampling_candidate , self.n_features = X.shape
 
         self.is_regression = is_regression
