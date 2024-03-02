@@ -13,7 +13,7 @@ from typing import Dict, Any, Tuple, List
 class ShallowEncoder(nn.Module):
     def __init__(self,
                  feat_dim : int,
-                 emb_dim : int,
+                 hidden_dim : int,
                  n_subsets : int,
                  overlap_ratio : float,
     ) -> None:
@@ -23,7 +23,7 @@ class ShallowEncoder(nn.Module):
         n_overlap = int(overlap_ratio * n_column_subset)
 
         self.net = nn.Sequential(
-            nn.Linear(n_column_subset + n_overlap, emb_dim),
+            nn.Linear(n_column_subset + n_overlap, hidden_dim),
             nn.LeakyReLU(),
         )
         
@@ -34,12 +34,12 @@ class ShallowEncoder(nn.Module):
 
 class ShallowDecoder(nn.Module):
     def __init__(self,
-                 emb_dim : int,
+                 hidden_dim : int,
                  out_dim : int
     ) -> None:
         super().__init__()
 
-        self.net = nn.Linear(emb_dim, out_dim)
+        self.net = nn.Linear(hidden_dim, out_dim)
     
     def forward(self, x : torch.Tensor) -> torch.Tensor:
         return self.net(x)
@@ -47,19 +47,19 @@ class ShallowDecoder(nn.Module):
 class AutoEncoder(nn.Module):
     def __init__(self,
                  feat_dim : int,
-                 emb_dim : int,
+                 hidden_dim : int,
                  n_subsets : int,
                  overlap_ratio : float,
     ) -> None:
         super().__init__()
 
-        self.encoder = ShallowEncoder(feat_dim, emb_dim, n_subsets, overlap_ratio)
-        self.decoder = ShallowDecoder(emb_dim, feat_dim)
+        self.encoder = ShallowEncoder(feat_dim, hidden_dim, n_subsets, overlap_ratio)
+        self.decoder = ShallowDecoder(hidden_dim, feat_dim)
 
         self.projection_net = nn.Sequential(
-            nn.Linear(emb_dim, emb_dim),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.LeakyReLU(),
-            nn.Linear(emb_dim, emb_dim),
+            nn.Linear(hidden_dim, hidden_dim),
         )
     
     def encode(self, x : torch.Tensor) -> torch.Tensor:
@@ -80,7 +80,7 @@ class SubTab(nn.Module):
     def __init__(self,
                  input_dim: int,
                  out_dim: int,
-                 emb_dim: int,
+                 hidden_dim: int,
                  
                  n_subsets: int,
                  overlap_ratio: float,
@@ -91,10 +91,10 @@ class SubTab(nn.Module):
         
         self.n_subsets = n_subsets
         
-        self.ae = AutoEncoder(self.feat_dim, emb_dim, n_subsets, overlap_ratio)
+        self.ae = AutoEncoder(self.feat_dim, hidden_dim, n_subsets, overlap_ratio)
         
         self.head = nn.Sequential(
-            nn.Linear(emb_dim, out_dim)
+            nn.Linear(hidden_dim, out_dim)
         )
         self.set_first_phase()
         

@@ -21,7 +21,7 @@ class VIMEConfig(BaseConfig):
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
         
     New Attributes:
-        encoder_dim (int): Dimensionality of the encoder.
+        encoder_dim (int): The dimension of the encoder.
         predictor_hidden_dim (int): The hidden dimension of predictor.
         predictor_output_dim (int): The output dimension of predictor.
         num_categoricals int: The number of categorical features.
@@ -33,7 +33,7 @@ class VIMEConfig(BaseConfig):
         alpha2 (float): A hyperparameter that is to control the trade-off between 
                         the mask estimation and continuous feature estimation loss during first phase. 
                         Default is 2.0.
-        beta (float):  A hyperparameter that is to control the trade-off between 
+        beta (float): A hyperparameter that is to control the trade-off between 
                         the supervised and unsupervised loss during second phase. 
                         Default is 1.0.
         K (int): The number of augmented samples for consistency regularization. Default is 3.

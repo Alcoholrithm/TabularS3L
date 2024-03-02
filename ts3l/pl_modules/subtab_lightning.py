@@ -11,18 +11,19 @@ from ts3l.utils import BaseScorer
 class SubTabLightning(TS3LLightining):
     
     def __init__(self,
-                 model_hparams: Dict[str, Any],
-                 optim: torch.optim = torch.optim.AdamW,
-                 optim_hparams: Dict[str, Any] = {
-                                                    "lr" : 0.0001,
-                                                    "weight_decay" : 0.00005
-                                                },
-                 scheduler: torch.optim.lr_scheduler = None,
-                 scheduler_hparams: Dict[str, Any] = {},
-                 loss_fn: nn.Module = nn.CrossEntropyLoss,
-                 loss_hparams: Dict[str, Any] = {},
-                 scorer: Type[BaseScorer] = None,
-                 random_seed: int = 0
+                 config
+                #  model_hparams: Dict[str, Any],
+                #  optim: torch.optim = torch.optim.AdamW,
+                #  optim_hparams: Dict[str, Any] = {
+                #                                     "lr" : 0.0001,
+                #                                     "weight_decay" : 0.00005
+                #                                 },
+                #  scheduler: torch.optim.lr_scheduler = None,
+                #  scheduler_hparams: Dict[str, Any] = {},
+                #  loss_fn: nn.Module = nn.CrossEntropyLoss,
+                #  loss_hparams: Dict[str, Any] = {},
+                #  scorer: Type[BaseScorer] = None,
+                #  random_seed: int = 0
                 ):
         """Initialize the pytorch lightining module of SubTab
 
@@ -55,15 +56,16 @@ class SubTabLightning(TS3LLightining):
             random_seed (int, optional): The random seed. Defaults to 0.
         """
         super(SubTabLightning, self).__init__(
-            model_hparams,
-            optim,
-            optim_hparams,
-            scheduler,
-            scheduler_hparams,
-            loss_fn,
-            loss_hparams,
-            scorer,
-            random_seed
+            config
+            # model_hparams,
+            # optim,
+            # optim_hparams,
+            # scheduler,
+            # scheduler_hparams,
+            # loss_fn,
+            # loss_hparams,
+            # scorer,
+            # random_seed
         )
         
         self.save_hyperparameters()

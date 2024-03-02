@@ -28,7 +28,7 @@ def test_subtab_classification():
     data, label, continuous_cols, category_cols = load_diabetes()
     num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
-    loss_fn = nn.CrossEntropyLoss
+    loss_fn = "CrossEntropyLoss"
     metric =  "accuracy_score"
     metric_params = {}
     random_seed = 0
@@ -144,7 +144,7 @@ def test_subtab_classification():
 
     hparams_range = {
         
-    'emb_dim' : ['suggest_int', ['emb_dim', 4, 1024]],
+    'hidden_dim' : ['suggest_int', ['hidden_dim', 4, 1024]],
     
     'tau' : ["suggest_float", ["tau", 0.05, 0.15]],
     "use_cosine_similarity" : ["suggest_categorical", ["use_cosine_similarity", [True, False]]],
@@ -182,7 +182,7 @@ def test_subtab_classification():
             model_hparams = {
                 "input_dim" : data.shape[1],
                 "out_dim" : 2,
-                'emb_dim' : None,
+                'hidden_dim' : None,
                 "tau" : None,
                 "use_cosine_similarity" : None,
                 "use_contrastive" : None,
@@ -215,13 +215,17 @@ def test_subtab_classification():
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
 
-            pl_subtab = SubTabLightning(
-                    model_hparams,
-                    "Adam", optim_hparams, None, scheduler_hparams,
-                    loss_fn,
-                    {},
-                    AccuracyScorer("accuracy_score"),
-                    random_seed)
+            from ts3l.utils.subtab_utils import SubTabConfig
+            config = SubTabConfig(
+            task="classification",
+            loss_fn=loss_fn, metric=metric, metric_hparams={},
+            input_dim=model_hparams["input_dim"], out_dim=model_hparams["out_dim"],
+            hidden_dim=model_hparams["hidden_dim"],
+            tau=model_hparams["tau"], use_cosine_similarity=model_hparams["use_cosine_similarity"], 
+            use_contrastive=model_hparams["use_contrastive"], use_distance=model_hparams["use_distance"],
+            n_subsets=model_hparams["n_subsets"], overlap_ratio=model_hparams["overlap_ratio"]
+            )
+            pl_subtab = SubTabLightning(config)
 
             pl_subtab = fit_model(pl_subtab, data_hparams)
             pl_subtab.set_second_phase()
@@ -274,7 +278,7 @@ def test_subtab_regression():
     data, label, continuous_cols, category_cols = load_abalone()
     num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
-    loss_fn = nn.MSELoss
+    loss_fn = "MSELoss"
     metric =  "mean_squared_error"
     random_seed = 0
 
@@ -389,7 +393,7 @@ def test_subtab_regression():
 
     hparams_range = {
         
-    'emb_dim' : ['suggest_int', ['emb_dim', 4, 1024]],
+    'hidden_dim' : ['suggest_int', ['hidden_dim', 4, 1024]],
     
     'tau' : ["suggest_float", ["tau", 0.05, 0.15]],
     "use_cosine_similarity" : ["suggest_categorical", ["use_cosine_similarity", [True, False]]],
@@ -427,7 +431,7 @@ def test_subtab_regression():
                 "input_dim" : data.shape[1],
                 "out_dim" : 1,
                 # "batch_size" : batch_size,
-                'emb_dim' : None,
+                'hidden_dim' : None,
                 "tau" : None,
                 "use_cosine_similarity" : None,
                 "use_contrastive" : None,
@@ -459,14 +463,25 @@ def test_subtab_regression():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
-
-            pl_subtab = SubTabLightning(
-                    model_hparams,
-                    "Adam", optim_hparams, None, scheduler_hparams,
-                    loss_fn,
-                    {},
-                    MSEScorer("mean_squared_error"),
-                    random_seed)
+            from ts3l.utils.subtab_utils import SubTabConfig
+            config = SubTabConfig(
+            task="regression",
+            loss_fn=loss_fn, metric=metric, metric_hparams={},
+            input_dim=model_hparams["input_dim"], out_dim=model_hparams["out_dim"],
+            hidden_dim=model_hparams["hidden_dim"],
+            tau=model_hparams["tau"], use_cosine_similarity=model_hparams["use_cosine_similarity"], 
+            use_contrastive=model_hparams["use_contrastive"], use_distance=model_hparams["use_distance"],
+            n_subsets=model_hparams["n_subsets"], overlap_ratio=model_hparams["overlap_ratio"]
+            )
+            pl_subtab = SubTabLightning(config)
+            
+            # pl_subtab = SubTabLightning(
+            #         model_hparams,
+            #         "Adam", optim_hparams, None, scheduler_hparams,
+            #         loss_fn,
+            #         {},
+            #         MSEScorer("mean_squared_error"),
+            #         random_seed)
 
             pl_subtab = fit_model(pl_subtab, data_hparams)
             pl_subtab.set_second_phase()
