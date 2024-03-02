@@ -1,5 +1,5 @@
 from typing import Dict, Any, Type
-from ts3l.utils import BaseScorer, RegressionMetric, ClassificationMetric
+from ts3l.utils import RegressionMetric, ClassificationMetric
 
 from abc import ABC, abstractmethod
 

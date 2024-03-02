@@ -1,7 +1,6 @@
 from typing import Dict, Any, Type
 import torch
 from torch import nn
-from ts3l.utils import BaseScorer
 
 from .base_module import TS3LLightining
 from ts3l.models import VIME

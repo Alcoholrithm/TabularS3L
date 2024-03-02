@@ -1,18 +1,4 @@
-from ts3l.utils.misc import BaseScorer
-class AccuracyScorer(BaseScorer):
-    def __init__(self, metric: str) -> None:
-        super().__init__(metric)
-    
-    def __call__(self, y, y_hat) -> float:
-        return self.metric(y, y_hat.argmax(1))
-
-class MSEScorer(BaseScorer):
-    def __init__(self, metric: str) -> None:
-        super().__init__(metric)
-    
-    def __call__(self, y, y_hat) -> float:
-        return self.metric(y, y_hat)
-    
+   
 def test_subtab_classification():
     from ts3l.pl_modules import SubTabLightning
     from ts3l.utils.subtab_utils import SubTabDataset, SubTabCollateFN

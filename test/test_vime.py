@@ -1,4 +1,3 @@
-# from ts3l.utils.misc import BaseScorer
 
 def test_vime_classification():
     from ts3l.pl_modules import VIMELightning
