@@ -1,7 +1,8 @@
 
 def test_vime_classification():
     from ts3l.pl_modules import VIMELightning
-    from ts3l.utils.vime_utils import VIMEFirstPhaseDataset, VIMESecondPhaseDataset, VIMECollateFN
+    from ts3l.utils.vime_utils import VIMESemiSLCollateFN
+    from ts3l.utils.vime_utils import VIMEDataset
     from ts3l.utils import TS3LDataModule
 
     import torch.nn as nn
@@ -44,8 +45,8 @@ def test_vime_classification():
                 data_hparams
         ):
         
-        train_ds = VIMEFirstPhaseDataset(pd.concat([X_train, X_unlabeled]), data_hparams, continuous_cols, category_cols)
-        test_ds = VIMEFirstPhaseDataset(X_valid, data_hparams, continuous_cols, category_cols)
+        train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
+        test_ds = VIMEDataset(X = X_valid, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', n_jobs = n_jobs)
 
@@ -85,10 +86,10 @@ def test_vime_classification():
 
         model.set_second_phase()
         
-        train_ds = VIMESecondPhaseDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols)
-        test_ds = VIMESecondPhaseDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols)
-
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMECollateFN())
+        train_ds = VIMEDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+        test_ds = VIMEDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+        
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESemiSLCollateFN())
             
         callbacks = [
             EarlyStopping(
@@ -201,13 +202,6 @@ def test_vime_classification():
             num_categoricals=num_categoricals, num_continuous=num_continuous
             )
             pl_vime = VIMELightning(config)
-            # pl_vime = VIMELightning(
-            #         model_hparams,
-            #         "Adam", optim_hparams, None, scheduler_hparams,
-            #         loss_fn,
-            #         {},
-            #         AccuracyScorer("accuracy_score"),
-            #         random_seed)
 
             pl_vime = fit_model(pl_vime, data_hparams)
             pl_vime.set_second_phase()
@@ -219,7 +213,8 @@ def test_vime_classification():
                         callbacks = None,
             )
 
-            test_ds = VIMESecondPhaseDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_test = True)
+            test_ds = VIMEDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_test = True, is_second_phase=True)
+            
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
             test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs)
@@ -247,7 +242,8 @@ def test_vime_classification():
 
 def test_vime_regression():
     from ts3l.pl_modules import VIMELightning
-    from ts3l.utils.vime_utils import VIMEFirstPhaseDataset, VIMESecondPhaseDataset, VIMECollateFN
+    from ts3l.utils.vime_utils import VIMESemiSLCollateFN
+    from ts3l.utils.vime_utils import VIMEDataset
     from ts3l.utils import TS3LDataModule
 
     import torch.nn as nn
@@ -291,8 +287,8 @@ def test_vime_regression():
                 data_hparams
         ):
         
-        train_ds = VIMEFirstPhaseDataset(pd.concat([X_train, X_unlabeled]), data_hparams, continuous_cols, category_cols)
-        test_ds = VIMEFirstPhaseDataset(X_valid, data_hparams, continuous_cols, category_cols)
+        train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
+        test_ds = VIMEDataset(X = X_valid, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', n_jobs = n_jobs)
 
@@ -332,10 +328,10 @@ def test_vime_regression():
 
         model.set_second_phase()
         
-        train_ds = VIMESecondPhaseDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_regression=True)
-        test_ds = VIMESecondPhaseDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols, is_regression=True)
+        train_ds = VIMEDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True, is_regression=True)
+        test_ds = VIMEDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True, is_regression=True)
 
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMECollateFN())
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESemiSLCollateFN())
             
         callbacks = [
             EarlyStopping(
@@ -446,14 +442,6 @@ def test_vime_regression():
             num_categoricals=num_categoricals, num_continuous=num_continuous
             )
             pl_vime = VIMELightning(config)
-            
-            # pl_vime = VIMELightning(
-            #         model_hparams,
-            #         "Adam", optim_hparams, None, scheduler_hparams,
-            #         loss_fn,
-            #         {},
-            #         MSEScorer(metric),
-            #         random_seed)
 
             pl_vime = fit_model(pl_vime, data_hparams)
             pl_vime.set_second_phase()
@@ -464,8 +452,8 @@ def test_vime_regression():
                         num_sanity_val_steps = 2,
                         callbacks = None,
             )
-
-            test_ds = VIMESecondPhaseDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_test = True, is_regression=True)
+            
+            test_ds = VIMEDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_test = True, is_second_phase=True, is_regression=True)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
             test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs)
