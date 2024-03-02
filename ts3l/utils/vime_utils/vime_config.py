@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from ts3l.utils.base_config import BaseConfig
+from ts3l.utils import BaseConfig
 
 from typing import Any, List
 
@@ -40,7 +40,7 @@ class VIMEConfig(BaseConfig):
 
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
-        
+
         ValueError: Raised if both `num_categoricals` and `num_continuous` are None, indicating that at least one attribute must be specified.
         ValueError: Raised if `input_dim` or `output_dim` are not specified, indicating these dimensions must be defined.                    
     """

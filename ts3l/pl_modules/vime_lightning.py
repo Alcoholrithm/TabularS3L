@@ -5,85 +5,43 @@ from ts3l.utils import BaseScorer
 
 from .base_module import TS3LLightining
 from ts3l.models import VIME
-from copy import deepcopy
+from ts3l.utils.vime_utils import VIMEConfig
 
 class VIMELightning(TS3LLightining):
     
-    def __init__(self, 
-                 config,
-                #  model_hparams: Dict[str, Any],
-                #  optim: torch.optim = torch.optim.AdamW,
-                #  optim_hparams: Dict[str, Any] = {
-                #                                     "lr" : 0.0001,
-                #                                     "weight_decay" : 0.00005
-                #                                 },
-                #  scheduler: torch.optim.lr_scheduler = None,
-                #  scheduler_hparams: Dict[str, Any] = {},
-                #  loss_fn: nn.Module = nn.CrossEntropyLoss,
-                #  loss_hparams: Dict[str, Any] = {},
-                #  scorer: Type[BaseScorer] = None,
-                #  random_seed: int = 0
-    ):
+    def __init__(self, config: VIMEConfig) -> None:
         """Initialize the pytorch lightining module of VIME
 
         Args:
-            model_hparams (Dict[str, Any]): The hyperparameters of VIME. 
-                                            It must have following keys: {
-                                                                            "encoder_dim": int, The input dimension of VIME.
-                                                                            "predictor_hidden_dim": int, The hidden dimension of predictor of VIME.
-                                                                            "predictor_output_dim": int, The output dimension of VIME.
-                                                                            'alpha1': float, A hyperparameter that is to control the trade-off between 
-                                                                                            the mask estimation and categorical feature estimation loss during first phase.
-                                                                            'alpha2': float, A hyperparameter that is to control the trade-off between 
-                                                                                            the mask estimation and continuous feature estimation loss during first phase.
-                                                                            'beta': float, A hyperparameter that is to control the trade-off between 
-                                                                                            the supervised and unsupervised loss during second phase.
-                                                                            'K': int, The number of augmented samples for consistency regularization,
-                                                                            "num_categoricals": int, The number of categorical features.
-                                                                            "num_continuous": int, The number of continuous features. 
-                                                                            "u_label": Any, The special token for unlabeled samples.
-                                                                        }
-            optim (torch.optim): The optimizer for training. Defaults to torch.optim.AdamW.
-            optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer. Defaults to { "lr" : 0.0001, "weight_decay" : 0.00005 }.
-            scheduler (torch.optim.lr_scheduler): The scheduler for training. Defaults to None.
-            scheduler_hparams (Dict[str, Any]): The hyperparameters of the scheduler. Defaults to {}.
-            loss_fn (nn.Module): The loss function for VIME. Defaults to nn.CrossEntropyLoss.
-            loss_hparams (Dict[str, Any]): The hyperparameters of the loss function. Defaults to {}.
-            scorer (BaseScorer): The scorer to measure the performance. Defaults to None.
-            random_seed (int, optional): The random seed. Defaults to 0.
+            config (VIMEConfig): The configuration of VIMELightning.
         """
-        super(VIMELightning, self).__init__(
-                config)
-
-        
-        
-
-    def _initialize(self, model_hparams: Dict[str, Any]):
+        super(VIMELightning, self).__init__(config)
+    
+    def _initialize(self, config: Dict[str, Any]) -> None:
         """Initializes the model with specific hyperparameters and sets up various components of VIMELightning.
 
         Args:
-            model_hparams (Dict[str, Any]): The given hyperparameter set for VIME. 
+            config (Dict[str, Any]): The given hyperparameter set for VIME. 
         """
-        hparams = deepcopy(model_hparams)
         
-        self.alpha1 = hparams["alpha1"]
-        self.alpha2 = hparams["alpha2"]
-        del hparams["alpha1"]
-        del hparams["alpha2"]
+        self.alpha1 = config["alpha1"]
+        self.alpha2 = config["alpha2"]
+        del config["alpha1"]
+        del config["alpha2"]
         
-        self.beta = hparams["beta"]
-        del hparams["beta"]
+        self.beta = config["beta"]
+        del config["beta"]
         
-        self.K = hparams["K"]
+        self.K = config["K"]
         self.consistency_len = self.K + 1
-        del hparams["K"]
+        del config["K"]
         
-        self.num_categoricals, self.num_continuous = hparams["num_categoricals"], hparams["num_continuous"]
-        del hparams["num_categoricals"]
-        del hparams["num_continuous"]
+        self.num_categoricals, self.num_continuous = config["num_categoricals"], config["num_continuous"]
+        del config["num_categoricals"]
+        del config["num_continuous"]
         
-        self.u_label = hparams["u_label"]
-        del hparams["u_label"]
+        self.u_label = config["u_label"]
+        del config["u_label"]
         
         
         self.first_phase_mask_loss = nn.BCELoss()
@@ -92,38 +50,7 @@ class VIMELightning(TS3LLightining):
         
         self.consistency_loss = nn.MSELoss()
 
-        self.model = VIME(**hparams)
-    
-    def _check_model_hparams(self, model_hparams: Dict[str, Any]) -> None:
-        """Checks whether the provided hyperparameter set for VIME is valid by ensuring all required hyperparameters are present.
-
-        This method verifies the presence of all necessary hyperparameters in the `model_hparams` dictionary. 
-        It is designed to ensure that the hyperparameter set provided for the VIME model includes all required keys. 
-        The method raises a KeyError if any required hyperparameter is missing.
-
-        Args:
-            model_hparams (Dict[str, Any]): The given hyperparameter set for VIME. 
-            This dictionary must include keys for all necessary hyperparameters, 
-            which are 'alpha1', 'alpha2', 'beta', 'K', 'encoder_dim', 'predictor_hidden_dim', 
-                        'predictor_output_dim', 'num_categoricals', 'num_continuous', and 'u_label'.
-
-        Raises:
-            KeyError: Raised with a message specifying the missing hyperparameter(s) if any required hyperparameters are missing from `model_hparams`. 
-            The message will list all missing hyperparameters, formatted appropriately depending on the number missing.
-        """
-        requirements = [
-            "alpha1", "alpha2", "beta", "K", "encoder_dim", "predictor_hidden_dim", "predictor_output_dim", "num_categoricals", "num_continuous", "u_label"
-        ]
-        
-        missings = []
-        for requirement in requirements:
-            if not requirement in model_hparams.keys():
-                missings.append(requirement)
-        
-        if len(missings) == 1:
-            raise KeyError("model_hparams requires {%s}" % missings[0])
-        elif len(missings) > 1:
-            raise KeyError("model_hparams requires {%s, and %s}" % (', '.join(missings[:-1]), missings[-1]))
+        self.model = VIME(**config)
     
     def _get_first_phase_loss(self, batch:Dict[str, Any]):
         """Calculate the first phase loss

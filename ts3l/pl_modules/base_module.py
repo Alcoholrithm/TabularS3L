@@ -9,29 +9,19 @@ from torch import nn
 import pytorch_lightning as pl
 
 from dataclasses import asdict
-import torchmetrics
-import sklearn
+from ts3l.utils import BaseConfig
+from typing import Type
     
 
     
 class TS3LLightining(ABC, pl.LightningModule):
     """The pytorch lightning module of TabularS3L
     """
-    def __init__(self,
-                 config
-    ) -> None:
+    def __init__(self, config: Type[BaseConfig]) -> None:
         """Initialize the pytorch lightining module of TabularS3L
 
         Args:
-            model_hparams (Dict[str, Any]): The hyperparameters of TabularS3L.
-            optim (torch.optim): The optimizer for training. Defaults to torch.optim.AdamW.
-            optim_hparams (Dict[str, Any]): The hyperparameters of the optimizer. Defaults to { "lr" : 0.0001, "weight_decay" : 0.00005 }.
-            scheduler (torch.optim.lr_scheduler): The scheduler for training. Defaults to None.
-            scheduler_hparams (Dict[str, Any]): The hyperparameters of the scheduler. Defaults to {}.
-            loss_fn (nn.Module): The loss function for VIME. Defaults to nn.CrossEntropyLoss.
-            loss_hparams (Dict[str, Any]): The hyperparameters of the loss function. Defaults to {}.
-            scorer (BaseScorer): The scorer to measure the performance. Defaults to None.
-            random_seed (int, optional): The random seed. Defaults to 0.
+            config (Type[BaseConfig]): The configuration of TS3LLightining.
         """
         super(TS3LLightining, self).__init__()
         
@@ -71,7 +61,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         self.save_hyperparameters()
     
     @abstractmethod
-    def _initialize(self, model_hparams: Dict[str, Any]):
+    def _initialize(self, config: Dict[str, Any]) -> None:
         pass
     
     def __configure_metric(self, task, metric, metric_hparams):

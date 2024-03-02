@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from ts3l.utils.base_config import BaseConfig
+from ts3l.utils import BaseConfig
 
 from typing import Any, List
 
