@@ -26,7 +26,7 @@ def test_subtab_classification():
     from diabetes import load_diabetes
 
     data, label, continuous_cols, category_cols = load_diabetes()
-    num_categoricals = len(continuous_cols)
+    num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
     loss_fn = nn.CrossEntropyLoss
     metric =  "accuracy_score"
@@ -272,7 +272,7 @@ def test_subtab_regression():
     from abalone import load_abalone
 
     data, label, continuous_cols, category_cols = load_abalone()
-    num_categoricals = len(continuous_cols)
+    num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
     loss_fn = nn.MSELoss
     metric =  "mean_squared_error"

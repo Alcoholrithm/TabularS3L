@@ -1,5 +1,5 @@
 from typing import Dict, Any, Type
-from ts3l.utils import BaseScorer
+from ts3l.utils import BaseScorer, RegressionMetric, ClassificationMetric
 
 from abc import ABC, abstractmethod
 
@@ -8,22 +8,17 @@ from torch import nn
 
 import pytorch_lightning as pl
 
+from dataclasses import asdict
+import torchmetrics
+import sklearn
+    
+
+    
 class TS3LLightining(ABC, pl.LightningModule):
     """The pytorch lightning module of TabularS3L
     """
     def __init__(self,
-                 model_hparams: Dict[str, Any],
-                 optim: torch.optim = torch.optim.AdamW,
-                 optim_hparams: Dict[str, Any] = {
-                                                    "lr" : 0.0001,
-                                                    "weight_decay" : 0.00005
-                                                },
-                 scheduler: torch.optim.lr_scheduler = None,
-                 scheduler_hparams: Dict[str, Any] = {},
-                 loss_fn: nn.Module = nn.CrossEntropyLoss,
-                 loss_hparams: Dict[str, Any] = {},
-                 scorer: Type[BaseScorer] = None,
-                 random_seed: int = 0
+                 config
     ) -> None:
         """Initialize the pytorch lightining module of TabularS3L
 
@@ -40,23 +35,34 @@ class TS3LLightining(ABC, pl.LightningModule):
         """
         super(TS3LLightining, self).__init__()
         
+        config = asdict(config)
         
-        pl.seed_everything(random_seed)
+        self.random_seed = config["random_seed"]
+        del config["random_seed"]
         
-        self._check_model_hparams(model_hparams)
+        pl.seed_everything(self.random_seed)
         
-        self._initialize(model_hparams)
+        self.optim = getattr(torch.optim, config["optim"])
+        del config["optim"]
+        self.optim_hparams = config["optim_hparams"]
+        del config["optim_hparams"]
         
-        self.optim = getattr(torch.optim, optim)
-        self.optim_hparams = optim_hparams
-
-        self.sched = getattr(torch.optim.lr_scheduler, scheduler) if scheduler is not None else None
-        self.scheduler_hparams = scheduler_hparams
+        self.sched = getattr(torch.optim.lr_scheduler, config["scheduler"]) if config["scheduler"] is not None else None
+        del config["scheduler"]
+        self.scheduler_hparams = config["scheduler_hparams"]
+        del config["scheduler_hparams"]
         
-        self.loss_fn = loss_fn(**loss_hparams)
+        self.loss_fn = getattr(torch.nn, config["loss_fn"])(**config["loss_hparams"])
+        del config["loss_fn"]
+        del config["loss_hparams"]
         
-        self.scorer = scorer
-            
+        self.__configure_metric(config["task"], config["metric"], config["metric_hparams"])
+        del config["task"]
+        del config["metric"]
+        del config["metric_hparams"]
+        
+        self._initialize(config)
+        
         self.set_first_phase()
 
         self.first_phase_step_outputs = []
@@ -67,11 +73,14 @@ class TS3LLightining(ABC, pl.LightningModule):
     @abstractmethod
     def _initialize(self, model_hparams: Dict[str, Any]):
         pass
-
-    @abstractmethod
-    def _check_model_hparams(self, model_hparams: Dict[str, Any]) -> None:
-        pass
     
+    def __configure_metric(self, task, metric, metric_hparams):
+        
+        if task == "regression":
+            self.metric = RegressionMetric(metric, metric_hparams)
+        else:
+            self.metric = ClassificationMetric(metric, metric_hparams)
+            
     def configure_optimizers(self):
         """Configure the optimizer
         """
@@ -212,14 +221,14 @@ class TS3LLightining(ABC, pl.LightningModule):
         """Log the training loss and the performance of the second phase
         """
         if len(self.second_phase_step_outputs) > 0:
-            train_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).cpu().mean()
-            y = torch.cat([out["y"] for out in self.second_phase_step_outputs]).cpu().detach().numpy()
-            y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs]).cpu().detach().numpy()
+            train_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).detach().mean()
+            y = torch.cat([out["y"] for out in self.second_phase_step_outputs]).detach()
+            y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs]).detach()
             
-            train_score = self.scorer(y, y_hat)
+            train_score = self.metric(y_hat, y)
             
             self.log("train_loss", train_loss, prog_bar = True)
-            self.log("train_" + self.scorer.__name__, train_score, prog_bar = True)
+            self.log("train_" + self.metric.__name__, train_score, prog_bar = True)
             self.second_phase_step_outputs = []   
             
         return super().on_validation_start()
@@ -227,13 +236,14 @@ class TS3LLightining(ABC, pl.LightningModule):
     def _second_phase_validation_epoch_end(self) -> None:
         """Log the validation loss and the performance of the second phase
         """
-        val_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).cpu().mean()
+        val_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).mean()
 
-        y = torch.cat([out["y"] for out in self.second_phase_step_outputs]).cpu().numpy()
-        y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs]).cpu().numpy()
-        val_score = self.scorer(y, y_hat)
+        
+        y = torch.cat([out["y"] for out in self.second_phase_step_outputs])
+        y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs])
+        val_score = self.metric(y_hat, y)
 
-        self.log("val_" + self.scorer.__name__, val_score, prog_bar = True)
+        self.log("val_" + self.metric.__name__, val_score, prog_bar = True)
         self.log("val_loss", val_loss, prog_bar = True)
         self.second_phase_step_outputs = []      
         return super().on_validation_epoch_end()

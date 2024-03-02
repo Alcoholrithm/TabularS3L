@@ -1,17 +1,4 @@
-from ts3l.utils.misc import BaseScorer
-class AccuracyScorer(BaseScorer):
-    def __init__(self, metric: str) -> None:
-        super().__init__(metric)
-    
-    def __call__(self, y, y_hat) -> float:
-        return self.metric(y, y_hat.argmax(1))
-    
-class MSEScorer(BaseScorer):
-    def __init__(self, metric: str) -> None:
-        super().__init__(metric)
-    
-    def __call__(self, y, y_hat) -> float:
-        return self.metric(y, y_hat)
+# from ts3l.utils.misc import BaseScorer
 
 def test_vime_classification():
     from ts3l.pl_modules import VIMELightning
@@ -26,13 +13,12 @@ def test_vime_classification():
     from diabetes import load_diabetes
 
     data, label, continuous_cols, category_cols = load_diabetes()
-    num_categoricals = len(continuous_cols)
+    num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
-    loss_fn = nn.CrossEntropyLoss
+    loss_fn = "CrossEntropyLoss"
     metric =  "accuracy_score"
     random_seed = 0
-
-
+    
     from sklearn.model_selection import train_test_split
 
     X_train, X_valid, y_train, y_valid = train_test_split(data, label, train_size = 0.7, random_state=random_seed, stratify=label)
@@ -206,13 +192,23 @@ def test_vime_classification():
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
 
-            pl_vime = VIMELightning(
-                    model_hparams,
-                    "Adam", optim_hparams, None, scheduler_hparams,
-                    loss_fn,
-                    {},
-                    AccuracyScorer("accuracy_score"),
-                    random_seed)
+            from ts3l.utils.vime_utils import VIMEConfig
+            config = VIMEConfig(
+            task="classification",
+            loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+            encoder_dim=model_hparams["encoder_dim"], predictor_hidden_dim=model_hparams["predictor_hidden_dim"],
+            predictor_output_dim=model_hparams["predictor_output_dim"],
+            alpha1=model_hparams["alpha1"], alpha2=model_hparams["alpha2"], beta=model_hparams["beta"], K=model_hparams["K"],
+            num_categoricals=num_categoricals, num_continuous=num_continuous
+            )
+            pl_vime = VIMELightning(config)
+            # pl_vime = VIMELightning(
+            #         model_hparams,
+            #         "Adam", optim_hparams, None, scheduler_hparams,
+            #         loss_fn,
+            #         {},
+            #         AccuracyScorer("accuracy_score"),
+            #         random_seed)
 
             pl_vime = fit_model(pl_vime, data_hparams)
             pl_vime.set_second_phase()
@@ -263,7 +259,7 @@ def test_vime_regression():
     from abalone import load_abalone
 
     data, label, continuous_cols, category_cols = load_abalone()
-    num_categoricals = len(continuous_cols)
+    num_categoricals = len(category_cols)
     num_continuous = len(continuous_cols)
     loss_fn = nn.MSELoss
     metric =  "mean_squared_error"
@@ -441,14 +437,24 @@ def test_vime_regression():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
                     scheduler_hparams[k] = getattr(trial, v[0])(*v[1])
-
-            pl_vime = VIMELightning(
-                    model_hparams,
-                    "Adam", optim_hparams, None, scheduler_hparams,
-                    loss_fn,
-                    {},
-                    MSEScorer(metric),
-                    random_seed)
+            from ts3l.utils.vime_utils import VIMEConfig
+            config = VIMEConfig(
+            task="regression",
+            loss_fn="MSELoss", metric=metric, metric_hparams={},
+            encoder_dim=model_hparams["encoder_dim"], predictor_hidden_dim=model_hparams["predictor_hidden_dim"],
+            predictor_output_dim=model_hparams["predictor_output_dim"],
+            alpha1=model_hparams["alpha1"], alpha2=model_hparams["alpha2"], beta=model_hparams["beta"], K=model_hparams["K"],
+            num_categoricals=num_categoricals, num_continuous=num_continuous
+            )
+            pl_vime = VIMELightning(config)
+            
+            # pl_vime = VIMELightning(
+            #         model_hparams,
+            #         "Adam", optim_hparams, None, scheduler_hparams,
+            #         loss_fn,
+            #         {},
+            #         MSEScorer(metric),
+            #         random_seed)
 
             pl_vime = fit_model(pl_vime, data_hparams)
             pl_vime.set_second_phase()
