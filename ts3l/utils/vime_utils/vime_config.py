@@ -39,11 +39,10 @@ class VIMEConfig(BaseConfig):
         K (int): The number of augmented samples for consistency regularization. Default is 3.
 
     Raises:
-        ValueError: Inherited from `BaseConfig` for invalid task, optimizer, scheduler, loss function, or metric configurations.
-        NotImplementedError: Inherited from `BaseConfig` for task, loss function or metric are not specified.
+        ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
         
         ValueError: Raised if both `num_categoricals` and `num_continuous` are None, indicating that at least one attribute must be specified.
-        NotImplementedError: Raised if `input_dim` or `output_dim` are not specified, indicating these dimensions must be defined.                    
+        ValueError: Raised if `input_dim` or `output_dim` are not specified, indicating these dimensions must be defined.                    
     """
     
     input_dim: int = field(default=None)
@@ -70,10 +69,10 @@ class VIMEConfig(BaseConfig):
         super().__post_init__()
         
         if self.input_dim is None:
-            raise NotImplementedError("The dimension of input must be specified in the 'input_dim' attribute.")
+            raise ValueError("The dimension of input must be specified in the 'input_dim' attribute.")
         
         if self.output_dim is None:
-            raise NotImplementedError("The dimension of predictor's output must be specified in the 'output_dim' attribute.")
+            raise ValueError("The dimension of predictor's output must be specified in the 'output_dim' attribute.")
         
         if self.num_categoricals is None and self.num_continuous is None:
             raise ValueError("At least one attribute (num_categorical or num_continuous) must be specified.")

@@ -33,11 +33,9 @@ class SubTabConfig(BaseConfig):
         overlap_ratio (float): A hyperparameter that is to control the extent of overlapping between the subsets. Default is 0.75.
 
     Raises:
-        ValueError: Inherited from `BaseConfig` for invalid task, optimizer, scheduler, loss function, or metric configurations.
-        NotImplementedError: Inherited from `BaseConfig` for task, loss function or metric are not specified.
+        ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
         
-        NotImplementedError: Raised if `input_dim` or `output_dim` are not specified, 
-                            indicating these dimensions must be defined.                    
+        ValueError: Raised if `input_dim` or `output_dim` are not specified, indicating these dimensions must be defined.                    
     """
     
     input_dim: int = field(default=None)
@@ -62,7 +60,7 @@ class SubTabConfig(BaseConfig):
         super().__post_init__()
         
         if self.input_dim is None:
-            raise NotImplementedError("The dimension of input must be specified in the 'input_dim' attribute.")
+            raise ValueError("The dimension of input must be specified in the 'input_dim' attribute.")
         
         if self.output_dim is None:
-            raise NotImplementedError("The dimension of output must be specified in the 'output_dim' attribute.")
+            raise ValueError("The dimension of output must be specified in the 'output_dim' attribute.")

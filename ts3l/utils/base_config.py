@@ -25,13 +25,16 @@ class BaseConfig:
     Raises:
         ValueError: If the specified 'optim' is not a valid optimizer in 'torch.optim'.
         ValueError: If the specified 'scheduler' is not None and is not a valid scheduler in 'torch.optim.lr_scheduler'.
+        
+        ValueError: If the 'loss_fn' attribute is None, indicating that a loss function must be specified.
         ValueError: If the specified 'loss_fn' is not None and is not a valid loss function in 'torch.nn'.
+        
+        ValueError: If the 'metric' attribute is None, indicating that a metric must be specified.
         ValueError: If the specified 'metric' is not a valid metric in 'torchmetrics' or 'sklearn.metrics'.
+        
+        ValueError: If the 'task' attribute is None, indicating that a task must be specified.
         ValueError: If the specified 'task' is not a valid task in ['regression', 'classification']'.
         
-        NotImplementedError: If the 'task' attribute is None, indicating that a task must be specified.
-        NotImplementedError: If the 'loss_fn' attribute is None, indicating that a loss function must be specified.
-        NotImplementedError: If the 'metric' attribute is None, indicating that a metric must be specified.
     """
     task: str = field(default=None)
     
@@ -60,7 +63,7 @@ class BaseConfig:
     
     def __post_init__(self):
         if self.task is None:
-            raise NotImplementedError("The task of the problem must be specified in the 'task' attribute.")
+            raise ValueError("The task of the problem must be specified in the 'task' attribute.")
         elif (type(self.task) is not str or (self.task != "regression" and self.task != "classification")):
             raise ValueError(f"{self.task} is not a valid task. Choices are: ['regression', 'classification']")
         
@@ -71,11 +74,11 @@ class BaseConfig:
             raise ValueError(f"{self.scheduler} is not a valid scheduler in torch.optim.lr_scheduler")
         
         if self.loss_fn is None:
-            raise NotImplementedError("A loss function must be specified in the 'loss_fn' attribute.")
+            raise ValueError("A loss function must be specified in the 'loss_fn' attribute.")
         elif type(self.loss_fn) is not str or not hasattr(nn, self.loss_fn):
             raise ValueError(f"{self.loss_fn} is not a valid loss function in torch.nn")
         
         if self.metric is None:
-            raise NotImplementedError("A metric must be specified in the 'metric' attribute.")
+            raise ValueError("A metric must be specified in the 'metric' attribute.")
         elif (type(self.metric) is not str or (not hasattr(torchmetrics.functional, self.metric) and not hasattr(sklearn.metrics, self.metric))):
             raise ValueError(f"{self.metric} is not a valid metric in torchmetrics.functional or sklearn.metrics")

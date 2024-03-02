@@ -1,5 +1,5 @@
 # TabularS3L
-TabularS3L is a PyTorch-based library designed to facilitate self- and semi-supervised learning with tabular data. While numerous self- and semi-supervised learning tabular models have been proposed, there lacks a comprehensive library catering to the needs of tabular practitioners. This library aims to address this gap by offering a unified PyTorch-based framework for studying and deploying such models.
+TabularS3L is a PyTorch-based library designed to facilitate self- and semi-supervised learning with tabular data. While numerous self- and semi-supervised learning tabular models have been proposed, there lacks a comprehensive library catering to the needs of tabular practitioners. This library aims to address this gap by offering a unified PyTorch Lightning-based framework for studying and deploying such models.
 
 Currently, VIME ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html)), SubTab ([NeurIPS'21](https://proceedings.neurips.cc/paper/2021/hash/9c8661befae6dbcd08304dbf4dcaf0db-Abstract.html)) and SCARF ([ICLR'22](https://iclr.cc/virtual/2022/spotlight/6297)) are available.
 
@@ -82,7 +82,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 train_ds = SCARFDataset(X_train.append(X_unlabeled), corruption_len=int(corruption_rate * X_train.shape[1]))
 
-model.do_pretraining() # Now, model.forward conducts self-superivsed learning.
+model.set_first_phase() # Now, model.forward conducts self-superivsed learning.
 
 train_dl = DataLoader(train_ds, 
                         batch_size = batch_size, 
@@ -110,7 +110,7 @@ train_ds = SCARFDataset(X_train, y_train.values)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-model.do_finetunning() # Now, model.forward conducts (semi-)superivsed learning.
+model.set_second_phase() # Now, model.forward conducts (semi-)superivsed learning.
 
 train_dl = DataLoader(train_ds, 
                         batch_size = batch_size, 
