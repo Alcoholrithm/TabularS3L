@@ -30,7 +30,7 @@ setup(
     description='A PyTorch-based library for self- and semi-supervised learning tabular models.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/Alcoholrithm/TabularS3L/tree/dev',
+    url='https://github.com/Alcoholrithm/TabularS3L',
     author='Minwook Kim',
     author_email='kmiiiaa@pusan.ac.kr',
 
