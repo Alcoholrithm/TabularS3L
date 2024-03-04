@@ -321,7 +321,7 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
   - [x] VIME
   - [x] SubTab
   - [x] SCARF
-- [ ] Release LightningModules of VIME, SubTab, and SCARF
+- [x] Release LightningModules of VIME, SubTab, and SCARF
   - [x] VIME
   - [x] SubTab
   - [x] SCARF
