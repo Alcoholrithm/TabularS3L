@@ -1,4 +1,4 @@
-# Copyright (c) Alcoholrithm
+# Copyright (c) Minwook Kim
 # Licensed under the MIT License.
 
 """ Setup

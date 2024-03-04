@@ -1,8 +1,15 @@
+from typing import Dict, Any
 from sklearn import metrics
 import torchmetrics
     
 class RegressionMetric(object):
-    def __init__(self, metric, metric_hparams):
+    def __init__(self, metric: str, metric_hparams: Dict[str, Any] = {}):
+        """Regression Metric Wrapper for TabularS3L.
+
+        Args:
+            metric (str): A name of regression metric of sklearn.metrics or torchmetrics.functional.
+            metric_hparams (_type_): A hyperparameters for the given metric. Default is an empty dictionary.
+        """
         super(RegressionMetric, self).__init__()
         
         self.metric_hparams = metric_hparams
@@ -26,7 +33,13 @@ class RegressionMetric(object):
         return self.metric(preds, target, **self.metric_hparams)
 
 class ClassificationMetric(object):
-    def __init__(self, metric, metric_hparams):
+    def __init__(self, metric: str, metric_hparams: Dict[str, Any] = {}):
+        """Classification Metric Wrapper for TabularS3L.
+
+        Args:
+            metric (str): A name of classification metric of sklearn.metrics or torchmetrics.functional.
+            metric_hparams (_type_): A hyperparameters for the given metric. Default is an empty dictionary.
+        """
         super(ClassificationMetric, self).__init__()
         
         self.metric_hparams = metric_hparams

@@ -24,22 +24,22 @@ class VIMEDataset(Dataset):
 
         Args:
             X (pd.DataFrame): The features of the labeled data
-            Y (Union[NDArray[np.int_], NDArray[np.float_]]): The label of the labeled data
-            data_hparams (Dict[str, Any]): The hyperparameters for consistency regularization
+            Y (Union[NDArray[np.int_], NDArray[np.float_]]): The label of the labeled data.
+            data_hparams (Dict[str, Any]): The hyperparameters for consistency regularization.
             unlabeled_data (pd.DataFrame, optional): The features of the unlabeled data. Defaults to None.
             continous_cols (List, optional): The list of continuous columns. Defaults to None.
             category_cols (List, optional): The list of categorical columns. Defaults to None.
             u_label (int, optional): The specifier for unlabeled sample. Defaults to -1.
-            is_second_phase (bool): The flag that de... Default is False.
+            is_second_phase (bool): The flag that determines whether the dataset is for first phase or second phase learning. Default is False.
             is_regression (bool): Default is False.
             is_test (bool, optional): The flag that determines whether the dataset is for testing or not. Defaults to False.
         """
         
         if not is_second_phase:
-            self.__getitem = self.__first_phase_get_item__
+            self.__getitem = self.__first_phase_get_item
             
         else:
-            self.__getitem = self.__second_phase_get_item__
+            self.__getitem = self.__second_phase_get_item
             if is_regression:
                 self.label_class = torch.FloatTensor
             else:
@@ -80,6 +80,7 @@ class VIMEDataset(Dataset):
     
     def __getitem__(self, idx: int):
         return self.__getitem(idx)
+    
     def __mask_generator(self, p_m, x):
         """Generate mask vector.
         
@@ -144,7 +145,7 @@ class VIMEDataset(Dataset):
         
         return x_tilde
     
-    def __first_phase_get_item__(self, idx: int):
+    def __first_phase_get_item(self, idx: int):
         """Return a input and label pair
 
         Args:
@@ -171,7 +172,7 @@ class VIMEDataset(Dataset):
                 "label" : (m_label, x)
                 }
 
-    def __second_phase_get_item__(self, idx):
+    def __second_phase_get_item(self, idx):
         """Return a input and label pair
 
         Args:
