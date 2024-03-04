@@ -5,33 +5,33 @@ from .vime_semi import VIMESemiSupervised
 
 class VIME(nn.Module):
     def __init__(self, 
-                encoder_dim: int, predictor_hidden_dim: int, predictor_output_dim: int):
+                input_dim: int, hidden_dim: int, output_dim: int):
         """Initialize VIME
 
         Args:
-            encoder_dim (int): The dimension of the encoder
-            predictor_hidden_dim (int): The hidden dimension of the predictor
-            predictor_output_dim (int): The output dimension of the predictor
+            input_dim (int): The dimension of the encoder
+            hidden_dim (int): The hidden dimension of the predictor
+            output_dim (int): The output dimension of the predictor
         """
         super().__init__()
         
-        self.self_net = VIMESelfSupervised(encoder_dim)
-        self.semi_net = VIMESemiSupervised(encoder_dim, predictor_hidden_dim, predictor_output_dim)
+        self.self_net = VIMESelfSupervised(input_dim)
+        self.semi_net = VIMESemiSupervised(input_dim, hidden_dim, output_dim)
         
-        self.do_pretraining()
+        self.set_first_phase()
     
-    def do_pretraining(self):
-        """Set pretraining step as the forward pass
+    def set_first_phase(self):
+        """Set first phase step as the forward pass
         """
-        self.forward = self.pretraining_step
+        self.forward = self.__first_phase_step
     
-    def do_finetunning(self):
-        """Set finetunning step as the forward pass
+    def set_second_phase(self):
+        """Set second phase step as the forward pass
         """
-        self.forward = self.finetunning_step
+        self.forward = self.__second_phase_step
         
-    def pretraining_step(self, x):
-        """The pretraining step of VIME
+    def __first_phase_step(self, x):
+        """The first phase step of VIME
 
         Args:
             x (torch.FloatTensor): The input batch
@@ -44,8 +44,8 @@ class VIME(nn.Module):
         return mask_output, feature_output
     
     
-    def finetunning_step(self, x):
-        """The finetunning step of VIME
+    def __second_phase_step(self, x):
+        """The second phase step of VIME
 
         Args:
             x (torch.FloatTensor): The input batch.

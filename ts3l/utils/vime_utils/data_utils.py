@@ -7,160 +7,145 @@ from torch.utils.data import Dataset
 
 import numpy as np
 
+class VIMEDataset(Dataset):
+    def __init__(self,
+                X: pd.DataFrame,
+                Y: Union[NDArray[np.int_], NDArray[np.float_]] = None, 
+                data_hparams: Dict[str, Any] = None, 
+                unlabeled_data: pd.DataFrame = None, 
+                continous_cols: List = None, 
+                category_cols: List = None, 
+                u_label = -1, 
+                is_second_phase: bool = False,
+                is_regression: bool = False, 
+        ) -> None:
+        """A dataset class for VIME that handles labeled and unlabeled data.
 
-def mask_generator (p_m, x):
-    """Generate mask vector.
-    
-    Args:
-        - p_m: corruption probability
-        - x: feature matrix
-        
-    Returns:
-        - mask: binary mask matrix 
-    """
-    mask = np.random.binomial(1, p_m, x.shape)
-
-    return np.expand_dims(mask, axis=0)
-
-def pretext_generator (m, x, empirical_dist):  
-    """Generate corrupted samples.
-    
-    Args:
-        m: mask matrix
-        x: feature matrix
-        
-    Returns:
-        m_new: final mask matrix after corruption
-        x_tilde: corrupted feature matrix
-    """
-    
-    # Parameters
-    dim = x.shape[0]
-    # Randomly (and column-wise) shuffle data
-    x_bar = np.zeros([1, dim])
-
-    rand_idx = np.random.randint(0, len(empirical_dist), size=dim)
-    
-    x_bar = np.array([empirical_dist[rand_idx[i], i] for i in range(dim)])
-    
-    # Corrupt samples
-    x_tilde = x * (1-m) + x_bar * m  
-    # Define new mask matrix
-    m_new = 1 * (x != x_tilde)
-
-    return m_new.squeeze(), x_tilde.squeeze()
-
-class VIMESelfDataset(Dataset):
-    """The dataset for the self-supervised learning of VIME
-    """
-    def __init__(self, X: pd.DataFrame, data_hparams: Dict[str, Any], continous_cols: List = None, category_cols: List = None):
-        """Initialize the self-supervised learning dataset
+        This class is designed to manage data for the VIME, accommodating both labeled and unlabeled datasets
+        for self- and semi-supervised learning scenarios. It supports regression and classification tasks.
 
         Args:
-            X (pd.DataFrame): The features of the data
-            data_hparams (Dict[str, Any]): The hyperparameters for mask_generator and pretext_generator
-            continous_cols (List, optional): The list of continuous columns. Defaults to None.
-            category_cols (List, optional): The list of categorical columns. Defaults to None.
-        """
-        self.cont_data = torch.FloatTensor(X[continous_cols].values)
-        self.cat_data = torch.FloatTensor(X[category_cols].values)
-        
-        self.continuous_cols = continous_cols
-        self.category_cols = category_cols
-        
-        self.data_hparams = data_hparams
-
-
-
-    def __getitem__(self, idx: int):
-        """Return a input and label pair
-
-        Args:
-            idx (int): The index of the data to sample
-
-        Returns:
-            Dict[str, Any]: A pair of input and label for self-supervised learning
-        """
-        cat_samples = self.cat_data[idx]
-        m_unlab = mask_generator(self.data_hparams["p_m"], cat_samples)
-        cat_m_label, cat_x_tilde = pretext_generator(m_unlab, cat_samples, self.cat_data)
-        
-        cont_samples = self.cont_data[idx]
-        m_unlab = mask_generator(self.data_hparams["p_m"], cont_samples)
-        cont_m_label, cont_x_tilde = pretext_generator(m_unlab, cont_samples, self.cont_data)
-
-        m_label = torch.concat((cat_m_label, cont_m_label)).float()
-        x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
-
-        x = torch.concat((cat_samples, cont_samples))
-        
-        return {
-                "input" : x_tilde,
-                "label" : (m_label, x)
-                }
-
-    def __len__(self):
-        """Return the length of the dataset
-        """
-        return len(self.cat_data)
-
-class VIMESemiDataset(Dataset):
-    """The dataset for the semi-supervised learning of VIME
-    """
-    def __init__(self, X: pd.DataFrame, Y: Union[NDArray[np.int_], NDArray[np.float_]], data_hparams: Dict[str, Any], is_regression: bool = False, unlabeled_data: pd.DataFrame = None, continous_cols: List = None, category_cols: List = None, u_label = -1, is_test: bool = False):
-        """Initialize the semi-supervised learning dataset for the classification
-
-        Args:
-            X (pd.DataFrame): The features of the labeled data
-            Y (Union[NDArray[np.int_], NDArray[np.float_]]): The label of the labeled data
-            data_hparams (Dict[str, Any]): The hyperparameters for consistency regularization
-            label_class (Union[torch.LongTensor, torch.FloatTensor]): The type of label
-            unlabeled_data (pd.DataFrame, optional): The features of the unlabeled data. Defaults to None.
-            continous_cols (List, optional): The list of continuous columns. Defaults to None.
-            category_cols (List, optional): The list of categorical columns. Defaults to None.
+            X (pd.DataFrame): DataFrame containing the features of the labeled data.
+            Y (Union[NDArray[np.int_], NDArray[np.float_]], optional): Numpy array containing the labels for the data. 
+                Use integers for classification labels and floats for regression targets. Defaults to None.
+            data_hparams (Dict[str, Any]): Hyperparameters for generating corrupted samples.
+            unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 
+                self-supervised learning. Defaults to None.
+            continous_cols (List, optional): List of continuous columns. Defaults to None.
+            category_cols (List, optional): List of categorical columns. Defaults to None.
             u_label (int, optional): The specifier for unlabeled sample. Defaults to -1.
-            is_test (bool, optional): The flag that determines whether the dataset is for testing or not. Defaults to False.
+            is_second_phase (bool): The flag that determines whether the dataset is for first phase or second phase learning. Default is False.
+            is_regression (bool, optional): Flag indicating whether the task is regression (True) or classification (False).
+                Defaults to False.
         """
+        
+        self.label = None
+        
+        if not is_second_phase:
+            self.__getitem = self.__first_phase_get_item
             
-        
-        self.u_label = u_label
-        self.is_test = is_test
-        
-        if is_regression:
-            self.label_class = torch.FloatTensor
         else:
-            self.label_class = torch.LongTensor
-            
-        if is_test is False:
-            self.data_hparams = data_hparams
-        
-            self.label = self.label_class(Y)
-        
-            if unlabeled_data is not None:
-                self.label = torch.concat((self.label, self.label_class([self.u_label for _ in range(len(unlabeled_data))])), dim=0)
-            
-            if not is_regression:
-                class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]
-                num_samples = len(self.label)
-
-                class_weights = [num_samples/class_counts[i] for i in range(len(class_counts))]
-                self.weights = [class_weights[self.label[i]] for i in range(int(num_samples))]
+            self.__getitem = self.__second_phase_get_item
+            if is_regression:
+                self.label_class = torch.FloatTensor
             else:
-                self.weights = [1.0 for _ in range(len(X))]
+                self.label_class = torch.LongTensor
+            
+            if Y is not None:
+            
+                self.label = self.label_class(Y)
+            
                 if unlabeled_data is not None:
-                    unlabeled_weight = len(X) / len(unlabeled_data)
-                    self.weights.extend([unlabeled_weight for _ in range(len(unlabeled_data))])
+                    self.label = torch.concat((self.label, self.label_class([u_label for _ in range(len(unlabeled_data))])), dim=0)
+                
+                if not is_regression:
+                    class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]
+                    num_samples = len(self.label)
+
+                    class_weights = [num_samples/class_counts[i] for i in range(len(class_counts))]
+                    self.weights = [class_weights[self.label[i]] for i in range(int(num_samples))]
+                else:
+                    self.weights = [1.0 for _ in range(len(X))]
+                    if unlabeled_data is not None:
+                        unlabeled_weight = len(X) / len(unlabeled_data)
+                        self.weights.extend([unlabeled_weight for _ in range(len(unlabeled_data))])
         
         if unlabeled_data is not None:
-            X = X.append(unlabeled_data)
+            X = pd.concat([X, unlabeled_data])
             
         self.cont_data = torch.FloatTensor(X[continous_cols].values)
         self.cat_data = torch.FloatTensor(X[category_cols].values)
         
         self.continuous_cols = continous_cols
         self.category_cols = category_cols
+
+        self.data_hparams = data_hparams
         
-    def generate_x_tildes(self, cat_samples: torch.FloatTensor, cont_samples:torch.FloatTensor) -> torch.FloatTensor:
+        self.u_label = u_label
+    
+    def __getitem__(self, idx: int) -> Dict[str, torch.tensor]:
+        """Retrieves the feature and label tensors for a given index. The structure of the label 
+            varies depending on the learning phase: 
+
+            - In the first phase, the label is a tuple containing a mask and the original feature tensor.
+            - In the second phase, the label is either a token indicating unlabeled samples or the actual label for labeled samples.
+
+        Args:
+            idx (int): The index of the data point to retrieve.
+
+        Returns:
+            Dict[Any, torch.tensor]: The feature tensor and the label for the given index. 
+            For first phase learning, label is a tuple of mask and original feature tensor.
+            For second phase learning, label is a one of a token for unlabeled samples or a label of it.
+        """
+        return self.__getitem(idx)
+    
+    def __mask_generator(self, p_m, x):
+        """Generate mask vector.
+        
+        Args:
+            - p_m: corruption probability
+            - x: feature matrix
+            
+        Returns:
+            - mask: binary mask matrix 
+        """
+        mask = np.random.binomial(1, p_m, x.shape)
+
+        return np.expand_dims(mask, axis=0)
+
+    def __pretext_generator(self, m, x, empirical_dist):  
+        """Generate corrupted samples.
+        
+        Args:
+            m: mask matrix
+            x: feature matrix
+            
+        Returns:
+            m_new: final mask matrix after corruption
+            x_tilde: corrupted feature matrix
+        """
+        
+        # Parameters
+        dim = x.shape[0]
+        # Randomly (and column-wise) shuffle data
+        x_bar = np.zeros([1, dim])
+
+        rand_idx = np.random.randint(0, len(empirical_dist), size=dim)
+        
+        x_bar = np.array([empirical_dist[rand_idx[i], i] for i in range(dim)])
+        
+        # Corrupt samples
+        x_tilde = x * (1-m) + x_bar * m  
+        # Define new mask matrix
+        m_new = 1 * (x != x_tilde)
+        
+        if dim != 1:
+            return m_new.squeeze(), x_tilde.squeeze()
+        else:
+            return m_new.squeeze().reshape(1), x_tilde.squeeze().reshape(1)
+    
+    def __generate_x_tildes(self, cat_samples: torch.FloatTensor, cont_samples:torch.FloatTensor) -> torch.FloatTensor:
         """Generate x_tilde for consistency regularization
 
         Args:
@@ -170,33 +155,60 @@ class VIMESemiDataset(Dataset):
         Returns:
             torch.FloatTensor: x_tilde for consistency regularization
         """
-        m_unlab = mask_generator(self.data_hparams["p_m"], cat_samples)
-        dcat_m_label, cat_x_tilde = pretext_generator(m_unlab, cat_samples, self.cat_data)
+        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cat_samples)
+        dcat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
         
-        m_unlab = mask_generator(self.data_hparams["p_m"], cont_samples)
-        cont_m_label, cont_x_tilde = pretext_generator(m_unlab, cont_samples, self.cont_data)
+        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cont_samples)
+        cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
         x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
         
         return x_tilde
-
-    def __getitem__(self, idx):
+    
+    def __first_phase_get_item(self, idx: int) -> Dict[str, torch.tensor]:
         """Return a input and label pair
 
         Args:
             idx (int): The index of the data to sample
 
         Returns:
-            Dict[str, Any]: A pair of input and label for semi-supervised learning
+            Dict[str, Any]: A pair of input and label for first phase learning
+        """
+        cat_samples = self.cat_data[idx]
+        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cat_samples)
+        cat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
+
+        cont_samples = self.cont_data[idx]
+        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cont_samples)
+        cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
+
+        m_label = torch.concat((cat_m_label, cont_m_label)).float()
+        x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
+
+        x = torch.concat((cat_samples, cont_samples))
+
+        return {
+                "input" : x_tilde,
+                "label" : (m_label, x)
+                }
+
+    def __second_phase_get_item(self, idx) -> Dict[str, torch.tensor]:
+        """Return a input and label pair
+
+        Args:
+            idx (int): The index of the data to sample
+
+        Returns:
+            Dict[str, Any]: A pair of input and label for second phase learning
         """
         cat_samples = self.cat_data[idx]
         cont_samples = self.cont_data[idx]
         x = torch.concat((cat_samples, cont_samples)).squeeze()
-        if self.is_test is False:
+        if self.label is not None:
             
             if self.label[idx] == self.u_label:
                 xs = [x]
                 
-                xs.extend([self.generate_x_tildes(cat_samples, cont_samples) for _ in range(self.data_hparams["K"])])
+                xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.data_hparams["K"])])
 
                 xs = torch.stack(xs)
                 return {
@@ -213,13 +225,19 @@ class VIMESemiDataset(Dataset):
                     "input" : x,
                     "label" : self.u_label
             }
-
+            
     def __len__(self):
         """Return the length of the dataset
         """
         return len(self.cat_data)
 
-class VIMECollateFN(object):
+class VIMESemiSLCollateFN(object):
+    """A callable class designed for batch processing, specifically tailored for the second phase learning with VIME. 
+    It consolidates a batch of samples into a single dictionary with concatenated inputs and labels, suitable for model input.
+
+    This class is meant to be used as a collate function in a DataLoader, where it efficiently organizes batch data 
+    for training during second phase learning.
+    """
     def __call__(self, batch):
         return {
             'input': torch.concat([x['input'] for x in batch], dim=0),

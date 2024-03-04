@@ -30,45 +30,39 @@ class SCARF(nn.Module):
         self,
         # sampling_candidate: NDArray[np.float_],
         input_dim,
-        emb_dim,
+        hidden_dim,
         encoder_depth=4,
         head_depth=2,
-        dropout_rate = 0.3,
+        dropout_rate = 0.04,
         # corruption_rate=0.6,
-        out_dim = 2,
+        output_dim = 2,
     ):
         """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
         It consists in an encoder that learns the embeddings.
         It is done by minimizing the contrastive loss of a sample and a corrupted view of it.
         The corrupted view is built by remplacing a random set of features by another sample randomly drawn independently.
             Args:
-                input_dim (int): size of the inputs
-                emb_dim (int): dimension of the embedding space
-                encoder_depth (int, optional): number of layers of the encoder MLP. Defaults to 4.
-                head_depth (int, optional): number of layers of the pretraining head. Defaults to 2.
-                corruption_rate (float, optional): fraction of features to corrupt. Defaults to 0.6.
+                input_dim (int): The size of the inputs
+                hidden_dim (int): The dimension of the hidden layers
+                encoder_depth (int, optional): The number of layers of the encoder MLP. Defaults to 4.
+                head_depth (int, optional): The number of layers of the pretraining head. Defaults to 2.
         """
         super().__init__()
 
-        self.encoder = MLP(input_dim, emb_dim, encoder_depth)
+        self.encoder = MLP(input_dim, hidden_dim, encoder_depth)
 
-        self.pretraining_head = MLP(emb_dim, emb_dim, head_depth)
+        self.pretraining_head = MLP(hidden_dim, hidden_dim, head_depth)
 
         self.head = nn.Sequential(
             nn.ReLU(inplace=True),
-            nn.BatchNorm1d(emb_dim),
+            nn.BatchNorm1d(hidden_dim),
             nn.Dropout(dropout_rate),
-            nn.Linear(emb_dim, out_dim)
+            nn.Linear(hidden_dim, output_dim)
         )
         # initialize weights
         self.encoder.apply(self._init_weights)
         self.pretraining_head.apply(self._init_weights)
         
-        # self.n_sampling_candidate = sampling_candidate.shape[0]
-        # self.sampling_candidate = torch.FloatTensor(sampling_candidate.T)
-        
-        # self.marginals = Uniform(torch.Tensor(features_low), torch.Tensor(features_high))
-        # self.corruption_len = int(corruption_rate * input_dim)
 
     
     def _init_weights(self, module):
@@ -76,16 +70,14 @@ class SCARF(nn.Module):
             torch.nn.init.xavier_uniform_(module.weight)
             module.bias.data.fill_(0.01)
             
-    def do_pretraining(self):
-        self.forward = self.pretraining_step
+    def set_first_phase(self):
+        self.forward = self.__first_phase_step
     
-    def do_finetunning(self):
-        self.forward = self.finetunning_step
+    def set_second_phase(self):
+        self.forward = self.__second_phase_step
 
-    def pretraining_step(self, x, x_corrupted):
-        batch_size, m = x.size()
+    def __first_phase_step(self, x, x_corrupted):
 
-        # compute embeddings
         emb_anchor = self.encoder(x)
         emb_anchor = self.pretraining_head(emb_anchor)
 
@@ -97,7 +89,7 @@ class SCARF(nn.Module):
 
         return emb_anchor, emb_corrupted
     
-    def finetunning_step(self, x):
+    def __second_phase_step(self, x):
         emb = self.encoder(x)
         output = self.head(emb)
 
