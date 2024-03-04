@@ -6,6 +6,7 @@
 | [**To DO**](#to-do)
 | [**Contributing**](#contributing)
 
+[![DOI](https://zenodo.org/badge/756740921.svg)](https://zenodo.org/doi/10.5281/zenodo.10776537)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 TabularS3L is a PyTorch-based library designed to facilitate self- and semi-supervised learning with tabular data. While numerous self- and semi-supervised learning tabular models have been proposed, there lacks a comprehensive library catering to the needs of tabular practitioners. This library aims to address this gap by offering a unified PyTorch Lightning-based framework for studying and deploying such models.
