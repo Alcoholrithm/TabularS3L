@@ -91,16 +91,16 @@ class JointLoss(nn.Module):
         
         return torch.stack(anchor_losses).mean()
 
-    def forward(self, projections, xrecon, recon_label):
+    def forward(self, projections, xrecon, xorig):
         """
         Args:
-            projections (torch.FloatTensor):
-            xrecon (torch.FloatTensor):
-            xorig (torch.FloatTensor):
+            projections (torch.FloatTensor): Projections for each subset.
+            xrecon (torch.FloatTensor): Reconstructed sample x from subsets.
+            xorig (torch.FloatTensor): Original features of x
         """
         
         # recontruction loss
-        recon_loss = self.mse_loss(xrecon, recon_label)
+        recon_loss = self.mse_loss(xrecon, xorig)
 
         # Initialize contrastive and distance losses with recon_loss as placeholder
         closs, dist_loss = None, None

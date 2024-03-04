@@ -18,22 +18,28 @@ class VIMEDataset(Dataset):
                 u_label = -1, 
                 is_second_phase: bool = False,
                 is_regression: bool = False, 
-                is_test: bool = False
         ) -> None:
-        """Initialize the VIME dataset
+        """A dataset class for VIME that handles labeled and unlabeled data.
+
+        This class is designed to manage data for the VIME, accommodating both labeled and unlabeled datasets
+        for self- and semi-supervised learning scenarios. It supports regression and classification tasks.
 
         Args:
-            X (pd.DataFrame): The features of the labeled data
-            Y (Union[NDArray[np.int_], NDArray[np.float_]]): The label of the labeled data.
-            data_hparams (Dict[str, Any]): The hyperparameters for consistency regularization.
-            unlabeled_data (pd.DataFrame, optional): The features of the unlabeled data. Defaults to None.
-            continous_cols (List, optional): The list of continuous columns. Defaults to None.
-            category_cols (List, optional): The list of categorical columns. Defaults to None.
+            X (pd.DataFrame): DataFrame containing the features of the labeled data.
+            Y (Union[NDArray[np.int_], NDArray[np.float_]], optional): Numpy array containing the labels for the data. 
+                Use integers for classification labels and floats for regression targets. Defaults to None.
+            data_hparams (Dict[str, Any]): Hyperparameters for generating corrupted samples.
+            unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 
+                self-supervised learning. Defaults to None.
+            continous_cols (List, optional): List of continuous columns. Defaults to None.
+            category_cols (List, optional): List of categorical columns. Defaults to None.
             u_label (int, optional): The specifier for unlabeled sample. Defaults to -1.
             is_second_phase (bool): The flag that determines whether the dataset is for first phase or second phase learning. Default is False.
-            is_regression (bool): Default is False.
-            is_test (bool, optional): The flag that determines whether the dataset is for testing or not. Defaults to False.
+            is_regression (bool, optional): Flag indicating whether the task is regression (True) or classification (False).
+                Defaults to False.
         """
+        
+        self.label = None
         
         if not is_second_phase:
             self.__getitem = self.__first_phase_get_item
@@ -45,7 +51,7 @@ class VIMEDataset(Dataset):
             else:
                 self.label_class = torch.LongTensor
             
-            if is_test is False:
+            if Y is not None:
             
                 self.label = self.label_class(Y)
             
@@ -76,9 +82,22 @@ class VIMEDataset(Dataset):
         self.data_hparams = data_hparams
         
         self.u_label = u_label
-        self.is_test = is_test
     
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Dict[str, torch.tensor]:
+        """Retrieves the feature and label tensors for a given index. The structure of the label 
+            varies depending on the learning phase: 
+
+            - In the first phase, the label is a tuple containing a mask and the original feature tensor.
+            - In the second phase, the label is either a token indicating unlabeled samples or the actual label for labeled samples.
+
+        Args:
+            idx (int): The index of the data point to retrieve.
+
+        Returns:
+            Dict[Any, torch.tensor]: The feature tensor and the label for the given index. 
+            For first phase learning, label is a tuple of mask and original feature tensor.
+            For second phase learning, label is a one of a token for unlabeled samples or a label of it.
+        """
         return self.__getitem(idx)
     
     def __mask_generator(self, p_m, x):
@@ -145,14 +164,14 @@ class VIMEDataset(Dataset):
         
         return x_tilde
     
-    def __first_phase_get_item(self, idx: int):
+    def __first_phase_get_item(self, idx: int) -> Dict[str, torch.tensor]:
         """Return a input and label pair
 
         Args:
             idx (int): The index of the data to sample
 
         Returns:
-            Dict[str, Any]: A pair of input and label for self-supervised learning
+            Dict[str, Any]: A pair of input and label for first phase learning
         """
         cat_samples = self.cat_data[idx]
         m_unlab = self.__mask_generator(self.data_hparams["p_m"], cat_samples)
@@ -172,19 +191,19 @@ class VIMEDataset(Dataset):
                 "label" : (m_label, x)
                 }
 
-    def __second_phase_get_item(self, idx):
+    def __second_phase_get_item(self, idx) -> Dict[str, torch.tensor]:
         """Return a input and label pair
 
         Args:
             idx (int): The index of the data to sample
 
         Returns:
-            Dict[str, Any]: A pair of input and label for semi-supervised learning
+            Dict[str, Any]: A pair of input and label for second phase learning
         """
         cat_samples = self.cat_data[idx]
         cont_samples = self.cont_data[idx]
         x = torch.concat((cat_samples, cont_samples)).squeeze()
-        if self.is_test is False:
+        if self.label is not None:
             
             if self.label[idx] == self.u_label:
                 xs = [x]
@@ -213,6 +232,12 @@ class VIMEDataset(Dataset):
         return len(self.cat_data)
 
 class VIMESemiSLCollateFN(object):
+    """A callable class designed for batch processing, specifically tailored for the second phase learning with VIME. 
+    It consolidates a batch of samples into a single dictionary with concatenated inputs and labels, suitable for model input.
+
+    This class is meant to be used as a collate function in a DataLoader, where it efficiently organizes batch data 
+    for training during second phase learning.
+    """
     def __call__(self, batch):
         return {
             'input': torch.concat([x['input'] for x in batch], dim=0),

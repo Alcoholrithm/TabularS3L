@@ -46,7 +46,7 @@ def test_subtab_classification():
                 data_hparams
         ):
 
-        train_ds = SubTabDataset(pd.concat([X_train, X_unlabeled]))
+        train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled)
         test_ds = SubTabDataset(X_valid)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams), n_jobs = n_jobs)
@@ -295,7 +295,7 @@ def test_subtab_regression():
                 data_hparams
         ):
 
-        train_ds = SubTabDataset(pd.concat([X_train, X_unlabeled]))
+        train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled)
         test_ds = SubTabDataset(X_valid)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams), n_jobs = n_jobs)

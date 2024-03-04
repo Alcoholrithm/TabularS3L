@@ -213,7 +213,7 @@ def test_vime_classification():
                         callbacks = None,
             )
 
-            test_ds = VIMEDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_test = True, is_second_phase=True)
+            test_ds = VIMEDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_second_phase=True)
             
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
@@ -453,7 +453,7 @@ def test_vime_regression():
                         callbacks = None,
             )
             
-            test_ds = VIMEDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_test = True, is_second_phase=True, is_regression=True)
+            test_ds = VIMEDataset(X_valid, category_cols=category_cols, continous_cols=continuous_cols, is_second_phase=True, is_regression=True)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
             test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs)
