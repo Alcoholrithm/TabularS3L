@@ -42,6 +42,7 @@ class VIMELightning(TS3LLightining):
         self.u_label = config["u_label"]
         del config["u_label"]
         
+        del config["p_m"]
         
         self.first_phase_mask_loss = nn.BCELoss()
         self.first_phase_feature_loss1 = nn.CrossEntropyLoss()

@@ -42,11 +42,11 @@ def test_vime_classification():
 
     def fit_model(
                 model,
-                data_hparams
+                config
         ):
         
-        train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
-        test_ds = VIMEDataset(X = X_valid, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
+        train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, config=config, continous_cols = continuous_cols, category_cols = category_cols)
+        test_ds = VIMEDataset(X = X_valid, config=config, continous_cols = continuous_cols, category_cols = category_cols)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', n_jobs = n_jobs)
 
@@ -86,8 +86,8 @@ def test_vime_classification():
 
         model.set_second_phase()
         
-        train_ds = VIMEDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
-        test_ds = VIMEDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+        train_ds = VIMEDataset(X_train, y_train.values, config, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+        test_ds = VIMEDataset(X_valid, y_valid.values, config, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESemiSLCollateFN())
             
@@ -159,7 +159,7 @@ def test_vime_classification():
                 A score of given hyperparameters.
             """
 
-            model_hparams = {
+            config = {
                 "input_dim" : data.shape[1],
                 "hidden_dim" : None,
                 "output_dim" : 2,
@@ -170,12 +170,9 @@ def test_vime_classification():
                 "num_categoricals" : num_categoricals, 
                 "num_continuous": num_continuous, 
                 "u_label" : -1,
+                "p_m" : None,
             }
-            
-            data_hparams = {
-                "K" : None,
-                "p_m" : None
-            }
+
             optim_hparams = {
                 "lr" : None
             }
@@ -183,10 +180,8 @@ def test_vime_classification():
             }
 
             for k, v in hparams_range.items():
-                if k in model_hparams.keys():
-                    model_hparams[k] = getattr(trial, v[0])(*v[1])
-                if k in data_hparams.keys():
-                    data_hparams[k] = getattr(trial, v[0])(*v[1])
+                if k in config.keys():
+                    config[k] = getattr(trial, v[0])(*v[1])
                 if k in optim_hparams.keys():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
@@ -196,14 +191,14 @@ def test_vime_classification():
             config = VIMEConfig(
             task="classification",
             loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], hidden_dim=model_hparams["hidden_dim"],
-            output_dim=model_hparams["output_dim"],
-            alpha1=model_hparams["alpha1"], alpha2=model_hparams["alpha2"], beta=model_hparams["beta"], K=model_hparams["K"],
+            input_dim=config["input_dim"], hidden_dim=config["hidden_dim"],
+            output_dim=config["output_dim"],
+            alpha1=config["alpha1"], alpha2=config["alpha2"], beta=config["beta"], K=config["K"], p_m=config["p_m"],
             num_categoricals=num_categoricals, num_continuous=num_continuous
             )
             pl_vime = VIMELightning(config)
 
-            pl_vime = fit_model(pl_vime, data_hparams)
+            pl_vime = fit_model(pl_vime, config)
             pl_vime.set_second_phase()
 
             trainer = Trainer(
@@ -284,11 +279,11 @@ def test_vime_regression():
 
     def fit_model(
                 model,
-                data_hparams
+                config
         ):
         
-        train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
-        test_ds = VIMEDataset(X = X_valid, data_hparams=data_hparams, continous_cols = continuous_cols, category_cols = category_cols)
+        train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, config=config, continous_cols = continuous_cols, category_cols = category_cols)
+        test_ds = VIMEDataset(X = X_valid, config=config, continous_cols = continuous_cols, category_cols = category_cols)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', n_jobs = n_jobs)
 
@@ -328,8 +323,8 @@ def test_vime_regression():
 
         model.set_second_phase()
         
-        train_ds = VIMEDataset(X_train, y_train.values, data_hparams, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True, is_regression=True)
-        test_ds = VIMEDataset(X_valid, y_valid.values, data_hparams, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True, is_regression=True)
+        train_ds = VIMEDataset(X_train, y_train.values, config, unlabeled_data=X_unlabeled, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True, is_regression=True)
+        test_ds = VIMEDataset(X_valid, y_valid.values, config, continous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True, is_regression=True)
 
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESemiSLCollateFN())
             
@@ -400,7 +395,7 @@ def test_vime_regression():
                 A score of given hyperparameters.
             """
 
-            model_hparams = {
+            config = {
                 "input_dim" : data.shape[1],
                 "hidden_dim" : None,
                 "output_dim" : 1,
@@ -411,12 +406,9 @@ def test_vime_regression():
                 "num_categoricals" : num_categoricals, 
                 "num_continuous": num_continuous, 
                 "u_label" : -1,
+                "p_m" : None,
             }
-            
-            data_hparams = {
-                "K" : None,
-                "p_m" : None
-            }
+
             optim_hparams = {
                 "lr" : None
             }
@@ -424,10 +416,8 @@ def test_vime_regression():
             }
 
             for k, v in hparams_range.items():
-                if k in model_hparams.keys():
-                    model_hparams[k] = getattr(trial, v[0])(*v[1])
-                if k in data_hparams.keys():
-                    data_hparams[k] = getattr(trial, v[0])(*v[1])
+                if k in config.keys():
+                    config[k] = getattr(trial, v[0])(*v[1])
                 if k in optim_hparams.keys():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
@@ -436,14 +426,14 @@ def test_vime_regression():
             config = VIMEConfig(
             task="regression",
             loss_fn="MSELoss", metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], hidden_dim=model_hparams["hidden_dim"],
-            output_dim=model_hparams["output_dim"],
-            alpha1=model_hparams["alpha1"], alpha2=model_hparams["alpha2"], beta=model_hparams["beta"], K=model_hparams["K"],
+            input_dim=config["input_dim"], hidden_dim=config["hidden_dim"],
+            output_dim=config["output_dim"],
+            alpha1=config["alpha1"], alpha2=config["alpha2"], beta=config["beta"], K=config["K"], p_m = config["p_m"],
             num_categoricals=num_categoricals, num_continuous=num_continuous
             )
             pl_vime = VIMELightning(config)
 
-            pl_vime = fit_model(pl_vime, data_hparams)
+            pl_vime = fit_model(pl_vime, config)
             pl_vime.set_second_phase()
 
             trainer = Trainer(

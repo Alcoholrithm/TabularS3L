@@ -6,12 +6,14 @@ import torch
 from torch.utils.data import Dataset
 
 import numpy as np
+from dataclasses import asdict
+from ts3l.utils.vime_utils import VIMEConfig
 
 class VIMEDataset(Dataset):
     def __init__(self,
                 X: pd.DataFrame,
                 Y: Union[NDArray[np.int_], NDArray[np.float_]] = None, 
-                data_hparams: Dict[str, Any] = None, 
+                config: VIMEConfig = None, 
                 unlabeled_data: pd.DataFrame = None, 
                 continous_cols: List = None, 
                 category_cols: List = None, 
@@ -28,7 +30,7 @@ class VIMEDataset(Dataset):
             X (pd.DataFrame): DataFrame containing the features of the labeled data.
             Y (Union[NDArray[np.int_], NDArray[np.float_]], optional): Numpy array containing the labels for the data. 
                 Use integers for classification labels and floats for regression targets. Defaults to None.
-            data_hparams (Dict[str, Any]): Hyperparameters for generating corrupted samples.
+            config (Dict[str, Any]): The given hyperparameter set for VIME.
             unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 
                 self-supervised learning. Defaults to None.
             continous_cols (List, optional): List of continuous columns. Defaults to None.
@@ -79,7 +81,8 @@ class VIMEDataset(Dataset):
         self.continuous_cols = continous_cols
         self.category_cols = category_cols
 
-        self.data_hparams = data_hparams
+        if config is not None:
+            self.config = asdict(config)
         
         self.u_label = u_label
     
@@ -155,10 +158,10 @@ class VIMEDataset(Dataset):
         Returns:
             torch.FloatTensor: x_tilde for consistency regularization
         """
-        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cat_samples)
+        m_unlab = self.__mask_generator(self.config["p_m"], cat_samples)
         dcat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
         
-        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cont_samples)
+        m_unlab = self.__mask_generator(self.config["p_m"], cont_samples)
         cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
         x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
         
@@ -174,11 +177,11 @@ class VIMEDataset(Dataset):
             Dict[str, Any]: A pair of input and label for first phase learning
         """
         cat_samples = self.cat_data[idx]
-        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cat_samples)
+        m_unlab = self.__mask_generator(self.config["p_m"], cat_samples)
         cat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
 
         cont_samples = self.cont_data[idx]
-        m_unlab = self.__mask_generator(self.data_hparams["p_m"], cont_samples)
+        m_unlab = self.__mask_generator(self.config["p_m"], cont_samples)
         cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
 
         m_label = torch.concat((cat_m_label, cont_m_label)).float()
@@ -208,7 +211,7 @@ class VIMEDataset(Dataset):
             if self.label[idx] == self.u_label:
                 xs = [x]
                 
-                xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.data_hparams["K"])])
+                xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.config["K"])])
 
                 xs = torch.stack(xs)
                 return {

@@ -37,6 +37,7 @@ class VIMEConfig(BaseConfig):
                         the supervised and unsupervised loss during second phase. 
                         Default is 1.0.
         K (int): The number of augmented samples for consistency regularization. Default is 3.
+        p_m (float): A hyperparameter that is to control the masking ratio during the first phase learning. Default is 0.3.
 
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
@@ -64,6 +65,8 @@ class VIMEConfig(BaseConfig):
     beta: float = field(default=1.0)
     
     K: int = field(default=3)
+    
+    p_m: float = field(default=0.3)
     
     def __post_init__(self):
         super().__post_init__()
