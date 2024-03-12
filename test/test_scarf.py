@@ -44,11 +44,11 @@ def test_scarf_classification():
 
     def fit_model(
                 model,
-                data_hparams
+                config
         ):
 
-        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
-        test_ds = SCARFDataset(X_valid, corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), config=config)
+        test_ds = SCARFDataset(X_valid, config=config)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size=batch_size, train_sampler="random")
 
@@ -89,8 +89,8 @@ def test_scarf_classification():
         model.set_second_phase()
         
             
-        train_ds = SCARFDataset(X_train, y_train.values)
-        test_ds = SCARFDataset(X_valid, y_valid.values)
+        train_ds = SCARFDataset(X_train, y_train.values, is_second_phase=True)
+        test_ds = SCARFDataset(X_valid, y_valid.values, is_second_phase=True)
 
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted")
             
@@ -157,15 +157,13 @@ def test_scarf_classification():
             Returns:
                 A score of given hyperparameters.
             """
-            model_hparams = {
+            config = {
                 "input_dim" : data.shape[1],
                 "hidden_dim" : None,
                 "encoder_depth" : None,
                 "head_depth" : None,
                 'dropout_rate' : None,
                 "output_dim" : 2,
-            }
-            data_hparams = {
                 "corruption_rate" : None
             }
             optim_hparams = {
@@ -175,10 +173,8 @@ def test_scarf_classification():
             }
 
             for k, v in hparams_range.items():
-                if k in model_hparams.keys():
-                    model_hparams[k] = getattr(trial, v[0])(*v[1])
-                if k in data_hparams.keys():
-                    data_hparams[k] = getattr(trial, v[0])(*v[1])
+                if k in config.keys():
+                    config[k] = getattr(trial, v[0])(*v[1])
                 if k in optim_hparams.keys():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
@@ -188,14 +184,11 @@ def test_scarf_classification():
             config = SCARFConfig(
             task="classification",
             loss_fn=loss_fn, metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
-            hidden_dim=model_hparams["hidden_dim"],
-            encoder_depth=model_hparams["encoder_depth"], head_depth=model_hparams["head_depth"], 
-            dropout_rate=model_hparams["dropout_rate"]
+            **config
             )
             pl_scarf = SCARFLightning(config)
 
-            pl_scarf = fit_model(pl_scarf, data_hparams)
+            pl_scarf = fit_model(pl_scarf, config)
             
 
             trainer = Trainer(
@@ -205,7 +198,7 @@ def test_scarf_classification():
                         callbacks = None,
             )
 
-            test_ds = SCARFDataset(X_valid)
+            test_ds = SCARFDataset(X_valid, is_second_phase=True)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
             test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs)
@@ -275,11 +268,11 @@ def test_scarf_regression():
 
     def fit_model(
                 model,
-                data_hparams
+                config
         ):
 
-        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
-        test_ds = SCARFDataset(X_valid, corruption_rate=int(data_hparams["corruption_rate"] * X_train.shape[1]))
+        train_ds = SCARFDataset(pd.concat([X_train, X_unlabeled]), config=config)
+        test_ds = SCARFDataset(X_valid, config=config)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size=batch_size, train_sampler="random")
 
@@ -318,10 +311,9 @@ def test_scarf_regression():
         model = SCARFLightning.load_from_checkpoint(pretraining_path)
 
         model.set_second_phase()
-        
             
-        train_ds = SCARFDataset(X_train, y_train.values, is_regression=True)
-        test_ds = SCARFDataset(X_valid, y_valid.values, is_regression=True)
+        train_ds = SCARFDataset(X_train, y_train.values, is_regression=True, is_second_phase=True)
+        test_ds = SCARFDataset(X_valid, y_valid.values, is_regression=True, is_second_phase=True)
 
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="random")
             
@@ -387,15 +379,13 @@ def test_scarf_regression():
             Returns:
                 A score of given hyperparameters.
             """
-            model_hparams = {
+            config = {
                 "input_dim" : data.shape[1],
                 "hidden_dim" : None,
                 "encoder_depth" : None,
                 "head_depth" : None,
                 'dropout_rate' : None,
                 "output_dim" : 1,
-            }
-            data_hparams = {
                 "corruption_rate" : None
             }
             optim_hparams = {
@@ -405,10 +395,8 @@ def test_scarf_regression():
             }
 
             for k, v in hparams_range.items():
-                if k in model_hparams.keys():
-                    model_hparams[k] = getattr(trial, v[0])(*v[1])
-                if k in data_hparams.keys():
-                    data_hparams[k] = getattr(trial, v[0])(*v[1])
+                if k in config.keys():
+                    config[k] = getattr(trial, v[0])(*v[1])
                 if k in optim_hparams.keys():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
@@ -418,13 +406,10 @@ def test_scarf_regression():
             config = SCARFConfig(
             task="regression",
             loss_fn=loss_fn, metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
-            hidden_dim=model_hparams["hidden_dim"],
-            encoder_depth=model_hparams["encoder_depth"], head_depth=model_hparams["head_depth"], 
-            dropout_rate=model_hparams["dropout_rate"]
+            **config
             )
             pl_scarf = SCARFLightning(config)
-            pl_scarf = fit_model(pl_scarf, data_hparams)
+            pl_scarf = fit_model(pl_scarf, config)
             
 
             trainer = Trainer(
@@ -434,7 +419,7 @@ def test_scarf_regression():
                         callbacks = None,
             )
 
-            test_ds = SCARFDataset(X_valid)
+            test_ds = SCARFDataset(X_valid, is_second_phase=True)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
             test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs)
