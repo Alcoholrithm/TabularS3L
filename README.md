@@ -1,10 +1,11 @@
 # TabularS3L
 
-[**Overview**](#overview)
+[**Overview**](#tabulars3l)
 | [**Installation**](#installation)
 | [**Available Models with Quick Start Guides**](#available-models-with-quick-start)
 | [**To DO**](#to-do)
 | [**Contributing**](#contributing)
+| [**Credit**](#credit)
 
 
 [![pypi](https://img.shields.io/pypi/v/ts3l)](https://pypi.org/project/ts3l/0.20/)
@@ -341,7 +342,7 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
   - [ ] LightningModule
 - [ ] Add example codes
 
-# Contributing
+## Contributing
 
 Contributions to this implementation are highly appreciated. Whether it's suggesting improvements, reporting bugs, or proposing new features, feel free to open an issue or submit a pull request.
 
