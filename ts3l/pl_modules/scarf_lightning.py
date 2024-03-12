@@ -23,7 +23,7 @@ class SCARFLightning(TS3LLightining):
         """
         self.first_phase_loss = NTXentLoss(config["tau"])
         del config["tau"]
-        
+        del config["corruption_rate"]
         self.model = SCARF(**config)
     
     def _get_first_phase_loss(self, batch):
