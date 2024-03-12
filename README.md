@@ -355,7 +355,7 @@ Contributions to this implementation are highly appreciated. Whether it's sugges
   month        = mar,
   year         = 2024,
   publisher    = {Zenodo},
-  version      = {v0.20},
+  version      = {v0.21},
   doi          = {10.5281/zenodo.10776538},
   url          = {https://doi.org/10.5281/zenodo.10776538}
 }
