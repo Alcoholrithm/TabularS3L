@@ -37,7 +37,10 @@ class SubTabLightning(TS3LLightining):
         del config["use_contrastive"]
         del config["use_distance"]
         del config["use_cosine_similarity"]
-        
+        del config["shuffle"]
+        del config["mask_ratio"]
+        del config["noise_type"]
+        del config["noise_level"]
         self.model = SubTab(**config)
     
     def __get_recon_label(self, label: torch.FloatTensor) -> torch.FloatTensor:

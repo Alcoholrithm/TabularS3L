@@ -43,13 +43,13 @@ def test_subtab_classification():
 
     def fit_model(
                 model,
-                data_hparams
+                config
         ):
 
         train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled)
         test_ds = SubTabDataset(X_valid)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams), n_jobs = n_jobs)
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs = n_jobs)
 
         model.set_first_phase()
 
@@ -90,7 +90,7 @@ def test_subtab_classification():
         train_ds = SubTabDataset(X_train, y_train.values)
         test_ds = SubTabDataset(X_valid, y_valid.values)
 
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams))
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config))
             
         callbacks = [
             EarlyStopping(
@@ -165,7 +165,7 @@ def test_subtab_classification():
                 A score of given hyperparameters.
             """
 
-            model_hparams = {
+            config = {
                 "input_dim" : data.shape[1],
                 "output_dim" : 2,
                 'hidden_dim' : None,
@@ -174,17 +174,12 @@ def test_subtab_classification():
                 "use_contrastive" : None,
                 "use_distance" : None,
                 "n_subsets" : None,
-                "overlap_ratio" : None
-            }
-        
-            data_hparams = {
-                "n_subsets" : None,
                 "overlap_ratio" : None,
                 "mask_ratio" : None,
                 "noise_type" : None,
                 "noise_level" : None,
-                "n_column" : data.shape[1]
             }
+        
             optim_hparams = {
                 "lr" : None
             }
@@ -192,10 +187,8 @@ def test_subtab_classification():
             }
 
             for k, v in hparams_range.items():
-                if k in model_hparams.keys():
-                    model_hparams[k] = getattr(trial, v[0])(*v[1])
-                if k in data_hparams.keys():
-                    data_hparams[k] = getattr(trial, v[0])(*v[1])
+                if k in config.keys():
+                    config[k] = getattr(trial, v[0])(*v[1])
                 if k in optim_hparams.keys():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
@@ -205,15 +198,11 @@ def test_subtab_classification():
             config = SubTabConfig(
             task="classification",
             loss_fn=loss_fn, metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
-            hidden_dim=model_hparams["hidden_dim"],
-            tau=model_hparams["tau"], use_cosine_similarity=model_hparams["use_cosine_similarity"], 
-            use_contrastive=model_hparams["use_contrastive"], use_distance=model_hparams["use_distance"],
-            n_subsets=model_hparams["n_subsets"], overlap_ratio=model_hparams["overlap_ratio"]
+            **config
             )
             pl_subtab = SubTabLightning(config)
 
-            pl_subtab = fit_model(pl_subtab, data_hparams)
+            pl_subtab = fit_model(pl_subtab, config)
             pl_subtab.set_second_phase()
 
             trainer = Trainer(
@@ -226,7 +215,7 @@ def test_subtab_classification():
             test_ds = SubTabDataset(X_valid)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
-            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs, collate_fn=SubTabCollateFN(data_hparams))
+            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs, collate_fn=SubTabCollateFN(config))
 
             preds = trainer.predict(pl_subtab, test_dl)
             
@@ -292,13 +281,13 @@ def test_subtab_regression():
 
     def fit_model(
                 model,
-                data_hparams
+                config
         ):
 
         train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled)
         test_ds = SubTabDataset(X_valid)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams), n_jobs = n_jobs)
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs = n_jobs)
 
         model.set_first_phase()
 
@@ -339,7 +328,7 @@ def test_subtab_regression():
         train_ds = SubTabDataset(X_train, y_train.values, is_regression=True)
         test_ds = SubTabDataset(X_valid, y_valid.values, is_regression=True)
 
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="random", train_collate_fn=SubTabCollateFN(data_hparams), valid_collate_fn=SubTabCollateFN(data_hparams))
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = batch_size, train_sampler="random", train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config))
             
         callbacks = [
             EarlyStopping(
@@ -413,26 +402,19 @@ def test_subtab_regression():
                 A score of given hyperparameters.
             """
 
-            model_hparams = {
+            config = {
                 "input_dim" : data.shape[1],
                 "output_dim" : 1,
-                # "batch_size" : batch_size,
                 'hidden_dim' : None,
                 "tau" : None,
                 "use_cosine_similarity" : None,
                 "use_contrastive" : None,
                 "use_distance" : None,
                 "n_subsets" : None,
-                "overlap_ratio" : None
-            }
-        
-            data_hparams = {
-                "n_subsets" : None,
                 "overlap_ratio" : None,
                 "mask_ratio" : None,
                 "noise_type" : None,
                 "noise_level" : None,
-                "n_column" : data.shape[1]
             }
             optim_hparams = {
                 "lr" : None
@@ -441,10 +423,8 @@ def test_subtab_regression():
             }
 
             for k, v in hparams_range.items():
-                if k in model_hparams.keys():
-                    model_hparams[k] = getattr(trial, v[0])(*v[1])
-                if k in data_hparams.keys():
-                    data_hparams[k] = getattr(trial, v[0])(*v[1])
+                if k in config.keys():
+                    config[k] = getattr(trial, v[0])(*v[1])
                 if k in optim_hparams.keys():
                     optim_hparams[k] = getattr(trial, v[0])(*v[1])
                 if k in scheduler_hparams.keys():
@@ -453,11 +433,7 @@ def test_subtab_regression():
             config = SubTabConfig(
             task="regression",
             loss_fn=loss_fn, metric=metric, metric_hparams={},
-            input_dim=model_hparams["input_dim"], output_dim=model_hparams["output_dim"],
-            hidden_dim=model_hparams["hidden_dim"],
-            tau=model_hparams["tau"], use_cosine_similarity=model_hparams["use_cosine_similarity"], 
-            use_contrastive=model_hparams["use_contrastive"], use_distance=model_hparams["use_distance"],
-            n_subsets=model_hparams["n_subsets"], overlap_ratio=model_hparams["overlap_ratio"]
+            **config
             )
             pl_subtab = SubTabLightning(config)
             
@@ -469,7 +445,7 @@ def test_subtab_regression():
             #         MSEScorer("mean_squared_error"),
             #         random_seed)
 
-            pl_subtab = fit_model(pl_subtab, data_hparams)
+            pl_subtab = fit_model(pl_subtab, config)
             pl_subtab.set_second_phase()
 
             trainer = Trainer(
@@ -482,7 +458,7 @@ def test_subtab_regression():
             test_ds = SubTabDataset(X_valid)
             from torch.utils.data import SequentialSampler, DataLoader
             import torch
-            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs, collate_fn=SubTabCollateFN(data_hparams))
+            test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=n_jobs, collate_fn=SubTabCollateFN(config))
 
             preds = trainer.predict(pl_subtab, test_dl)
             

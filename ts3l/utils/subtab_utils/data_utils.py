@@ -6,6 +6,8 @@ from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
 
+from dataclasses import asdict
+from ts3l.utils.subtab_utils import SubTabConfig
 class SubTabDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Union[NDArray[np.int_], NDArray[np.float_]] = None,
@@ -71,29 +73,32 @@ class SubTabDataset(Dataset):
         return len(self.data)
     
 class SubTabCollateFN(object):
-    def __init__(self, data_hparams: Dict[str, Any]) -> None:
+    def __init__(self, config: SubTabConfig = None) -> None:
         """A collate function for SubTab to generate subsets of features for dataloaders.
 
         This collate function is designed to prepare batches for the SubTab model by generating subsets of features with
         optional noise and masking. It supports configurable shuffling, overlap, and masking of features.
 
         Args:
-            data_hparams (Dict[str, Any]): Hyperparameters for generating feature subsets, including settings for shuffle,
-                number of subsets, overlap ratio, mask ratio, noise type, and noise level.
+            config (Dict[str, Any]): The given hyperparameter set for SubTab.
         """
-        self.shuffle = data_hparams["shuffle"] if "shuffle" in data_hparams.keys() else False
         
-        self.n_subsets = data_hparams["n_subsets"]
-        self.overlap_ratio = data_hparams["overlap_ratio"]
-        self.mask_ratio = data_hparams["mask_ratio"]
-        self.noise_type = data_hparams["noise_type"]
-        self.noise_level = data_hparams["noise_level"]
+        if config is not None:
+            self.config = asdict(config)
+            
+        self.shuffle = self.config["shuffle"]
         
-        self.n_column = data_hparams["n_column"]
-        self.n_column_subset = int(self.n_column / self.n_subsets)
+        self.n_subsets = self.config["n_subsets"]
+        self.overlap_ratio = self.config["overlap_ratio"]
+        self.mask_ratio = self.config["mask_ratio"]
+        self.noise_type = self.config["noise_type"]
+        self.noise_level = self.config["noise_level"]
+        
+        self.input_dim = self.config["input_dim"]
+        self.n_column_subset = int(self.input_dim / self.n_subsets)
         # Number of overlapping features between subsets
         self.n_overlap = int(self.overlap_ratio * self.n_column_subset)
-        self.column_idx = np.array(range(self.n_column))
+        self.column_idx = np.array(range(self.input_dim))
     
     def __generate_noisy_xbar(self, x : torch.FloatTensor) -> torch.Tensor:
         """Generates a noisy version of the input sample `x`.
