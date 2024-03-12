@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Dict, Any
+from typing import Union, Tuple
 from numpy.typing import NDArray
 
 from torch.utils.data import Dataset
@@ -8,16 +8,13 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from dataclasses import asdict
-from ts3l.utils.scarf_utils import SCARFConfig
 
 class SCARFDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Union[NDArray[np.int_], NDArray[np.float_]] = None,
                         unlabeled_data: pd.DataFrame = None, 
-                        config: SCARFConfig = None,
-                        is_regression: bool = False,
-                        is_second_phase: bool = False,
+                        corruption_rate: float = 0.0,
+                        is_regression: bool = False
                         ) -> None:
         """A dataset class for SCARF that handles labeled and unlabeled data.
 
@@ -30,23 +27,18 @@ class SCARFDataset(Dataset):
                 Use integers for classification labels and floats for regression targets. Defaults to None.
             unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 
                 self-supervised learning. Defaults to None.
-            config (SCARFConfig): The given hyperparameter set for SubTab.
+            corruption_rate (float): The proportion of features to be corrupted, simulating noisy conditions for robustness. 
+                For the second phase dataset, it should be 0. Defaults to 0.0.
             is_regression (bool, optional): Flag indicating whether the task is regression (True) or classification (False).
                 Defaults to False.
-            is_second_phase (bool, optional): Flag indicating whether the dataset is for first phase or second phase learning. 
-                Default is False.
         """
         
-        if config is not None:
-            self.config = asdict(config)
-            
         if unlabeled_data is not None:
             X = pd.concat([X, unlabeled_data])
             
         self.data = torch.FloatTensor(X.values)
         
-        self.corruption_rate = self.config["corruption_rate"] if not is_second_phase else 0.0
-        self.corruption_len = int(X.shape[1] * self.corruption_rate)
+        self.corruption_len = int(X.shape[1] * corruption_rate)
         self.n_sampling_candidate , self.n_features = X.shape
 
         self.is_regression = is_regression

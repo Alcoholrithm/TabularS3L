@@ -80,7 +80,7 @@ class SubTabCollateFN(object):
         optional noise and masking. It supports configurable shuffling, overlap, and masking of features.
 
         Args:
-            config (SubTabConfig): The given hyperparameter set for SubTab.
+            config (Dict[str, Any]): The given hyperparameter set for SubTab.
         """
         
         if config is not None:

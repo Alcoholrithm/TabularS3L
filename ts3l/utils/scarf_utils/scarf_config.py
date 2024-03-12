@@ -28,8 +28,6 @@ class SCARFConfig(BaseConfig):
         head_depth (bool): The depth of head. Default is 2.
         dropout_rate (bool): A hyperparameter that is to control dropout layer. Default is 0.04.
         tau (float): A hyperparameter that is to scale similarity between views during the first phase.
-        corruption_rate (float): The proportion of features to be corrupted, simulating noisy conditions for robustness. 
-                For the second phase dataset, it should be 0. Defaults to 0.0.
 
     Raises:
         ValueError: Inherited from 'BaseConfig' to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
@@ -50,9 +48,6 @@ class SCARFConfig(BaseConfig):
     dropout_rate: float = field(default=0.04)
     
     tau: float = field(default=0.1)
-    
-    corruption_rate: float = field(default=0)
-    
     
     def __post_init__(self):
         super().__post_init__()
