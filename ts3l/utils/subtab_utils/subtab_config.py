@@ -31,6 +31,10 @@ class SubTabConfig(BaseConfig):
         use_distance (bool): A hyperparameter that is to select using distance loss or not during the first phase. Default is True.
         n_subsets (int): The number of subsets to generate different views of the data. Default is 4.
         overlap_ratio (float): A hyperparameter that is to control the extent of overlapping between the subsets. Default is 0.75.
+        shuffle (bool): Whether to shuffle the subsets. 
+        mask_ratio (float): Ratio of features to be masked as noise.
+        noise_type (str): The type of noise to apply.
+        noise_level (float): Intensity of Gaussian noise to be applied.
 
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
@@ -56,6 +60,14 @@ class SubTabConfig(BaseConfig):
     
     overlap_ratio: float = field(default=0.75)
     
+    shuffle: bool = field(default=False)
+    
+    mask_ratio: float = field(default=0.2)
+    
+    noise_type: str = field(default="Swap")
+    
+    noise_level: float = field(default=None)
+    
     def __post_init__(self):
         super().__post_init__()
         
@@ -64,3 +76,9 @@ class SubTabConfig(BaseConfig):
         
         if self.output_dim is None:
             raise ValueError("The dimension of output must be specified in the 'output_dim' attribute.")
+        
+        if self.noise_type not in ["Swap", "Gaussian", "Zero_Out"]:
+            raise ValueError('The noise type must be one of ["Swap", "Gaussian", "Zero_Out"], but %s.' % self.noise_type)
+        
+        if (self.noise_type == "Gaussian") and (self.noise_level == None) or (self.noise_level < 0):
+            raise ValueError("The noise level must be a float that is >= 0 when the noise type is Gaussian.")
