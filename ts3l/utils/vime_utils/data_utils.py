@@ -15,7 +15,7 @@ class VIMEDataset(Dataset):
                 Y: Union[NDArray[np.int_], NDArray[np.float_]] = None, 
                 config: VIMEConfig = None, 
                 unlabeled_data: pd.DataFrame = None, 
-                continous_cols: List = None, 
+                continuous_cols: List = None, 
                 category_cols: List = None, 
                 u_label = -1, 
                 is_second_phase: bool = False,
@@ -33,7 +33,7 @@ class VIMEDataset(Dataset):
             config (Dict[str, Any]): The given hyperparameter set for VIME.
             unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 
                 self-supervised learning. Defaults to None.
-            continous_cols (List, optional): List of continuous columns. Defaults to None.
+            continuous_cols (List, optional): List of continuous columns. Defaults to None.
             category_cols (List, optional): List of categorical columns. Defaults to None.
             u_label (int, optional): The specifier for unlabeled sample. Defaults to -1.
             is_second_phase (bool): The flag that determines whether the dataset is for first phase or second phase learning. Default is False.
@@ -75,10 +75,10 @@ class VIMEDataset(Dataset):
         if unlabeled_data is not None:
             X = pd.concat([X, unlabeled_data])
             
-        self.cont_data = torch.FloatTensor(X[continous_cols].values)
+        self.cont_data = torch.FloatTensor(X[continuous_cols].values)
         self.cat_data = torch.FloatTensor(X[category_cols].values)
         
-        self.continuous_cols = continous_cols
+        self.continuous_cols = continuous_cols
         self.category_cols = category_cols
 
         if config is not None:
