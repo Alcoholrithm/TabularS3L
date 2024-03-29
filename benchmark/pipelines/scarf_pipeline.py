@@ -87,7 +87,7 @@ class SCARFPipeLine(PipeLine):
             EarlyStopping(
                 monitor= 'val_' + self.metric.__name__, 
                 mode = 'max',
-                patience = self.args.first_phase_patience,
+                patience = self.args.second_phase_patience,
                 verbose = False
             )
         ]
@@ -120,7 +120,7 @@ class SCARFPipeLine(PipeLine):
         
         return pl_module
         
-    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
+    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig], X: pd.DataFrame, y: pd.Series):
         
         pl_module.set_second_phase()
 
@@ -132,7 +132,7 @@ class SCARFPipeLine(PipeLine):
                     callbacks = None,
         )
 
-        test_ds = SCARFDataset(self.X_test, is_second_phase=True)
+        test_ds = SCARFDataset(X, is_second_phase=True)
         test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs)
 
         preds = trainer.predict(pl_module, test_dl)
@@ -142,6 +142,6 @@ class SCARFPipeLine(PipeLine):
         else:
             preds = torch.concat([out.cpu() for out in preds]).squeeze()
             
-        score = self.metric(preds, self.y_test)
+        score = self.metric(preds, y)
         
         return score

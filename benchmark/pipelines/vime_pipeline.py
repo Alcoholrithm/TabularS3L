@@ -83,13 +83,13 @@ class VIMEPipeLine(PipeLine):
         train_ds = VIMEDataset(self.X_train, self.y_train.values, config, unlabeled_data=self.X_unlabeled, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True)
         test_ds = VIMEDataset(self.X_valid, self.y_valid.values, config, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="weighted", train_collate_fn=VIMESemiSLCollateFN())
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", train_collate_fn=VIMESemiSLCollateFN())
             
         callbacks = [
             EarlyStopping(
                 monitor= 'val_' + self.metric.__name__, 
                 mode = 'max',
-                patience = self.args.first_phase_patience,
+                patience = self.args.second_phase_patience,
                 verbose = False
             )
         ]
@@ -122,7 +122,7 @@ class VIMEPipeLine(PipeLine):
         
         return pl_module
         
-    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
+    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig], X: pd.DataFrame, y: pd.Series):
         
         pl_module.set_second_phase()
 
@@ -134,7 +134,7 @@ class VIMEPipeLine(PipeLine):
                     callbacks = None,
         )
 
-        test_ds = VIMEDataset(self.X_test, category_cols=self.category_cols, continuous_cols=self.continuous_cols, is_second_phase=True)
+        test_ds = VIMEDataset(X, category_cols=self.category_cols, continuous_cols=self.continuous_cols, is_second_phase=True)
         test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs)
 
         preds = trainer.predict(pl_module, test_dl)
@@ -144,6 +144,6 @@ class VIMEPipeLine(PipeLine):
         else:
             preds = torch.concat([out.cpu() for out in preds]).squeeze()
             
-        score = self.metric(preds, self.y_test)
+        score = self.metric(preds, y)
         
         return score

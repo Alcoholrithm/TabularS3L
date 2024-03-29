@@ -58,20 +58,20 @@ class PipeLine(ABC):
         hparams = {}
         for k, v in self.hparams_range.items():
             hparams[k] = getattr(trial, v[0])(*v[1])
-        
+
         config = self._get_config(hparams)
         pl_module = self.pl_module_class(config)
 
         pl_module = self.fit_model(pl_module, config)
 
-        return self.evaluate(pl_module, config)
+        return self.evaluate(pl_module, config, self.X_valid, self.y_valid)
     
     @abstractmethod
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         pass
     
     @abstractmethod
-    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
+    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig], X: pd.DataFrame, y: pd.Series):
         pass
     
     @abstractmethod
@@ -136,5 +136,5 @@ class PipeLine(ABC):
 
         pl_module = self.fit_model(pl_module, config)
         
-        print("Evaluation %s: %.4f" % (self.metric.__name__, self.evaluate(pl_module, config)))
+        print("Evaluation %s: %.4f" % (self.metric.__name__, self.evaluate(pl_module, config, self.X_test, self.y_test)))
         

@@ -77,16 +77,16 @@ class SubTabPipeLine(PipeLine):
 
         pl_module.set_second_phase()
         
-        train_ds = SubTabDataset(self.X_train, self.y_train.values)
-        test_ds = SubTabDataset(self.X_valid, self.y_valid.values)
+        train_ds = SubTabDataset(self.X_train, self.y_train.values, is_regression=True if self.output_dim == 1 else False)
+        test_ds = SubTabDataset(self.X_valid, self.y_valid.values, is_regression=True if self.output_dim == 1 else False)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="weighted", train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs=self.args.n_jobs)
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs=self.args.n_jobs)
             
         callbacks = [
             EarlyStopping(
                 monitor= 'val_' + self.metric.__name__, 
                 mode = 'max',
-                patience = self.args.first_phase_patience,
+                patience = self.args.second_phase_patience,
                 verbose = False
             )
         ]
@@ -119,7 +119,7 @@ class SubTabPipeLine(PipeLine):
         
         return pl_module
         
-    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
+    def evaluate(self, pl_module: TS3LLightining, config: Type[BaseConfig], X: pd.DataFrame, y: pd.Series):
         
         pl_module.set_second_phase()
 
@@ -131,7 +131,7 @@ class SubTabPipeLine(PipeLine):
                     callbacks = None,
         )
 
-        test_ds = SubTabDataset(self.X_test)
+        test_ds = SubTabDataset(X, is_regression=True if self.output_dim == 1 else False)
         test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs, collate_fn=SubTabCollateFN(config))
 
         preds = trainer.predict(pl_module, test_dl)
@@ -141,6 +141,6 @@ class SubTabPipeLine(PipeLine):
         else:
             preds = torch.concat([out.cpu() for out in preds]).squeeze()
             
-        score = self.metric(preds, self.y_test)
+        score = self.metric(preds, y)
         
         return score

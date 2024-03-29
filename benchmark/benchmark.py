@@ -1,12 +1,12 @@
 import argparse
-from datasets import load_diabetes
+from datasets import load_diabetes, load_abalone
 from pipelines import VIMEPipeLine, SubTabPipeLine, SCARFPipeLine
 
 def main():
     parser = argparse.ArgumentParser(add_help=True)
 
     parser.add_argument('--model', type=str, choices=["vime", "subtab", "scarf"])
-    parser.add_argument('--data', type=str)
+    parser.add_argument('--data', type=str, choices=["diabetes", "abalone"])
     
     parser.add_argument('--labeled_sample_ratio', type=float, default=0.1)
     parser.add_argument('--valid_size', type=float, default=0.2)
@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--max_epochs', type=int, default=200)
     
     parser.add_argument('--accelerator', type=str, choices=["cuda", "cpu"])
-    parser.add_argument('--devices', nargs='+', type=int, required=True)
+    parser.add_argument('--devices', nargs='+', type=int, default=[0])
     
     parser.add_argument('--fast_dev_run', action="store_true")
     
@@ -30,7 +30,12 @@ def main():
     if args.accelerator == 'cpu':
         args.device = 'auto'
     
-    data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams = load_diabetes()
+    if args.data == "diabetes":
+        load_data = load_diabetes
+    elif args.data == "abalone":
+        load_data = load_abalone
+        
+    data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams = load_data()
     
     if args.model == "vime":
         pipeline_class = VIMEPipeLine
