@@ -21,14 +21,6 @@ class XGBConfig:
     scale_pos_weight: int
     
     early_stopping_rounds: int
-    
-    # # task: str = field(default=None)
-    
-    # def __post_init__(self):
-    #     if self.task is None:
-    #         raise ValueError("The task of the problem must be specified in the 'task' attribute.")
-    #     elif (type(self.task) is not str or (self.task != "regression" and self.task != "classification")):
-    #         raise ValueError(f"{self.task} is not a valid task. Choices are: ['regression', 'classification']")
 
 class XGBModule(object):
     def __init__(self, model_class: Union[XGBClassifier, XGBRegressor]):
@@ -52,11 +44,9 @@ class XGBPipeLine(PipeLine):
         self.hparams_range = hparams_range
     
     def _get_config(self, hparams: Dict[str, Any]):
-        # hparams["task"] = "regression" if self.output_dim == 1 else "classification"
         hparams["early_stopping_rounds"] = self.args.second_phase_patience
         
         return self.config_class(**hparams)
-        # return asdict(self.config_class(**hparams))
     
     def fit_model(self, pl_module: XGBModule, config: XGBConfig):
 
@@ -66,8 +56,9 @@ class XGBPipeLine(PipeLine):
         
     def evaluate(self, pl_module: XGBModule, config: XGBConfig, X: pd.DataFrame, y: pd.Series):
         
-        preds = pl_module.predict(X)
-            
+        preds = pl_module.predict_proba(X)
+        
+        # print(preds.shape, y.shape)
         score = self.metric(preds, y)
         
         return score
