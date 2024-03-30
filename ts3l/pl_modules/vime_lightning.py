@@ -97,13 +97,12 @@ class VIMELightning(TS3LLightining):
             preds = torch.stack([u_y_hat[i, :] for i in range(len(u_y_hat)) if i % self.consistency_len != 0], dim = 0)
             unsupervised_loss += self.consistency_loss(preds, target)
         
-        labeled_x = x[y != self.u_label].squeeze()
+        labeled_x = x[y != self.u_label]
         labeled_y = y[y != self.u_label]
 
         y_hat = self.model(labeled_x).squeeze()
 
         supervised_loss = self.loss_fn(y_hat, labeled_y)
-        
         loss = supervised_loss + self.beta * unsupervised_loss
         
         return loss, labeled_y, y_hat
