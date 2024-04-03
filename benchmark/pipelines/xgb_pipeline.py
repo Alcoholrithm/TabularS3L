@@ -56,7 +56,10 @@ class XGBPipeLine(PipeLine):
         
     def evaluate(self, pl_module: XGBModule, config: XGBConfig, X: pd.DataFrame, y: pd.Series):
         
-        preds = pl_module.predict_proba(X)
+        if self.output_dim == 1:
+            preds = pl_module.predict(X)
+        else:
+            preds = pl_module.predict_proba(X)
         
         # print(preds.shape, y.shape)
         score = self.metric(preds, y)
