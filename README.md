@@ -21,6 +21,31 @@ We provide a Python package ts3l of TabularS3L for users who want to use semi- a
 pip install ts3l
 ```
 
+## Benchmark
+We provide a simple benchmark using TabularS3L against XGBoost. The train-validation-test ratio is 6:2:2 and we tuned each model over 50 trials using Optuna. The results are the average of the random seeds [0,4]. The best results are bold.
+
+Use this benchmark for reference only, as only a small number of random seeds were used.
+
+##### 10% labeled samples 
+
+| Model | diabetes (acc) | abalone (mse) |
+|:---:|:---:|:---:|
+| XGBoost | 0.7325 | **5.5739** |
+| VIME | 0.7182 | 5.6637 |
+| SubTab | 0.7312 | 7.2418 |
+| SCARF | **0.7416** | 5.8888 | 
+
+--------
+
+##### 100% labeled samples
+
+| Model | diabetes (acc) | abalone (mse) |
+|:---:|:---:|:---:|
+| XGBoost | 0.7234 | 4.8377 |
+| VIME | **0.7688** | 4.5804 |
+| SubTab | 0.7390 | 6.3104 |
+| SCARF | 0.7442 | **4.4443** |
+
 ## Available Models with Quick Start
 
 TabularS3L employs a two-phase learning approach, where the learning strategies differ between phases. Below is an overview of the models available within TabularS3L, highlighting the learning strategies employed in each phase. The abbreviations 'Self-SL', 'Semi-SL', and 'SL' represent self-supervised learning, semi-supervised learning, and supervised learning, respectively.
