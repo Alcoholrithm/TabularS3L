@@ -334,12 +334,6 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
 - [ ] Release SwitchTab
   - [ ] nn.Module
   - [ ] LightningModule
-- [ ] Release PTaRL
-  - [ ] Add Backbones
-    - [ ] MLP
-    - [ ] ResNet
-    - [ ] FT-Transformer
-  - [ ] LightningModule
 - [ ] Add example codes
 
 ## Contributing
