@@ -21,4 +21,4 @@ def load_diabetes():
     scaler = MinMaxScaler()
     data[continuous_cols] = scaler.fit_transform(data[continuous_cols])
     
-    return data, label, continuous_cols, category_cols
+    return data, label, continuous_cols, category_cols, 2, "accuracy_score", {}

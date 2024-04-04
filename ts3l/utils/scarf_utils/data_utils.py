@@ -47,6 +47,9 @@ class SCARFDataset(Dataset):
         
         self.corruption_rate = self.config["corruption_rate"] if not is_second_phase else 0.0
         self.corruption_len = int(X.shape[1] * self.corruption_rate)
+        if not is_second_phase:
+            self.corruption_len = max(1, self.corruption_len)
+            
         self.n_sampling_candidate , self.n_features = X.shape
 
         self.is_regression = is_regression

@@ -7,3 +7,4 @@ temporary_ckpt_data/
 build/
 dist/
 .pytest_cache/
+*benchmark_ckpt/

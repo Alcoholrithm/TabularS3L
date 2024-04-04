@@ -17,7 +17,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # requirements
-with pathlib.Path('requirements.txt').open() as requirements_txt:
+with open(path.join(here, 'requirements.txt'), encoding='utf-8') as requirements_txt:
     install_requires = [
         str(requirement)
         for requirement
@@ -26,7 +26,7 @@ with pathlib.Path('requirements.txt').open() as requirements_txt:
 
 setup(
     name='ts3l',
-    version='v0.21',
+    version='v0.22',
     description='A PyTorch Lightning-based library for self- and semi-supervised learning on tabular data.',
     long_description=long_description,
     long_description_content_type='text/markdown',

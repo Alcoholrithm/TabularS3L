@@ -30,4 +30,4 @@ def load_abalone():
     
     
     
-    return data, label, continuous_cols, category_cols
+    return data, label, continuous_cols, category_cols, 1, "mean_squared_error", {} 
