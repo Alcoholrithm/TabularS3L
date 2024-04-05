@@ -80,7 +80,7 @@ class JointLoss(nn.Module):
         anchor_loss = -torch.log(pos_sum / (pos_sum + neg_sum))
         return anchor_loss
         
-    def XNegloss(self, projections: torch.FloatTensor) -> torch.FloatTensor:
+    def XNegloss(self, projections: torch.FloatTensor) -> torch.Tensor:
         
         
         # Compute cosine similarity using the provided function

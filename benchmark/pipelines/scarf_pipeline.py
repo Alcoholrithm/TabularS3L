@@ -36,8 +36,8 @@ class SCARFPipeLine(PipeLine):
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         
-        train_ds = SCARFDataset(self.X_train, unlabeled_data=self.X_unlabeled, config=config)
-        test_ds = SCARFDataset(self.X_valid, config=config)
+        train_ds = SCARFDataset(X = self.X_train, unlabeled_data=self.X_unlabeled, config=config)
+        test_ds = SCARFDataset(X = self.X_valid, config=config)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size=self.args.batch_size, train_sampler="random")
 
@@ -78,8 +78,8 @@ class SCARFPipeLine(PipeLine):
 
         pl_module.set_second_phase()
         
-        train_ds = SCARFDataset(self.X_train, self.y_train.values, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
-        test_ds = SCARFDataset(self.X_valid, self.y_valid.values, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
+        train_ds = SCARFDataset(X = self.X_train, Y = self.y_train.values, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
+        test_ds = SCARFDataset(X = self.X_valid, Y = self.y_valid.values, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted")
             
@@ -132,7 +132,7 @@ class SCARFPipeLine(PipeLine):
                     callbacks = None,
         )
 
-        test_ds = SCARFDataset(X, is_second_phase=True)
+        test_ds = SCARFDataset(X = X, is_second_phase=True)
         test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs)
 
         preds = trainer.predict(pl_module, test_dl)

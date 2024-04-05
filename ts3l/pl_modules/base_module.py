@@ -10,48 +10,47 @@ import pytorch_lightning as pl
 
 from dataclasses import asdict
 from ts3l.utils import BaseConfig
-from typing import Type
     
 
     
 class TS3LLightining(ABC, pl.LightningModule):
     """The pytorch lightning module of TabularS3L
     """
-    def __init__(self, config: Type[BaseConfig]) -> None:
+    def __init__(self, config: BaseConfig) -> None:
         """Initialize the pytorch lightining module of TabularS3L
 
         Args:
-            config (Type[BaseConfig]): The configuration of TS3LLightining.
+            config (BaseConfig): The configuration of TS3LLightining.
         """
         super(TS3LLightining, self).__init__()
         
-        config = asdict(config)
+        _config = asdict(config)
         
-        self.random_seed = config["random_seed"]
-        del config["random_seed"]
+        self.random_seed = _config["random_seed"]
+        del _config["random_seed"]
         
         pl.seed_everything(self.random_seed)
         
-        self.optim = getattr(torch.optim, config["optim"])
-        del config["optim"]
-        self.optim_hparams = config["optim_hparams"]
-        del config["optim_hparams"]
+        self.optim = getattr(torch.optim, _config["optim"])
+        del _config["optim"]
+        self.optim_hparams = _config["optim_hparams"]
+        del _config["optim_hparams"]
         
-        self.sched = getattr(torch.optim.lr_scheduler, config["scheduler"]) if config["scheduler"] is not None else None
-        del config["scheduler"]
-        self.scheduler_hparams = config["scheduler_hparams"]
-        del config["scheduler_hparams"]
+        self.sched = getattr(torch.optim.lr_scheduler, _config["scheduler"]) if _config["scheduler"] is not None else None
+        del _config["scheduler"]
+        self.scheduler_hparams = _config["scheduler_hparams"]
+        del _config["scheduler_hparams"]
         
-        self.loss_fn = getattr(torch.nn, config["loss_fn"])(**config["loss_hparams"])
-        del config["loss_fn"]
-        del config["loss_hparams"]
+        self.loss_fn = getattr(torch.nn, _config["loss_fn"])(**_config["loss_hparams"])
+        del _config["loss_fn"]
+        del _config["loss_hparams"]
         
-        self.__configure_metric(config["task"], config["metric"], config["metric_hparams"])
-        del config["task"]
-        del config["metric"]
-        del config["metric_hparams"]
+        self.__configure_metric(_config["task"], _config["metric"], _config["metric_hparams"])
+        del _config["task"]
+        del _config["metric"]
+        del _config["metric_hparams"]
         
-        self._initialize(config)
+        self._initialize(_config)
         
         self.set_first_phase()
 
@@ -113,11 +112,11 @@ class TS3LLightining(ABC, pl.LightningModule):
     
 
     @abstractmethod
-    def _get_first_phase_loss(self, batch:Dict[str, Any]):
+    def _get_first_phase_loss(self, batch: Any) -> torch.FloatTensor:
         """Calculate the first phase loss
 
         Args:
-            batch (Dict[str, Any]): The input batch
+            batch (Any): The input batch
 
         Returns:
             torch.FloatTensor: The final loss of first phase step

@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Dict, Any
+from typing import Union, Tuple, Dict, Any, Optional
 from numpy.typing import NDArray
 
 from torch.utils.data import Dataset
@@ -15,7 +15,7 @@ class SCARFDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Union[NDArray[np.int_], NDArray[np.float_]] = None,
                         unlabeled_data: pd.DataFrame = None, 
-                        config: SCARFConfig = None,
+                        config: Optional[SCARFConfig] = None,
                         is_regression: bool = False,
                         is_second_phase: bool = False,
                         ) -> None:

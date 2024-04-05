@@ -80,8 +80,8 @@ class VIMEPipeLine(PipeLine):
 
         pl_module.set_second_phase()
         
-        train_ds = VIMEDataset(self.X_train, self.y_train.values, config, unlabeled_data=self.X_unlabeled, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
-        test_ds = VIMEDataset(self.X_valid, self.y_valid.values, config, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
+        train_ds = VIMEDataset(X = self.X_train, Y = self.y_train.values, config = config, unlabeled_data=self.X_unlabeled, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
+        test_ds = VIMEDataset(X = self.X_valid, Y = self.y_valid.values, config = config, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", train_collate_fn=VIMESemiSLCollateFN())
             
@@ -134,7 +134,7 @@ class VIMEPipeLine(PipeLine):
                     callbacks = None,
         )
 
-        test_ds = VIMEDataset(X, category_cols=self.category_cols, continuous_cols=self.continuous_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
+        test_ds = VIMEDataset(X = X, category_cols=self.category_cols, continuous_cols=self.continuous_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
         test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs)
 
         preds = trainer.predict(pl_module, test_dl)

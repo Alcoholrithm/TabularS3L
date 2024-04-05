@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 import itertools
 
 from types import SimpleNamespace
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Union
 
 class ShallowEncoder(nn.Module):
     def __init__(self,
@@ -68,7 +68,7 @@ class AutoEncoder(nn.Module):
     def decode(self, x : torch.Tensor) -> torch.Tensor:
         return self.decoder(x)
     
-    def forward(self, x : torch.Tensor) -> torch.Tensor:
+    def forward(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         latent = self.encode(x)
         projection = self.projection_net(latent)
         projection = F.normalize(projection, p = 2, dim = 1)
@@ -106,22 +106,21 @@ class SubTab(nn.Module):
     def set_second_phase(self) -> None:
         self.forward = self.__second_phase_step
 
-    def __first_phase_step(self, x : torch.Tensor) -> torch.Tensor:
+    def __first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         latents, projections, x_recons = self.ae(x)
         
         return projections, x_recons, x
     
-    def __arange_subsets(self, latent: torch.FloatTensor) -> torch.FloatTensor:
+    def __arange_subsets(self, latent: torch.Tensor) -> torch.Tensor:
         no, dim = latent.shape
         samples = int(no / self.n_subsets)
-        
         latent = latent.reshape((self.n_subsets, samples, dim))
         return torch.concat([latent[:, i] for i in range(samples)])
     
     def __second_phase_step(self, 
                   x : torch.Tensor,
-                  return_embeddings : bool = False) -> torch.Tensor:
+                  return_embeddings : bool = False) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
 
         latent = self.ae.encode(x)
         latent = self.__arange_subsets(latent)

@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Optional
 from numpy.typing import NDArray
 
 import torch
@@ -13,7 +13,7 @@ class VIMEDataset(Dataset):
     def __init__(self,
                 X: pd.DataFrame,
                 Y: Union[NDArray[np.int_], NDArray[np.float_]] = None, 
-                config: VIMEConfig = None, 
+                config: Optional[VIMEConfig] = None, 
                 unlabeled_data: pd.DataFrame = None, 
                 continuous_cols: List = None, 
                 category_cols: List = None, 
