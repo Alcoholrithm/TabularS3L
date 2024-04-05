@@ -13,11 +13,11 @@ from ts3l.utils.scarf_utils import SCARFConfig
 
 class SCARFDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
-                        Y: Union[NDArray[np.int_], NDArray[np.float_]] = None,
-                        unlabeled_data: pd.DataFrame = None, 
+                        Y: Optional[Union[NDArray[np.int_], NDArray[np.float_]]] = None,
+                        unlabeled_data: Optional[pd.DataFrame] = None, 
                         config: Optional[SCARFConfig] = None,
-                        is_regression: bool = False,
-                        is_second_phase: bool = False,
+                        is_regression: Optional[bool] = False,
+                        is_second_phase: Optional[bool] = False,
                         ) -> None:
         """A dataset class for SCARF that handles labeled and unlabeled data.
 
@@ -54,10 +54,7 @@ class SCARFDataset(Dataset):
 
         self.is_regression = is_regression
         
-        if is_regression:
-            self.label_class = torch.FloatTensor
-        else:
-            self.label_class = torch.LongTensor
+        self.label_class = torch.FloatTensor if is_regression else torch.LongTensor
             
         if Y is None:
             self.label = None
@@ -94,8 +91,8 @@ class SCARFDataset(Dataset):
                 corruption_mask[corruption_idx] = True
                 
                 x_random = torch.randint(0, self.n_sampling_candidate, corruption_mask.shape)
-                x_corrupted = torch.FloatTensor([self.data[:, i][x_random[i]] for i in range(self.n_features)])
-                x_corrupted = torch.where(corruption_mask, x_corrupted, self.data[idx])
+                _x_corrupted = torch.FloatTensor([self.data[:, i][x_random[i]] for i in range(self.n_features)])
+                x_corrupted = torch.where(corruption_mask, _x_corrupted, self.data[idx])
                 return self.data[idx], x_corrupted
             return self.data[idx]
         else:

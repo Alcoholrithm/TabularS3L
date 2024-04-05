@@ -1,4 +1,4 @@
-from typing import Dict, Any, Type
+from typing import Dict, Any, List
 from ts3l.utils import RegressionMetric, ClassificationMetric
 
 from abc import ABC, abstractmethod
@@ -54,8 +54,8 @@ class TS3LLightining(ABC, pl.LightningModule):
         
         self.set_first_phase()
 
-        self.first_phase_step_outputs = []
-        self.second_phase_step_outputs = []
+        self.first_phase_step_outputs: List[Dict[str, Any]] = []
+        self.second_phase_step_outputs: List[Dict[str, Any]] = []
         
         self.save_hyperparameters()
     
@@ -83,19 +83,19 @@ class TS3LLightining(ABC, pl.LightningModule):
         """Set the module to pretraining
         """
         self.model.set_first_phase()
-        self.training_step = self._first_phase_step
-        self.on_validation_start = self._on_first_phase_validation_start
-        self.validation_step = self._first_phase_step
-        self.on_validation_epoch_end = self._first_phase_validation_epoch_end
+        self.training_step = self._first_phase_step # type: ignore
+        self.on_validation_start = self._on_first_phase_validation_start # type: ignore
+        self.validation_step = self._first_phase_step # type: ignore
+        self.on_validation_epoch_end = self._first_phase_validation_epoch_end # type: ignore
 
     def set_second_phase(self) -> None:
         """Set the module to finetunning
         """
         self.model.set_second_phase()
-        self.training_step = self._second_phase_step
-        self.on_validation_start = self._on_second_phase_validation_start
-        self.validation_step = self._second_phase_step
-        self.on_validation_epoch_end = self._second_phase_validation_epoch_end
+        self.training_step = self._second_phase_step # type: ignore
+        self.on_validation_start = self._on_second_phase_validation_start # type: ignore
+        self.validation_step = self._second_phase_step # type: ignore
+        self.on_validation_epoch_end = self._second_phase_validation_epoch_end # type: ignore
 
     def forward(self,
                 batch:Dict[str, Any]

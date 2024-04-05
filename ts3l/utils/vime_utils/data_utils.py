@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict, Any, List, Union, Optional
+from typing import Dict, Any, List, Union, Optional, Tuple
 from numpy.typing import NDArray
 
 import torch
@@ -12,14 +12,14 @@ from ts3l.utils.vime_utils import VIMEConfig
 class VIMEDataset(Dataset):
     def __init__(self,
                 X: pd.DataFrame,
-                Y: Union[NDArray[np.int_], NDArray[np.float_]] = None, 
+                Y: Optional[Union[NDArray[np.int_], NDArray[np.float_]]] = None, 
                 config: Optional[VIMEConfig] = None, 
-                unlabeled_data: pd.DataFrame = None, 
-                continuous_cols: List = None, 
-                category_cols: List = None, 
-                u_label = -1, 
-                is_second_phase: bool = False,
-                is_regression: bool = False, 
+                unlabeled_data: Optional[pd.DataFrame] = None, 
+                continuous_cols: Optional[List] = None, 
+                category_cols: Optional[List] = None, 
+                u_label: Any = -1, 
+                is_second_phase: Optional[bool] = False,
+                is_regression: Optional[bool] = False, 
         ) -> None:
         """A dataset class for VIME that handles labeled and unlabeled data.
 
@@ -48,10 +48,8 @@ class VIMEDataset(Dataset):
             
         else:
             self.__getitem = self.__second_phase_get_item
-            if is_regression:
-                self.label_class = torch.FloatTensor
-            else:
-                self.label_class = torch.LongTensor
+            
+            self.label_class = torch.FloatTensor if is_regression else torch.LongTensor
             
             if Y is not None:
             
@@ -86,7 +84,7 @@ class VIMEDataset(Dataset):
         
         self.u_label = u_label
     
-    def __getitem__(self, idx: int) -> Dict[str, torch.tensor]:
+    def __getitem__(self, idx: int) -> Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]:
         """Retrieves the feature and label tensors for a given index. The structure of the label 
             varies depending on the learning phase: 
 
@@ -97,7 +95,7 @@ class VIMEDataset(Dataset):
             idx (int): The index of the data point to retrieve.
 
         Returns:
-            Dict[Any, torch.tensor]: The feature tensor and the label for the given index. 
+            Dict[Any, torch.Tensor]: The feature tensor and the label for the given index. 
             For first phase learning, label is a tuple of mask and original feature tensor.
             For second phase learning, label is a one of a token for unlabeled samples or a label of it.
         """
@@ -117,7 +115,7 @@ class VIMEDataset(Dataset):
 
         return np.expand_dims(mask, axis=0)
 
-    def __pretext_generator(self, m, x, empirical_dist):  
+    def __pretext_generator(self, m, x, empirical_dist) -> Tuple[torch.LongTensor, torch.FloatTensor]:  
         """Generate corrupted samples.
         
         Args:
@@ -148,15 +146,15 @@ class VIMEDataset(Dataset):
         else:
             return m_new.squeeze().reshape(1), x_tilde.squeeze().reshape(1)
     
-    def __generate_x_tildes(self, cat_samples: torch.FloatTensor, cont_samples:torch.FloatTensor) -> torch.FloatTensor:
+    def __generate_x_tildes(self, cat_samples: torch.Tensor, cont_samples:torch.Tensor) -> torch.Tensor:
         """Generate x_tilde for consistency regularization
 
         Args:
-            cat_samples (torch.FloatTensor): The categorical features to generate x_tilde
-            cont_samples (torch.FloatTensor): The continuous features to generate x_tilde
+            cat_samples (torch.Tensor): The categorical features to generate x_tilde
+            cont_samples (torch.Tensor): The continuous features to generate x_tilde
 
         Returns:
-            torch.FloatTensor: x_tilde for consistency regularization
+            torch.Tensor: x_tilde for consistency regularization
         """
         m_unlab = self.__mask_generator(self.config["p_m"], cat_samples)
         dcat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
@@ -167,14 +165,14 @@ class VIMEDataset(Dataset):
         
         return x_tilde
     
-    def __first_phase_get_item(self, idx: int) -> Dict[str, torch.tensor]:
+    def __first_phase_get_item(self, idx: int) -> Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]:
         """Return a input and label pair
 
         Args:
             idx (int): The index of the data to sample
 
         Returns:
-            Dict[str, Any]: A pair of input and label for first phase learning
+            Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]: A pair of input and label for first phase learning
         """
         cat_samples = self.cat_data[idx]
         m_unlab = self.__mask_generator(self.config["p_m"], cat_samples)
@@ -194,14 +192,14 @@ class VIMEDataset(Dataset):
                 "label" : (m_label, x)
                 }
 
-    def __second_phase_get_item(self, idx) -> Dict[str, torch.tensor]:
+    def __second_phase_get_item(self, idx) -> Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]:
         """Return a input and label pair
 
         Args:
             idx (int): The index of the data to sample
 
         Returns:
-            Dict[str, Any]: A pair of input and label for second phase learning
+            Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]: A pair of input and label for second phase learning
         """
         cat_samples = self.cat_data[idx]
         cont_samples = self.cont_data[idx]
@@ -209,11 +207,10 @@ class VIMEDataset(Dataset):
         if self.label is not None:
             
             if self.label[idx] == self.u_label:
-                xs = [x]
+                _xs = [x]
+                _xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.config["K"])])
+                xs = torch.stack(_xs)
                 
-                xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.config["K"])])
-
-                xs = torch.stack(xs)
                 return {
                     "input" : xs,
                     "label" : self.label_class([self.u_label for _ in range(len(xs))])
