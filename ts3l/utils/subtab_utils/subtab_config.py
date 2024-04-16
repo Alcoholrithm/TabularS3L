@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from ts3l.utils import BaseConfig
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 @dataclass
 class SubTabConfig(BaseConfig):
@@ -21,9 +21,7 @@ class SubTabConfig(BaseConfig):
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
         
     New Attributes:
-        input_dim (int): The dimension of the input.
         hidden_dim (int): The dimension of hidden layer. Default is 256.
-        output_dim (int): The dimension of output.
         tau (float): A hyperparameter that is to scale similarity between projections during the first phase.
         use_cosine_similarity (bool):  A hyperparameter that is to select whether using cosine similarity or dot similarity when calculating similarity
                                         between projections during the first phase. Default is False.
@@ -39,14 +37,11 @@ class SubTabConfig(BaseConfig):
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
         
-        ValueError: Raised if `input_dim` or `output_dim` are not specified, indicating these dimensions must be defined.                    
+        ValueError: If the specified 'noise_type' is not in ["Swap", "Gaussian", "Zero_Out"].
+        ValueError: If the specified 'noise_level' is not a valid value.              
     """
     
-    input_dim: int = field(default=None)
-    
     hidden_dim: int = field(default=256)
-    
-    output_dim: int = field(default=None)
     
     tau: float = field(default=0.1)
     
@@ -66,16 +61,10 @@ class SubTabConfig(BaseConfig):
     
     noise_type: str = field(default="Swap")
     
-    noise_level: float = field(default=None)
+    noise_level: Optional[float] = field(default=None)
     
     def __post_init__(self):
         super().__post_init__()
-        
-        if self.input_dim is None:
-            raise ValueError("The dimension of input must be specified in the 'input_dim' attribute.")
-        
-        if self.output_dim is None:
-            raise ValueError("The dimension of output must be specified in the 'output_dim' attribute.")
         
         if self.noise_type not in ["Swap", "Gaussian", "Zero_Out"]:
             raise ValueError('The noise type must be one of ["Swap", "Gaussian", "Zero_Out"], but %s.' % self.noise_type)

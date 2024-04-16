@@ -1,12 +1,12 @@
 import argparse
-from datasets import load_diabetes, load_abalone
+from datasets import load_diabetes, load_abalone, load_cmc
 from pipelines import VIMEPipeLine, SubTabPipeLine, SCARFPipeLine, XGBPipeLine
 
 def main():
     parser = argparse.ArgumentParser(add_help=True)
 
     parser.add_argument('--model', type=str, choices=["xgb", "vime", "subtab", "scarf"])
-    parser.add_argument('--data', type=str, choices=["diabetes", "abalone"])
+    parser.add_argument('--data', type=str, choices=["diabetes", "abalone", "cmc"])
     
     parser.add_argument('--labeled_sample_ratio', type=float, default=0.1)
     parser.add_argument('--valid_size', type=float, default=0.2)
@@ -34,6 +34,8 @@ def main():
         load_data = load_diabetes
     elif args.data == "abalone":
         load_data = load_abalone
+    elif args.data == "cmc":
+        load_data = load_cmc
         
     data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams = load_data()
     

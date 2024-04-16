@@ -43,21 +43,21 @@ class SubTabLightning(TS3LLightining):
         del config["noise_level"]
         self.model = SubTab(**config)
     
-    def __get_recon_label(self, label: torch.FloatTensor) -> torch.FloatTensor:
+    def __get_recon_label(self, label: torch.Tensor) -> torch.Tensor:
         """Duplicates the input label tensor across the batch dimension to match the number of subsets for reconstruction loss.
 
         Args:
-            label (torch.FloatTensor): The input tensor representing the label to be duplicated.
+            label (torch.Tensor): The input tensor representing the label to be duplicated.
 
         Returns:
-            torch.FloatTensor: A tensor with the input `label` duplicated `self.n_subsets` times along the batch dimension.
+            torch.Tensor: A tensor with the input `label` duplicated `self.n_subsets` times along the batch dimension.
         """
         recon_label = label
         for _ in range(1, self.n_subsets):
             recon_label = torch.concat((recon_label, label), dim = 0)
         return recon_label
     
-    def __arange_subsets(self, projections: torch.FloatTensor) -> torch.FloatTensor:
+    def __arange_subsets(self, projections: torch.Tensor) -> torch.Tensor:
         """
         Rearranges the projections tensor into a sequence of subsets for first phase loss.
         This method takes a tensor of projections and reshapes it into a format where each subset of projections is concatenated along the first dimension. 
@@ -66,10 +66,10 @@ class SubTabLightning(TS3LLightining):
         The method then concatenates these subsets along the zeroth dimension to produce a sequence of projections suitable for first phase loss.
 
         Args:
-            projections (torch.FloatTensor): A tensor of shape `(no, dim)` where `no` is the total number of observations and `dim` is the embedding dimension. 
+            projections (torch.Tensor): A tensor of shape `(no, dim)` where `no` is the total number of observations and `dim` is the embedding dimension. 
 
         Returns:
-            torch.FloatTensor: A reshaped tensor where subsets of projections are concatenated along the first dimension. 
+            torch.Tensor: A reshaped tensor where subsets of projections are concatenated along the first dimension. 
                                 The resulting shape is `(no, dim)`, maintaining the original dimensionality but rearranging the order of observations to align with subset divisions.
         """
         no, dim = projections.shape
@@ -78,11 +78,11 @@ class SubTabLightning(TS3LLightining):
         projections = projections.reshape((self.n_subsets, samples, dim))
         return torch.concat([projections[:, i] for i in range(samples)])
 
-    def _get_first_phase_loss(self, batch:Tuple[torch.FloatTensor, Union[torch.FloatTensor, torch.LongTensor]]):
+    def _get_first_phase_loss(self, batch:Tuple[torch.FloatTensor, torch.Tensor, torch.Tensor]) -> torch.FloatTensor:
         """Calculate the first phase loss
 
         Args:
-            batch (Tuple[torch.FloatTensor, Union[torch.FloatTensor, torch.LongTensor]]): The input batch
+            batch (Tuple[torch.FloatTensor, torch.Tensor, torch.Tensor]): The input batch
 
         Returns:
             torch.FloatTensor: The final loss of first phase step
