@@ -36,9 +36,8 @@ class SubTabConfig(BaseConfig):
 
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
-        
         ValueError: If the specified 'noise_type' is not in ["Swap", "Gaussian", "Zero_Out"].
-        ValueError: If the specified 'noise_level' is not a valid value.              
+        ValueError: If the specified 'noise_level' is not a valid value.
     """
     
     hidden_dim: int = field(default=256)
@@ -69,5 +68,5 @@ class SubTabConfig(BaseConfig):
         if self.noise_type not in ["Swap", "Gaussian", "Zero_Out"]:
             raise ValueError('The noise type must be one of ["Swap", "Gaussian", "Zero_Out"], but %s.' % self.noise_type)
         
-        if (self.noise_type == "Gaussian") and (self.noise_level == None) or (self.noise_level < 0):
-            raise ValueError("The noise level must be a float that is >= 0 when the noise type is Gaussian.")
+        if (self.noise_type == "Gaussian") and (self.noise_level == None) or (self.noise_level <= 0):
+            raise ValueError("The noise level must be a float that is > 0 when the noise type is Gaussian.")
