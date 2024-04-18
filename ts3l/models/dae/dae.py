@@ -6,22 +6,21 @@ import torch.nn.functional as F
 from torch.distributions.uniform import Uniform
 
 import numpy as np
+
 from ts3l.models.common import MLP
 
 
-class SCARF(nn.Module):
+class DAE(nn.Module):
     def __init__(
         self,
-        # sampling_candidate: NDArray[np.float_],
         input_dim,
         hidden_dim,
         encoder_depth=4,
         head_depth=2,
         dropout_rate = 0.04,
-        # corruption_rate=0.6,
         output_dim = 2,
     ):
-        """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
+        """Implementation of Denoising AutoEncoder.
         It consists in an encoder that learns the embeddings.
         It is done by minimizing the contrastive loss of a sample and a corrupted view of it.
         The corrupted view is built by remplacing a random set of features by another sample randomly drawn independently.
@@ -33,9 +32,9 @@ class SCARF(nn.Module):
         """
         super().__init__()
 
-        self.encoder = MLP(input_dim, hidden_dim, encoder_depth)
-
-        self.pretraining_head = MLP(hidden_dim, hidden_dim, head_depth)
+        self.encoder = MLP(input_dim, hidden_dim, encoder_depth, dropout_rate)
+        self.mask_predictor_head = MLP(hidden_dim, input_dim, head_depth, dropout_rate)
+        self.reconstruction_head = MLP(hidden_dim, input_dim, head_depth, dropout_rate)
 
         self.head = nn.Sequential(
             nn.ReLU(inplace=True),
@@ -45,7 +44,8 @@ class SCARF(nn.Module):
         )
         # initialize weights
         self.encoder.apply(self._init_weights)
-        self.pretraining_head.apply(self._init_weights)
+        self.mask_predictor_head.apply(self._init_weights)
+        self.reconstruction_head.apply(self._init_weights)
         
 
     
@@ -60,21 +60,15 @@ class SCARF(nn.Module):
     def set_second_phase(self):
         self.forward = self.__second_phase_step
 
-    def __first_phase_step(self, x, x_corrupted):
+    def __first_phase_step(self, x):
 
-        emb_anchor = self.encoder(x)
-        emb_anchor = self.pretraining_head(emb_anchor)
+        emb = self.encoder(x)
+        mask = torch.sigmoid(self.mask_predictor_head(emb))
+        feature = self.reconstruction_head(emb)
 
-        emb_anchor = F.normalize(emb_anchor, p=2)
-        
-        emb_corrupted = self.encoder(x_corrupted)
-        emb_corrupted = self.pretraining_head(emb_corrupted)
-        emb_corrupted = F.normalize(emb_corrupted, p=2)
-
-        return emb_anchor, emb_corrupted
+        return mask, feature
     
     def __second_phase_step(self, x):
         emb = self.encoder(x)
         output = self.head(emb)
-
         return output

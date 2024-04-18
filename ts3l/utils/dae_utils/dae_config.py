@@ -24,19 +24,28 @@ class DAEConfig(BaseConfig):
         
     New Attributes:
         hidden_dim (int): The dimension of hidden layer. Default is 256.
+        encoder_depth (bool):  The depth of encoder. Default is 4.
+        head_depth (bool): The depth of head. Default is 2.
         noise_type (str): The type of noise to apply. Choices are ["Swap", "Gaussian", "Zero_Out"].
         noise_level (float): Intensity of Gaussian noise to be applied.
         noise_ratio (float): A hyperparameter that is to control the noise ratio during the first phase learning. Default is 0.3.
         mask_loss_weight (float): The special token for unlabeled samples.
         dropout_rate (bool): A hyperparameter that is to control dropout layer. Default is 0.04.
-
+        num_categoricals (int): The number of categorical features.
+        num_continuous (int): The number of continuous features.
+        
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
         ValueError: If the specified 'noise_type' is not in ["Swap", "Gaussian", "Zero_Out"].
         ValueError: If the specified 'noise_level' is not a valid value.
+        ValueError: Raised if both `num_categoricals` and `num_continuous` are None, indicating that at least one attribute must be specified.
     """
     
     hidden_dim: int = field(default=256)
+    
+    encoder_depth: int = field(default=4)
+    
+    head_depth: int = field(default=2)
     
     noise_type: str = field(default="Swap")
     
@@ -48,11 +57,21 @@ class DAEConfig(BaseConfig):
     
     dropout_rate: float = field(default=0.04)
     
+    num_categoricals: Optional[int] = field(default=None)
+    
+    num_continuous: Optional[int] = field(default=None)
+    
     def __post_init__(self):
         super().__post_init__()
         
         if self.noise_type not in ["Swap", "Gaussian", "Zero_Out"]:
             raise ValueError('The noise type must be one of ["Swap", "Gaussian", "Zero_Out"], but %s.' % self.noise_type)
         
-        if (self.noise_type == "Gaussian") and (self.noise_level == None) or (self.noise_level <= 0):
+        if (self.noise_type == "Gaussian") and ((self.noise_level == None) or (self.noise_level <= 0)):
             raise ValueError("The noise level must be a float that is > 0 when the noise type is Gaussian.")
+        
+        if self.num_categoricals is None and self.num_continuous is None:
+            raise ValueError("At least one attribute (num_categorical or num_continuous) must be specified.")
+        else:
+            self.num_categoricals = self.num_categoricals if self.num_categoricals is not None else 0
+            self.num_continuous = self.num_continuous if self.num_continuous is not None else 0

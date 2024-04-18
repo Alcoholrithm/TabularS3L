@@ -68,5 +68,5 @@ class SubTabConfig(BaseConfig):
         if self.noise_type not in ["Swap", "Gaussian", "Zero_Out"]:
             raise ValueError('The noise type must be one of ["Swap", "Gaussian", "Zero_Out"], but %s.' % self.noise_type)
         
-        if (self.noise_type == "Gaussian") and (self.noise_level == None) or (self.noise_level <= 0):
+        if (self.noise_type == "Gaussian") and ((self.noise_level == None) or (self.noise_level <= 0)):
             raise ValueError("The noise level must be a float that is > 0 when the noise type is Gaussian.")
