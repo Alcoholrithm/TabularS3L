@@ -124,7 +124,7 @@ class DAECollateFN(object):
 
         return x_bar
     
-    def __generate_x_tilde(self, x: torch.Tensor) -> torch.Tensor:
+    def __generate_x_tilde(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Generates noisy samples for the given x.
 
         Args:
@@ -141,17 +141,17 @@ class DAECollateFN(object):
         
         return x_bar, mask
     
-    def __call__(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __call__(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generates noisy x from the given input x.
 
         Args:
-            x (torch.Tensor): A batch of the original samples.
+            batch (Tuple[torch.Tensor, ...]): A batch of the original samples.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing the original samples, and the noisy samples.
         """
 
-        x = torch.stack(x)
+        x = torch.stack(batch)
 
         x_bar, mask = self.__generate_x_tilde(x)
         

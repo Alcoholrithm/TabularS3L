@@ -49,7 +49,7 @@ class DAEConfig(BaseConfig):
     
     noise_type: str = field(default="Swap")
     
-    noise_level: Optional[float] = field(default=None)
+    noise_level: float = field(default=0)
     
     noise_ratio: float = field(default=0.3)
     
