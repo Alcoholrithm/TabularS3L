@@ -80,17 +80,17 @@ class SubTabCollateFN(object):
             config (SubTabConfig): The given hyperparameter set for SubTab.
         """
         
-        self.config = asdict(config)
+        self.config = config
             
-        self.shuffle = self.config["shuffle"]
+        self.shuffle = self.config.shuffle
         
-        self.n_subsets = self.config["n_subsets"]
-        self.overlap_ratio = self.config["overlap_ratio"]
-        self.mask_ratio = self.config["mask_ratio"]
-        self.noise_type = self.config["noise_type"]
-        self.noise_level = self.config["noise_level"]
+        self.n_subsets = self.config.n_subsets
+        self.overlap_ratio = self.config.overlap_ratio
+        self.mask_ratio = self.config.mask_ratio
+        self.noise_type = self.config.noise_type
+        self.noise_level = self.config.noise_level
         
-        self.input_dim = self.config["input_dim"]
+        self.input_dim = self.config.input_dim
         self.n_column_subset = int(self.input_dim / self.n_subsets)
         # Number of overlapping features between subsets
         self.n_overlap = int(self.overlap_ratio * self.n_column_subset)

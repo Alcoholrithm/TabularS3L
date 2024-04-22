@@ -1,11 +1,11 @@
 import argparse
 from datasets import load_diabetes, load_abalone, load_cmc
-from pipelines import VIMEPipeLine, SubTabPipeLine, SCARFPipeLine, XGBPipeLine
+from pipelines import VIMEPipeLine, SubTabPipeLine, SCARFPipeLine, XGBPipeLine, DAEPipeLine
 
 def main():
     parser = argparse.ArgumentParser(add_help=True)
 
-    parser.add_argument('--model', type=str, choices=["xgb", "vime", "subtab", "scarf"])
+    parser.add_argument('--model', type=str, choices=["xgb", "vime", "subtab", "scarf", "dae"])
     parser.add_argument('--data', type=str, choices=["diabetes", "abalone", "cmc"])
     
     parser.add_argument('--labeled_sample_ratio', type=float, default=0.1)
@@ -47,6 +47,8 @@ def main():
         pipeline_class = SubTabPipeLine
     elif args.model == "scarf":
         pipeline_class = SCARFPipeLine
+    elif args.model == "dae":
+        pipeline_class = DAEPipeLine
     
     if args.fast_dev_run:
         args.max_epochs = 1

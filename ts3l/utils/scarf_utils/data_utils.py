@@ -38,14 +38,14 @@ class SCARFDataset(Dataset):
         """
         
         if config is not None:
-            self.config = asdict(config)
+            self.config = config
             
         if unlabeled_data is not None:
             X = pd.concat([X, unlabeled_data])
             
         self.data = torch.FloatTensor(X.values)
         
-        self.corruption_rate = self.config["corruption_rate"] if not is_second_phase else 0.0
+        self.corruption_rate = self.config.corruption_rate if not is_second_phase else 0.0
         self.corruption_len = int(X.shape[1] * self.corruption_rate)
         if not is_second_phase:
             self.corruption_len = max(1, self.corruption_len)
