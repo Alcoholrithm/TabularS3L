@@ -21,14 +21,16 @@ class DAE(nn.Module):
         output_dim = 2,
     ):
         """Implementation of Denoising AutoEncoder.
-        It consists in an encoder that learns the embeddings.
-        It is done by minimizing the contrastive loss of a sample and a corrupted view of it.
-        The corrupted view is built by remplacing a random set of features by another sample randomly drawn independently.
-            Args:
-                input_dim (int): The size of the inputs
-                hidden_dim (int): The dimension of the hidden layers
-                encoder_depth (int, optional): The number of layers of the encoder MLP. Defaults to 4.
-                head_depth (int, optional): The number of layers of the pretraining head. Defaults to 2.
+        DAE processes input data that has been partially corrupted, producing clean data during the self-supervised learning stage. 
+        The denoising task enables the model to learn the input distribution and generate latent representations that are robust to corruption. 
+        These latent representations can be utilized for a variety of downstream tasks.
+        Args:
+            input_dim (int): The size of the inputs
+            hidden_dim (int): The dimension of the hidden layers
+            encoder_depth (int, optional): The number of layers of the encoder MLP. Defaults to 4.
+            head_depth (int, optional): The number of layers of the pretraining head. Defaults to 2.
+            dropout_rate (float, optional): The probability of setting the outputs of the dropout layer to zero during training. Defaults to 0.04.
+            output_dim (int, 2): The size of the outputs
         """
         super().__init__()
 

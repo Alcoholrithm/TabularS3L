@@ -80,7 +80,7 @@ class VIMEDataset(Dataset):
         self.category_cols = category_cols
 
         if config is not None:
-            self.config = asdict(config)
+            self.config = config
         
         self.u_label = u_label
     
@@ -156,10 +156,10 @@ class VIMEDataset(Dataset):
         Returns:
             torch.Tensor: x_tilde for consistency regularization
         """
-        m_unlab = self.__mask_generator(self.config["p_m"], cat_samples)
+        m_unlab = self.__mask_generator(self.config.p_m, cat_samples)
         dcat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
         
-        m_unlab = self.__mask_generator(self.config["p_m"], cont_samples)
+        m_unlab = self.__mask_generator(self.config.p_m, cont_samples)
         cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
         x_tilde = torch.concat((cat_x_tilde, cont_x_tilde)).float()
         
@@ -175,11 +175,11 @@ class VIMEDataset(Dataset):
             Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]: A pair of input and label for first phase learning
         """
         cat_samples = self.cat_data[idx]
-        m_unlab = self.__mask_generator(self.config["p_m"], cat_samples)
+        m_unlab = self.__mask_generator(self.config.p_m, cat_samples)
         cat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
 
         cont_samples = self.cont_data[idx]
-        m_unlab = self.__mask_generator(self.config["p_m"], cont_samples)
+        m_unlab = self.__mask_generator(self.config.p_m, cont_samples)
         cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
 
         m_label = torch.concat((cat_m_label, cont_m_label)).float()
@@ -208,7 +208,7 @@ class VIMEDataset(Dataset):
             
             if self.label[idx] == self.u_label:
                 _xs = [x]
-                _xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.config["K"])])
+                _xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.config.K)])
                 xs = torch.stack(_xs)
                 
                 return {

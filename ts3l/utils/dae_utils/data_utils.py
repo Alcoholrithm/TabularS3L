@@ -13,10 +13,8 @@ class DAEDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Optional[Union[NDArray[np.int_], NDArray[np.float_]]] = None,
                         unlabeled_data: Optional[pd.DataFrame] = None,
-                        config: Optional[DAEConfig] = None, 
                         continuous_cols: Optional[List] = None, 
                         category_cols: Optional[List] = None,
-                        is_second_phase: Optional[bool] = False,
                         is_regression: Optional[bool] = False
                         ) -> None:
         """A dataset class for DenoisingAutoEncoder that handles labeled and unlabeled data.
@@ -32,7 +30,6 @@ class DAEDataset(Dataset):
                 self-supervised learning. Defaults to None.
             continuous_cols (List, optional): List of continuous columns. Defaults to None.
             category_cols (List, optional): List of categorical columns. Defaults to None.
-            is_second_phase (bool): The flag that determines whether the dataset is for first phase or second phase learning. Default is False.
             is_regression (Optional[bool]): Flag indicating whether the task is regression (True) or classification (False).
                 Defaults to False.
         """
@@ -41,14 +38,6 @@ class DAEDataset(Dataset):
             X = pd.concat([X, unlabeled_data])
         
         self.len = len(X)
-        
-        if is_second_phase:
-            self.__getitem = self.__second_phase_get_item
-        else:
-            self.__getitem = self.__second_phase_get_item
-            self.noise_ratio = config.noise_ratio
-            self.noise_type = config.noise_type
-            self.noise_level = config.noise_level
             
         self.cont_data = torch.FloatTensor(X[continuous_cols].values)
         self.cat_data = torch.FloatTensor(X[category_cols].values)
@@ -77,42 +66,9 @@ class DAEDataset(Dataset):
             idx (int): The index of the data point to retrieve.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: The feature tensor and the label 
-            tensor (if available) for the given index. If labels are not provided, a placeholder is returned.
+            Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]: The feature tensor and the label tensor (if available) for the given index.
         """
         
-        return self.__getitem(idx)
-    
-    def __first_phase_get_item(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        
-        cat_samples, cont_samples = None, None
-        
-        if len(self.category_cols) > 0:
-            cat_samples = self.cat_data[idx]
-            cat_x_bar, cat_mask = self.__generate_x_tilde(cat_samples)
-        
-        if len(self.continuous_cols) > 0:
-            cont_samples = self.cont_data[idx]
-            print(cont_samples.shape)
-            cont_x_bar, con_mask = self.__generate_x_tilde(cont_samples)
-            
-            if cat_samples is not None:
-                x = torch.concat((cat_samples, cont_samples))
-                x_bar = torch.concat((cat_x_bar, cont_x_bar))
-                mask = torch.concat([cat_mask, con_mask])
-            else:
-                x = cont_samples
-                x_bar = cont_x_bar
-                mask = con_mask
-        
-        else:
-            x = cat_samples
-            x_bar = cat_x_bar
-            mask = cat_mask
-        
-        return x, x_bar, mask
-    
-    def __second_phase_get_item(self, idx: int) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         cat_samples = self.cat_data[idx]
 
         cont_samples = self.cont_data[idx]
@@ -132,45 +88,6 @@ class DAEDataset(Dataset):
         """
         return self.len
     
-    def __generate_noisy_xbar(self, x : torch.Tensor) -> torch.Tensor:
-        """Generates a noisy version of the input sample `x`.
-
-        Args:
-            x (torch.Tensor): The original sample.
-
-        Returns:
-            torch.Tensor: The noisy sample.
-        """
-        no, dim = x.shape
-        
-        # Initialize corruption array
-        x_bar = torch.zeros([no, dim]).to(x.device)
-
-        # Randomly (and column-wise) shuffle data
-        if self.noise_type == "Swap":
-            x_bar = torch.stack([x[np.random.permutation(no), i] for i in range(dim)], dim=1).to(x.device)
-        elif self.noise_type == "Gaussian":
-            x_bar = x + torch.normal(torch.zeros(x.shape), torch.full(x.shape, self.noise_level)).to(x.device)
-
-        return x_bar
-    
-    def __generate_x_tilde(self, x: torch.Tensor) -> torch.Tensor:
-        """Generates noisy samples for the given x.
-
-        Args:
-            x (torch.Tensor): The original sample.
-
-        Returns:
-            torch.Tensor: The noisy samples.
-        """
-        x_bar_noisy = self.__generate_noisy_xbar(x)
-        
-        mask = torch.distributions.binomial.Binomial(total_count = 1, probs = self.mask_ratio).sample(x_bar.shape).to(x_bar.device)
-        
-        x_bar = x * (1 - mask) + x_bar_noisy * mask
-        
-        return x_bar, mask
-    
 class DAECollateFN(object):
     def __init__(self, config: DAEConfig) -> None:
         """A collate function for DenoisingAutoEncoder to generate noisy x for dataloaders.
@@ -179,11 +96,11 @@ class DAECollateFN(object):
             config (SubTabConfig): The given hyperparameter set for DenoisingAutoEncoder.
         """
         
-        self.config = asdict(config)
+        self.config = config
         
-        self.noise_ratio = self.config["noise_ratio"]
-        self.noise_type = self.config["noise_type"]
-        self.noise_level = self.config["noise_level"]
+        self.noise_ratio = config.noise_ratio
+        self.noise_type = config.noise_type
+        self.noise_level = config.noise_level
     
     def __generate_noisy_xbar(self, x : torch.Tensor) -> torch.Tensor:
         """Generates a noisy version of the input sample `x`.
