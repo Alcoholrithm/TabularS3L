@@ -26,7 +26,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as requirements
 
 setup(
     name='ts3l',
-    version='v0.30',
+    version='v0.40',
     description='A PyTorch Lightning-based library for self- and semi-supervised learning on tabular data.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -35,7 +35,7 @@ setup(
     author_email='kmiiiaa@pusan.ac.kr',
 
     # Note that this is a string of words separated by whitespace, not a list.
-    keywords='tabular-data semi-supervised-learning self-supervised-learning VIME SubTab SCARF DenoisingAutoEncoder',
+    keywords='tabular-data semi-supervised-learning self-supervised-learning VIME SubTab SCARF Denoising-AutoEncoder SwitchTab',
     packages=find_packages(),
     # The `include_package_data` parameter in the `setup()` function is used to specify whether to
     # include non-Python files (such as data files, configuration files, etc.) that are part of the
