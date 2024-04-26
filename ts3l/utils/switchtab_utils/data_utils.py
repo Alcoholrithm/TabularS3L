@@ -114,13 +114,16 @@ class SwitchTabDataset(Dataset):
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A pair of original and corrupted feature tensors with optional labels.
         """
         x_1 = self.data[idx]
-        y_1 = self.label[idx] # type: ignore
         
         idx2 = np.random.choice(self.idx_arr)
         while idx2 == idx:
             idx2 = np.random.choice(self.idx_arr)
         x_2 = self.data[idx2]
-        y_2 = self.label[idx2] # type: ignore
+        
+        if self.label is not None:
+            y_1, y_2 = self.label[idx], self.label[idx2] # type: ignore
+        else:
+            y_1, y_2 = self.label_class((self.u_label,)), self.label_class((self.u_label,))
         
         if self.corruption_len:
             xc_1 = self.__generate_corrupted_sample(x_1)
