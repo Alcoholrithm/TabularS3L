@@ -15,6 +15,17 @@ class Encoder(nn.Module):
                     dropout_rate: float,
                     encoder_depth: int = 3,
                     n_head: int = 2) -> None:
+        """Initializes the encoder module used in the SwitchTab, employing an FT-Transformer architecture
+
+        Args:
+            cont_nums (int): The number of continuous features.
+            category_dims (List[int]): A list of dimensions of the categorical features.
+            ffn_factor (float): The scaling factor for the size of the feedforward network within the transformer blocks.
+            hidden_dim (int): The dimensionality of the hidden layers within the network.
+            dropout_rate (float): The dropout rate used within the encoder.
+            encoder_depth (int, optional): The number of layers in the encoder. Defaults to 3.
+            n_head (int, optional): The number of attention heads in the encoder. Defaults to 2.
+        """
         super().__init__()
         
         self.transformer = FTTransformer(cont_nums=cont_nums, cat_dims=category_dims, emb_dim=hidden_dim, n_heads=n_head, attn_dropout=dropout_rate, ffn_dropout=dropout_rate, ffn_factor_dim=ffn_factor, depth=encoder_depth)
@@ -23,10 +34,15 @@ class Encoder(nn.Module):
         return self.transformer(x)
     
 class Projector(nn.Module):
-    def __init__(self, input_dim: int, hidden_dim: int) -> None:
+    def __init__(self, hidden_dim: int) -> None:
+        """Initializes the projector module used in the SwitchTab
+
+        Args:
+            hidden_dim (int): The dimensionality of both the input and output of the projector.
+        """
         super().__init__()
         
-        self.linear = nn.Linear(input_dim, hidden_dim)
+        self.linear = nn.Linear(hidden_dim, hidden_dim)
         self.activation = nn.SiLU()
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -34,6 +50,12 @@ class Projector(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, input_dim:int, hidden_dim: int) -> None:
+        """Initializes the decoder module used in the SwitchTab
+
+        Args:
+            input_dim (int): The dimensionality of input features of SwitchTab.
+            hidden_dim (int): The dimensionality of the output of the projector.
+        """
         super().__init__()
         
         self.linear = nn.Linear(hidden_dim * 2, input_dim)
@@ -95,7 +117,7 @@ class SwitchTab(nn.Module):
 
     @property
     def return_salient_feature(self) -> bool:
-        """Gets the value of the private attribute `__return_salient_feature` which indicates whether 
+        """Gets the value of the private attribute '__return_salient_feature' which indicates whether 
         salient features should be returned by the model.
 
         Returns:
@@ -105,11 +127,11 @@ class SwitchTab(nn.Module):
     
     @return_salient_feature.setter
     def return_salient_feature(self, flag: bool) -> None:
-        """Sets the value of the private attribute `__return_salient_feature` to control whether 
+        """Sets the value of the private attribute '__return_salient_feature' to control whether 
         salient features should be returned by the model.
 
         Args:
-            flag (bool): A boolean value to set the `__return_salient_feature` attribute.
+            flag (bool): A boolean value to set the '__return_salient_feature' attribute.
         """
         self.__return_salient_feature = flag
         
