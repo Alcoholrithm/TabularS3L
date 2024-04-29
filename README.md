@@ -28,9 +28,104 @@ TabularS3L employs a two-phase learning approach, where the learning strategies 
 
 | Model | First Phase | Second Phase |
 |:---:|:---:|:---:|
+| **DAE** ([GitHub](https://github.com/ryancheunggit/tabular_dae))| Self-SL | SL |
 | **VIME** ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html)) | Self-SL | Semi-SL or SL |
 | **SubTab** ([NeurIPS'21](https://proceedings.neurips.cc/paper/2021/hash/9c8661befae6dbcd08304dbf4dcaf0db-Abstract.html)) | Self-SL | SL |
 | **SCARF** ([ICLR'22](https://iclr.cc/virtual/2022/spotlight/6297))| Self-SL | SL |
+
+#### Denoising AutoEncoder (DAE)
+DAE processes input data that has been partially corrupted, producing clean data and predicting which features are corrupted during the self-supervised learning.
+The denoising task enables the model to learn the input distribution and generate latent representations that are robust to corruption. 
+These latent representations can be utilized for a variety of downstream tasks.
+
+<details close>
+  <summary>Quick Start</summary>
+  
+  ```python
+  # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
+
+  # Prepare the DAELightning Module
+  from ts3l.pl_modules import DAELightning
+  from ts3l.utils.dae_utils import DAEDataset, DAECollateFN
+  from ts3l.utils import TS3LDataModule
+  from ts3l.utils.dae_utils import DAEConfig
+  from pytorch_lightning import Trainer
+  
+  metric = "accuracy_score"
+  input_dim = X_train.shape[1]
+  hidden_dim = 1024
+  output_dim = 2
+  encoder_depth=4
+  head_depth = 2
+  noise_type = "Swap"
+  noise_ratio = 0.3
+  
+  max_epochs = 20
+  batch_size = 128
+  
+  X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
+  
+  config = DAEConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+  input_dim=input_dim, hidden_dim=hidden_dim,
+  output_dim=output_dim, encoder_depth=encoder_depth,
+  head_depth = head_depth,
+  noise_type = noise_type,
+  noise_ratio = noise_ratio,
+  num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
+  )
+  
+  pl_dae = DAELightning(config)
+  
+  ### First Phase Learning
+  train_ds = DAEDataset(X = X_train, unlabeled_data = X_unlabeled, continuous_cols = continuous_cols, category_cols = category_cols)
+  valid_ds = DAEDataset(X = X_valid, continuous_cols = continuous_cols, category_cols = category_cols)
+  
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', train_collate_fn=DAECollateFN(config), valid_collate_fn=DAECollateFN(config))
+  
+  trainer = Trainer(
+                      accelerator = 'cpu',
+                      max_epochs = max_epochs,
+                      num_sanity_val_steps = 2,
+      )
+  
+  trainer.fit(pl_dae, datamodule)
+  
+  ### Second Phase Learning
+  
+  pl_dae.set_second_phase()
+  
+  train_ds = DAEDataset(X = X_train, Y = y_train.values, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols)
+  valid_ds = DAEDataset(X = X_valid, Y = y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols)
+          
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
+  
+  trainer = Trainer(
+                      accelerator = 'cpu',
+                      max_epochs = max_epochs,
+                      num_sanity_val_steps = 2,
+      )
+  
+  trainer.fit(pl_dae, datamodule)
+  
+  # Evaluation
+  from sklearn.metrics import accuracy_score
+  import torch
+  from torch.nn import functional as F
+  from torch.utils.data import DataLoader, SequentialSampler
+  
+  test_ds = DAEDataset(X_test, category_cols=category_cols, continuous_cols=continuous_cols)
+  test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
+  
+  preds = trainer.predict(pl_dae, test_dl)
+          
+  preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+  
+  accuracy = accuracy_score(y_test, preds.argmax(1))
+  
+  print("Accuracy %.2f" % accuracy)
+  ```
+
+</details>
 
 #### VIME: Extending the Success of Self- and Semi-supervised Learning to Tabular Domain
 VIME enhances tabular data learning through a dual approach. In its first phase, it utilize a pretext task of estimating mask vectors from corrupted tabular data, alongside a reconstruction pretext task for self-supervised learning. The second phase leverages consistency regularization on unlabeled data.
@@ -303,6 +398,7 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | Model | diabetes (acc) | cmc (b-acc) | abalone (mse) |
 |:---:|:---:|:---:|:---:|
 | XGBoost | 0.7325 | 0.4763 | **5.5739** |
+| DAE | 0.7208 | 0.4885 | 5.6168 | 
 | VIME | 0.7182 | **0.5087** | 5.6637 |
 | SubTab | 0.7312 | 0.4930 | 7.2418 |
 | SCARF | **0.7416** | 0.4710 | 5.8888 | 
@@ -314,6 +410,7 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | Model | diabetes (acc) | cmc (b-acc) | abalone (mse) |
 |:---:|:---:|:---:|:---:|
 | XGBoost | 0.7234 | 0.5291 | 4.8377 |
+| DAE | 0.7390 | 0.5500 | 4.5758 |
 | VIME | **0.7688** | 0.5477 | 4.5804 |
 | SubTab | 0.7390 | 0.5432 | 6.3104 |
 | SCARF | 0.7442 | **0.5521** | **4.4443** |
@@ -328,13 +425,13 @@ Use this benchmark for reference only, as only a small number of random seeds we
   - [x] VIME
   - [x] SubTab
   - [x] SCARF
-- [ ] Release Denoising AutoEncoder
-  - [ ] nn.Module
-  - [ ] LightningModule
+- [x] Release Denoising AutoEncoder
+  - [x] nn.Module
+  - [x] LightningModule
 - [ ] Release SwitchTab
   - [ ] nn.Module
   - [ ] LightningModule
-- [ ] Add example codes
+- [x] Add example codes
 
 ## Contributing
 
@@ -349,7 +446,7 @@ Contributions to this implementation are highly appreciated. Whether it's sugges
   month        = mar,
   year         = 2024,
   publisher    = {Zenodo},
-  version      = {v0.40},
+  version      = {v0.21},
   doi          = {10.5281/zenodo.10776538},
   url          = {https://doi.org/10.5281/zenodo.10776538}
 }

@@ -93,8 +93,8 @@ class SwitchTab(nn.Module):
         
         
         self.encoder = Encoder(input_dim - len(category_dims), category_dims, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
-        self.projector_m = Projector(hidden_dim, hidden_dim)
-        self.projector_s = Projector(hidden_dim, hidden_dim)
+        self.projector_m = Projector(hidden_dim)
+        self.projector_s = Projector(hidden_dim)
         self.decoder = Decoder(input_dim, hidden_dim)
         self.head = nn.Linear(hidden_dim, output_dim)
         self.activation = nn.SiLU()
