@@ -50,7 +50,7 @@ class VIMELightning(TS3LLightining):
         
         self.consistency_loss = nn.MSELoss()
 
-        self.model = VIME(**config)
+        self._init_model(VIME, config)
     
     def _get_first_phase_loss(self, batch:Dict[str, Any]):
         """Calculate the first phase loss

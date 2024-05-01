@@ -1,6 +1,6 @@
 import torch.nn.init as init
 
-def initialize_weights(model, initialization='kaiming_uniform', exclude_layers=["norm"]):
+def initialize_weights(model, initialization='kaiming_normal', exclude_layers=["norm"]):
     """
     Initializes the weights and biases of the given PyTorch model using the specified initialization method.
     
@@ -8,10 +8,11 @@ def initialize_weights(model, initialization='kaiming_uniform', exclude_layers=[
         model (nn.Module): PyTorch model instance.
         initialization (str): Name of the initialization method.
             Options: 'xavier_uniform', 'xavier_normal', 'kaiming_uniform', 'kaiming_normal', 'uniform', 'normal'.
-            Defaults to 'xavier_uniform'.
+            Defaults to 'kaiming_normal'.
     """
 
     for name, param in model.named_parameters():
+        print(name)
         if any(layer_name.upper() in name.upper() for layer_name in exclude_layers):
             continue
         if 'weight' in name:

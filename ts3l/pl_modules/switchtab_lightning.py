@@ -30,7 +30,8 @@ class SwitchTabLightning(TS3LLightining):
         del config["corruption_rate"]
         
         self.first_phase_reconstruction_loss = nn.MSELoss()
-        self.model = SwitchTab(**config)
+        
+        self._init_model(SwitchTab, config)
     
     def _get_first_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
         """Calculate the first phase loss
@@ -99,4 +100,4 @@ class SwitchTabLightning(TS3LLightining):
             flag (bool): A boolean flag that determines the behavior of returning salient features.
                         If True, the model will include salient features in its output; if False, it will not.
         """
-        self.model.return_salient_feature = flag
+        self.model.return_salient_feature(flag)

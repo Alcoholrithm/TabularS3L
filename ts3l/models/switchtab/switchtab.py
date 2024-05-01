@@ -2,8 +2,6 @@ import torch
 from torch import nn
 
 from typing import Tuple, List, Union
-
-from ts3l.models.common import initialize_weights
 from ts3l.models.switchtab.ft_transformer import FTTransformer
 
 class Encoder(nn.Module):
@@ -98,12 +96,6 @@ class SwitchTab(nn.Module):
         self.decoder = Decoder(input_dim, hidden_dim)
         self.head = nn.Linear(hidden_dim, output_dim)
         self.activation = nn.SiLU()
-        
-        initialize_weights(self.encoder)
-        initialize_weights(self.projector_m)
-        initialize_weights(self.projector_s)
-        initialize_weights(self.decoder)
-        initialize_weights(self.head)
         
     def set_first_phase(self) -> None:
         """Set first phase step as the forward pass

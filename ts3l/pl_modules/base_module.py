@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Type
 from ts3l.utils import RegressionMetric, ClassificationMetric
 
 from abc import ABC, abstractmethod
@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 
 from dataclasses import asdict
 from ts3l.utils import BaseConfig
-    
+from ts3l.models.common import initialize_weights
 
     
 class TS3LLightining(ABC, pl.LightningModule):
@@ -63,6 +63,13 @@ class TS3LLightining(ABC, pl.LightningModule):
     def _initialize(self, config: Dict[str, Any]) -> None:
         pass
     
+    def _init_model(self, model_class: Type[nn.Module], config: Dict[str, Any]) -> None:
+        initialization = config["initialization"]
+        del config["initialization"]
+        
+        self.model = model_class(**config)
+        initialize_weights(self.model, initialization)
+        
     def __configure_metric(self, task, metric, metric_hparams):
         
         if task == "regression":
