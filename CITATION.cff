@@ -1,0 +1,11 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Kim"
+  given-names: "Minwook"
+
+title: "TabularS3L"
+version: 0.40
+doi: 10.5281/zenodo.10776538
+date-released: 2024-04-30
+url: "https://github.com/Alcoholrithm/TabularS3L"
