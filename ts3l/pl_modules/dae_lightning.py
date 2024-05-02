@@ -38,7 +38,7 @@ class DAELightning(TS3LLightining):
         self.first_phase_feature_loss1 = nn.CrossEntropyLoss()
         self.first_phase_feature_loss2 = nn.MSELoss()
 
-        self.model = DAE(**config)
+        self._init_model(DAE, config)
     
     def _get_first_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
         """Calculate the first phase loss

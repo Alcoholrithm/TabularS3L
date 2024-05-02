@@ -25,7 +25,7 @@ class SCARFLightning(TS3LLightining):
         del config["tau"]
         del config["corruption_rate"]
         
-        self.model = SCARF(**config)
+        self._init_model(SCARF, config)
     
     def _get_first_phase_loss(self, batch):
         """Calculate the first phase loss

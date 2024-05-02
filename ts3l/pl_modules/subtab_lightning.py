@@ -41,7 +41,8 @@ class SubTabLightning(TS3LLightining):
         del config["mask_ratio"]
         del config["noise_type"]
         del config["noise_level"]
-        self.model = SubTab(**config)
+        
+        self._init_model(SubTab, config)
     
     def __get_recon_label(self, label: torch.Tensor) -> torch.Tensor:
         """Duplicates the input label tensor across the batch dimension to match the number of subsets for reconstruction loss.

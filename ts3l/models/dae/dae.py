@@ -1,4 +1,5 @@
 from numpy.typing import NDArray
+from typing import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -39,23 +40,14 @@ class DAE(nn.Module):
         self.reconstruction_head = MLP(hidden_dim, input_dim, head_depth, dropout_rate)
 
         self.head = nn.Sequential(
-            nn.ReLU(inplace=True),
-            nn.BatchNorm1d(hidden_dim),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, output_dim)
+            OrderedDict([
+                ("head_activation", nn.ReLU(inplace=True)),
+                ("head_batchnorm", nn.BatchNorm1d(hidden_dim)),
+                ("head_dropout", nn.Dropout(dropout_rate)),
+                ("head_linear", nn.Linear(hidden_dim, output_dim))
+            ])
         )
-        # initialize weights
-        self.encoder.apply(self._init_weights)
-        self.mask_predictor_head.apply(self._init_weights)
-        self.reconstruction_head.apply(self._init_weights)
         
-
-    
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.xavier_uniform_(module.weight)
-            module.bias.data.fill_(0.01)
-            
     def set_first_phase(self):
         self.forward = self.__first_phase_step
     

@@ -1,3 +1,3 @@
 from .mlp import MLP
-
-__all__ = ["MLP"]
+from .misc import initialize_weights
+__all__ = ["MLP", "initialize_weights"]

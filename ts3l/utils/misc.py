@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
+import pandas as pd
 from sklearn import metrics
 import torchmetrics
     
@@ -61,3 +62,24 @@ class ClassificationMetric(object):
     
     def torchmetrics_forward(self, preds, target):
         return self.metric(preds.argmax(1), target, **self.metric_hparams)
+    
+def get_category_dims(data: pd.DataFrame, category_cols: List[str]):
+    """Calculate the number of unique values (dimensionality) for each categorical column specified in a dataset.
+
+    This function iterates over each column specified as categorical in 'category_cols', determines
+    the unique elements in each of those columns, and appends the count of these unique elements
+    to a list, which it returns.
+    
+    Args:
+        data (pd.DataFrame): The dataset containing the categorical columns.
+        category_cols (List[str]): A list of column names in 'data' that are considered categorical.
+
+    Returns:
+        List[int]: A list containing the counts of unique values for each categorical column specified.
+                    Each element in the list corresponds to the number of unique values in the respective
+                    column in 'category_cols'.
+    """
+    category_dims = []
+    for col in category_cols:
+        category_dims.append(len(set(data[col].values)))
+    return category_dims

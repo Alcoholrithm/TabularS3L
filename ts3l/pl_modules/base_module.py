@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Type
 from ts3l.utils import RegressionMetric, ClassificationMetric
 
 from abc import ABC, abstractmethod
@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 
 from dataclasses import asdict
 from ts3l.utils import BaseConfig
-    
+from ts3l.models.common import initialize_weights
 
     
 class TS3LLightining(ABC, pl.LightningModule):
@@ -63,6 +63,13 @@ class TS3LLightining(ABC, pl.LightningModule):
     def _initialize(self, config: Dict[str, Any]) -> None:
         pass
     
+    def _init_model(self, model_class: Type[nn.Module], config: Dict[str, Any]) -> None:
+        initialization = config["initialization"]
+        del config["initialization"]
+        
+        self.model = model_class(**config)
+        initialize_weights(self.model, initialization)
+        
     def __configure_metric(self, task, metric, metric_hparams):
         
         if task == "regression":
@@ -124,13 +131,13 @@ class TS3LLightining(ABC, pl.LightningModule):
         pass
     
     def _first_phase_step(self,
-                      batch,
+                      batch: Any,
                       batch_idx: int
     ) -> Dict[str, Any]:
         """The first phase step of TabularS3L
 
         Args:
-            batch (Dict[str, Any]): The input batch
+            batch (Any): The input batch
             batch_idx (int): Only for compatibility
 
         Returns:
@@ -166,11 +173,11 @@ class TS3LLightining(ABC, pl.LightningModule):
         return super().on_validation_epoch_end()
 
     @abstractmethod
-    def _get_second_phase_loss(self, batch:Dict[str, Any]):
+    def _get_second_phase_loss(self, batch: Any):
         """Calculate the second phase loss
 
         Args:
-            batch (Dict[str, Any]): The input batch
+            batch (Any): The input batch
 
         Returns:
             torch.FloatTensor: The final loss of second phase step
@@ -181,13 +188,13 @@ class TS3LLightining(ABC, pl.LightningModule):
         
     
     def _second_phase_step(self,
-                      batch,
+                      batch: Any,
                       batch_idx: int = 0
     ) -> Dict[str, Any]:
         """The second phase step of TabularS3L
 
         Args:
-            batch (Dict[str, Any]): The input batch
+            batch (Any): The input batch
             batch_idx (int): Only for compatibility
 
         Returns:
@@ -238,15 +245,15 @@ class TS3LLightining(ABC, pl.LightningModule):
         return super().on_validation_epoch_end()
     
     @abstractmethod
-    def predict_step(self, batch, batch_idx: int
-    ) -> torch.FloatTensor:
+    def predict_step(self, batch: Any, batch_idx: int
+    ) -> Any:
         """The perdict step
 
         Args:
-            batch (Dict[str, Any]): The input batch
+            batch (Any): The input batch
             batch_idx (int): Only for compatibility
 
         Returns:
-            torch.FloatTensor: The predicted output (logit)
+            Any: The predicted output and optional additional information.
         """
         pass

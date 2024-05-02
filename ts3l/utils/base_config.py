@@ -5,6 +5,12 @@ from torch import optim, nn
 import torchmetrics
 import sklearn
 
+import sys
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
 @dataclass
 class BaseConfig:
     """ Configuration class for initializing components of the TabularS3L Lightning Module, including optimizers, 
@@ -22,6 +28,7 @@ class BaseConfig:
         loss_hparams (Dict[str, Any]): Hyperparameters for the loss function. Default is empty dictionary.
         metric (str): Name of the metric to be used. Must be an attribute of 'torchmetrics.functional' or 'sklearn.metrics'. Default is None.
         metric_hparams (Dict[str, Any]): Hyperparameters for the metric. Default is an empty dictionary.
+        initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
 
     Raises:
@@ -61,6 +68,8 @@ class BaseConfig:
     scheduler: Optional[str] = field(default=None)
     
     scheduler_hparams: Optional[Dict[str, Any]] = field(default = None)
+    
+    initialization: Literal['xavier_uniform', 'xavier_normal', 'kaiming_uniform', 'kaiming_normal', 'uniform', 'normal'] = "kaiming_uniform"
     
     random_seed: int = field(default=42)
     

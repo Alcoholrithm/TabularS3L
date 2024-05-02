@@ -1,3 +1,6 @@
+from typing import Tuple
+
+import torch
 import torch.nn as nn
 
 from .vime_self import VIMESelfSupervised
@@ -30,15 +33,14 @@ class VIME(nn.Module):
         """
         self.forward = self.__second_phase_step
         
-    def __first_phase_step(self, x):
+    def __first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """The first phase step of VIME
 
         Args:
-            x (torch.FloatTensor): The input batch
+            x (torch.Tensor): The input batch
 
         Returns:
-            torch.FloatTensor: The predicted mask vector of VIME
-            torch.FloatTensor: The predicted features of VIME
+            Tuple[torch.Tensor, torch.Tensor]: The predicted mask vector and predicted features
         """
         mask_output, feature_output = self.self_net(x)
         return mask_output, feature_output

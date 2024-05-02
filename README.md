@@ -6,10 +6,10 @@
 | [**Benchmark**](#benchmark)
 | [**To DO**](#to-do)
 | [**Contributing**](#contributing)
-| [**Credit**](#credit)
 
 
 [![pypi](https://img.shields.io/pypi/v/ts3l)](https://pypi.org/project/ts3l/0.20/)
+[![Downloads](https://static.pepy.tech/badge/ts3l)](https://pepy.tech/project/ts3l)
 [![DOI](https://zenodo.org/badge/756740921.svg)](https://zenodo.org/doi/10.5281/zenodo.10776537)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -32,6 +32,7 @@ TabularS3L employs a two-phase learning approach, where the learning strategies 
 | **VIME** ([NeurIPS'20](https://proceedings.neurips.cc/paper/2020/hash/7d97667a3e056acab9aaf653807b4a03-Abstract.html)) | Self-SL | Semi-SL or SL |
 | **SubTab** ([NeurIPS'21](https://proceedings.neurips.cc/paper/2021/hash/9c8661befae6dbcd08304dbf4dcaf0db-Abstract.html)) | Self-SL | SL |
 | **SCARF** ([ICLR'22](https://iclr.cc/virtual/2022/spotlight/6297))| Self-SL | SL |
+| **SwitchTab** ([AAAI'24](https://ojs.aaai.org/index.php/AAAI/article/view/29523)) | Self-SL | SL |
 
 #### Denoising AutoEncoder (DAE)
 DAE processes input data that has been partially corrupted, producing clean data and predicting which features are corrupted during the self-supervised learning.
@@ -386,6 +387,95 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
 
 </details>
 
+#### SwitchTab: Switched Autoencoders Are Effective Tabular Learners
+SwitchTab introduces a novel self-supervised method specifically designed to decuple mutual and salient features among data pair, resulting in more representative embeddings.
+Moreover, the pre-trained salient embeddings can be utilized as plug-and-play features to enhance the performance of various traditional classification methods.
+
+<details close>
+  <summary>Quick Start</summary>
+  
+  ```python
+  # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
+
+  # Prepare the SwitchTabLightning Module
+  from ts3l.pl_modules import SwitchTabLightning
+  from ts3l.utils.switchtab_utils import SwitchTabDataset, SwitchTabFirstPhaseCollateFN
+  from ts3l.utils import TS3LDataModule
+  from ts3l.utils.switchtab_utils import SwitchTabConfig
+  from pytorch_lightning import Trainer
+
+  metric = "accuracy_score"
+  input_dim = X_train.shape[1]
+  hidden_dim = 1024
+  output_dim = 2
+
+  encoder_depth = 3
+  n_head = 2
+  u_label = -1
+
+  batch_size = 128
+
+  X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
+
+  config = SwitchTabConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+  input_dim=input_dim, hidden_dim=hidden_dim,
+  output_dim=output_dim, encoder_depth=encoder_depth,
+  n_head = n_head,
+  u_label = u_label
+  )
+
+  pl_switchtab = SwitchTabLightning(config)
+
+  ### First Phase Learning
+  train_ds = SwitchTabDataset(X = X_train, unlabeled_data = X_unlabeled, Y = y_train.values, config=config, continuous_cols=continuous_cols, category_cols=category_cols)
+  valid_ds = SwitchTabDataset(X = X_valid, config=config, Y = y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols)
+
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='weighted', train_collate_fn=SwitchTabFirstPhaseCollateFN(), valid_collate_fn=SwitchTabFirstPhaseCollateFN())
+
+  trainer = Trainer(
+                  accelerator = 'cpu',
+                  max_epochs = 20,
+                  num_sanity_val_steps = 2,
+  )
+
+  trainer.fit(pl_switchtab, datamodule)
+
+  ### Second Phase Learning
+
+  pl_switchtab.set_second_phase()
+
+  train_ds = SwitchTabDataset(X = X_train, Y = y_train.values, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+  valid_ds = SwitchTabDataset(X = X_valid, Y = y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+      
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
+
+  trainer = Trainer(
+                  accelerator = 'cpu',
+                  max_epochs = 20,
+                  num_sanity_val_steps = 2,
+  )
+
+  trainer.fit(pl_switchtab, datamodule)
+
+  # Evaluation
+  from sklearn.metrics import accuracy_score
+  import torch
+  from torch.nn import functional as F
+  from torch.utils.data import DataLoader, SequentialSampler
+
+  test_ds = SwitchTabDataset(X_test, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+  test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
+
+  preds = trainer.predict(pl_switchtab, test_dl)
+      
+  preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+
+  accuracy = accuracy_score(y_test, preds.argmax(1))
+
+  print("Accuracy %.2f" % accuracy)
+  ```
+
+</details>
 
 ## Benchmark
 
@@ -401,7 +491,8 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | DAE | 0.7208 | 0.4885 | 5.6168 | 
 | VIME | 0.7182 | **0.5087** | 5.6637 |
 | SubTab | 0.7312 | 0.4930 | 7.2418 |
-| SCARF | **0.7416** | 0.4710 | 5.8888 | 
+| SCARF | **0.7416** | 0.4710 | 5.8888 |
+| SwitchTab |  0.7156 | 0.4886 | 5.9907 |
 
 --------
 
@@ -414,41 +505,18 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | VIME | **0.7688** | 0.5477 | 4.5804 |
 | SubTab | 0.7390 | 0.5432 | 6.3104 |
 | SCARF | 0.7442 | **0.5521** | **4.4443** |
+| SwitchTab | 0.7585 | 0.5411 | 4.7489 |
 
 ## To DO
 
 - [x] Release nn.Module and Dataset of VIME, SubTab, and SCARF
-  - [x] VIME
-  - [x] SubTab
-  - [x] SCARF
 - [x] Release LightningModules of VIME, SubTab, and SCARF
-  - [x] VIME
-  - [x] SubTab
-  - [x] SCARF
 - [x] Release Denoising AutoEncoder
-  - [x] nn.Module
-  - [x] LightningModule
-- [ ] Release SwitchTab
-  - [ ] nn.Module
-  - [ ] LightningModule
+- [x] Release SwitchTab
 - [x] Add example codes
+- [ ] Release more tabular models
 
 ## Contributing
 
 Contributions to this implementation are highly appreciated. Whether it's suggesting improvements, reporting bugs, or proposing new features, feel free to open an issue or submit a pull request.
-
-
-## Credit  
-```
-@software{alcoholrithm_2024_10776538,
-  author       = {Minwook Kim},
-  title        = {TabularS3L},
-  month        = mar,
-  year         = 2024,
-  publisher    = {Zenodo},
-  version      = {v0.21},
-  doi          = {10.5281/zenodo.10776538},
-  url          = {https://doi.org/10.5281/zenodo.10776538}
-}
-```
 
