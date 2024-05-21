@@ -12,7 +12,6 @@ def initialize_weights(model, initialization='kaiming_normal', exclude_layers=["
     """
 
     for name, param in model.named_parameters():
-        print(name)
         if any(layer_name.upper() in name.upper() for layer_name in exclude_layers):
             continue
         if 'weight' in name:
