@@ -112,9 +112,14 @@ class SubTabCollateFN(object):
 
         # Randomly (and column-wise) shuffle data
         if self.noise_type == "Swap":
-            x_bar = torch.stack([x[np.random.permutation(no), i] for i in range(dim)], dim=1).to(x.device)
+            # Generate random permutations for all columns
+            permutations = torch.stack([torch.randperm(no) for _ in range(dim)], dim=1).to(x.device)
+            # Use advanced indexing to permute the tensor
+            x_bar = x[permutations, torch.arange(dim).unsqueeze(0).to(x.device)]
+            
         elif self.noise_type == "Gaussian":
-            x_bar = x + torch.normal(torch.zeros(x.shape), torch.full(x.shape, self.noise_level)).to(x.device)
+            noise = torch.normal(mean=0.0, std=self.noise_level, size=x.shape, device=x.device)
+            x_bar = x + noise
 
         return x_bar
     
@@ -131,7 +136,7 @@ class SubTabCollateFN(object):
         x_bar = x[:, subset_column_idx]
         x_bar_noisy = self.__generate_noisy_xbar(x_bar)
         
-        mask = torch.distributions.binomial.Binomial(total_count = 1, probs = self.mask_ratio).sample(x_bar.shape).to(x_bar.device)
+        mask = torch.bernoulli(torch.full(x_bar.shape, self.mask_ratio, device=x_bar.device))
         
         x_bar = x_bar * (1 - mask) + x_bar_noisy * mask
         
