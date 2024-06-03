@@ -118,9 +118,14 @@ class DAECollateFN(object):
 
         # Randomly (and column-wise) shuffle data
         if self.noise_type == "Swap":
-            x_bar = torch.stack([x[np.random.permutation(no), i] for i in range(dim)], dim=1).to(x.device)
+            # Generate random permutations for all columns
+            permutations = torch.stack([torch.randperm(no, device=x.device) for _ in range(dim)], dim=1)
+            # Use advanced indexing to permute the tensor
+            x_bar = x[permutations, torch.arange(dim, device=x.device)]
+            
         elif self.noise_type == "Gaussian":
-            x_bar = x + torch.normal(torch.zeros(x.shape), torch.full(x.shape, self.noise_level)).to(x.device)
+            noise = torch.normal(mean=0.0, std=self.noise_level, size=x.shape, device=x.device)
+            x_bar = x + noise
 
         return x_bar
     
@@ -135,7 +140,7 @@ class DAECollateFN(object):
         """
         x_bar_noisy = self.__generate_noisy_xbar(x)
         
-        mask = torch.distributions.binomial.Binomial(total_count = 1, probs = self.noise_ratio).sample(x.shape).to(x.device)
+        mask = torch.bernoulli(torch.full(x.shape, self.noise_ratio, device=x.device))
         
         x_bar = x * (1 - mask) + x_bar_noisy * mask
         
