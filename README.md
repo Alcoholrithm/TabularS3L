@@ -6,7 +6,6 @@
 | [**Benchmark**](#benchmark)
 | [**To DO**](#to-do)
 | [**Contributing**](#contributing)
-| [**Credit**](#credit)
 
 
 [![pypi](https://img.shields.io/pypi/v/ts3l)](https://pypi.org/project/ts3l/0.20/)
@@ -520,19 +519,4 @@ Use this benchmark for reference only, as only a small number of random seeds we
 ## Contributing
 
 Contributions to this implementation are highly appreciated. Whether it's suggesting improvements, reporting bugs, or proposing new features, feel free to open an issue or submit a pull request.
-
-
-## Credit  
-```
-@software{alcoholrithm_2024_10776538,
-  author       = {Minwook Kim},
-  title        = {TabularS3L},
-  month        = mar,
-  year         = 2024,
-  publisher    = {Zenodo},
-  version      = {v0.40},
-  doi          = {10.5281/zenodo.10776538},
-  url          = {https://doi.org/10.5281/zenodo.10776538}
-}
-```
 
