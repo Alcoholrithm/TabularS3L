@@ -85,13 +85,16 @@ class SCARFDataset(Dataset):
         """
         if self.label is None:
             if self.corruption_len:
-                corruption_mask = torch.zeros((self.n_features), dtype=torch.bool)
-                corruption_idx = torch.randperm(self.n_features)[:self.corruption_len]
-
+                corruption_mask = torch.zeros((self.n_features), dtype=torch.bool, device=self.data.device)
+                corruption_idx = torch.randperm(self.n_features, device=self.data.device)[:self.corruption_len]
                 corruption_mask[corruption_idx] = True
                 
-                x_random = torch.randint(0, self.n_sampling_candidate, corruption_mask.shape)
-                _x_corrupted = torch.FloatTensor([self.data[:, i][x_random[i]] for i in range(self.n_features)])
+                # Generate random indices for each feature
+                x_random = torch.randint(0, self.n_sampling_candidate, (self.n_features,), device=self.data.device)
+
+                # Use advanced indexing to create the corrupted features
+                _x_corrupted = self.data[x_random, torch.arange(self.n_features, device=self.data.device)].float()
+                
                 x_corrupted = torch.where(corruption_mask, _x_corrupted, self.data[idx])
                 return self.data[idx], x_corrupted
             return self.data[idx]
