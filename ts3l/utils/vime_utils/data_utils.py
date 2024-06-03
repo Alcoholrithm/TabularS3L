@@ -111,9 +111,9 @@ class VIMEDataset(Dataset):
         Returns:
             - mask: binary mask matrix 
         """
-        mask = np.random.binomial(1, p_m, x.shape)
+        mask = torch.bernoulli(torch.full(x.shape, p_m, device=x.device))
 
-        return np.expand_dims(mask, axis=0)
+        return mask.unsqueeze(0)
 
     def __pretext_generator(self, m, x, empirical_dist) -> Tuple[torch.LongTensor, torch.FloatTensor]:  
         """Generate corrupted samples.
@@ -121,6 +121,7 @@ class VIMEDataset(Dataset):
         Args:
             m: mask matrix
             x: feature matrix
+            empirical_dist: empirical distribution matrix
             
         Returns:
             m_new: final mask matrix after corruption
@@ -129,12 +130,10 @@ class VIMEDataset(Dataset):
         
         # Parameters
         dim = x.shape[0]
-        # Randomly (and column-wise) shuffle data
-        x_bar = np.zeros([1, dim])
-
-        rand_idx = np.random.randint(0, len(empirical_dist), size=dim)
         
-        x_bar = np.array([empirical_dist[rand_idx[i], i] for i in range(dim)])
+        # Randomly (and column-wise) shuffle data
+        rand_idx = torch.randint(0, empirical_dist.size(0), (dim,), device=x.device)
+        x_bar = empirical_dist[rand_idx, torch.arange(dim, device=x.device)]
         
         # Corrupt samples
         x_tilde = x * (1-m) + x_bar * m  
