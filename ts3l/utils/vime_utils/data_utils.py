@@ -230,7 +230,7 @@ class VIMEDataset(Dataset):
         """
         return len(self.cat_data)
 
-class VIMESemiSLCollateFN(object):
+class VIMESecondPhaseCollateFN(object):
     """A callable class designed for batch processing, specifically tailored for the second phase learning with VIME. 
     It consolidates a batch of samples into a single dictionary with concatenated inputs and labels, suitable for model input.
 

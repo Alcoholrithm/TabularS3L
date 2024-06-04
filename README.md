@@ -182,14 +182,14 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
   trainer.fit(pl_vime, datamodule)
 
   ### Second Phase Learning
-  from ts3l.utils.vime_utils import VIMESemiSLCollateFN
+  from ts3l.utils.vime_utils import VIMESecondPhaseCollateFN
 
   pl_vime.set_second_phase()
 
   train_ds = VIMEDataset(X_train, y_train.values, config, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
   valid_ds = VIMEDataset(X_valid, y_valid.values, config, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
           
-  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESemiSLCollateFN())
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESecondPhaseCollateFN())
 
   trainer.fit(pl_vime, datamodule)
 
