@@ -55,7 +55,7 @@ class SwitchTabLightning(TS3LLightining):
         
         cls_loss = 0
         if sum(cls_idx) > 0:
-            cls_loss = self.loss_fn(y_hat[cls_idx].squeeze(), ys[cls_idx])
+            cls_loss = self.task_loss_fn(y_hat[cls_idx].squeeze(), ys[cls_idx])
         
         return recon_loss + self.alpha * cls_loss
     
@@ -74,7 +74,7 @@ class SwitchTabLightning(TS3LLightining):
 
         y_hat = self.model(x).squeeze()
 
-        loss = self.loss_fn(y_hat, y)
+        loss = self.task_loss_fn(y_hat, y)
         
         return loss, y, y_hat
     

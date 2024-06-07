@@ -57,7 +57,7 @@ class SCARFLightning(TS3LLightining):
         x, y = batch
         y_hat = self(x).squeeze()
 
-        loss = self.loss_fn(y_hat, y)
+        loss = self.task_loss_fn(y_hat, y)
         
         return loss, y, y_hat
     

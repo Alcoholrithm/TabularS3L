@@ -2,6 +2,7 @@ from typing import Tuple, Dict, Any
 import torch
 from torch import nn
 
+
 def first_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -16,6 +17,7 @@ def first_phase_step(
     """
     mask_preds, feature_preds = model(batch[0])
     return mask_preds, feature_preds
+
 
 def first_phase_loss(
     x_cat: torch.Tensor,
@@ -47,13 +49,14 @@ def first_phase_loss(
     mask_loss = mask_loss_fn(mask_preds, mask)
     categorical_feature_loss = torch.tensor(0.0)
     continuous_feature_loss = torch.tensor(0.0)
-    
+
     if x_cat.shape[1] > 0:
         categorical_feature_loss += categorical_loss_fn(cat_feature_preds, x_cat)
     if x_cont.shape[1] > 0:
         continuous_feature_loss += continuous_loss_fn(cont_feature_preds, x_cont)
 
     return mask_loss, categorical_feature_loss, continuous_feature_loss
+
 
 def second_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
@@ -70,32 +73,44 @@ def second_phase_step(
     x, _ = batch
     return model(x).squeeze()
 
+
 def second_phase_loss(
-    y: torch.Tensor, y_hat: torch.Tensor, consistency_loss_fn: nn.Module, loss_fn: nn.Module, u_label: Any, consistency_len: int, K: int
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    y: torch.Tensor,
+    y_hat: torch.Tensor,
+    unlabeled_y_hat: torch.Tensor,
+    consistency_loss_fn: nn.Module,
+    loss_fn: nn.Module,
+    K: int,
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """Calculate the second phase loss of VIME
 
     Args:
         y (torch.Tensor): The ground truth label
         y_hat (torch.Tensor): The predicted label
+        unlabeled_y_hat (torch.Tensor): The predicted labels for the consistency regularization
+        consistency_loss_fn (nn.Module): The loss function for the consistency regularization
         loss_fn (nn.Module): The loss function for the given task
-
+        K (int): The number of perturbed samples for the consistency regularization
     Returns:
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The losses for the given task and consistency regularization and the ground truth labels
     """
-    consistency_loss = torch.tensor(0.0)
-    labeled_idx = (y != u_label).flatten()
-    unlabeled_idx = (y == u_label).flatten()
 
-    unlabeled = y_hat[unlabeled_idx]
-    if len(unlabeled) > 0:
-        target = unlabeled[::consistency_len]
-        target = target.repeat(1, K).reshape((-1, unlabeled.shape[-1]))
-        preds = torch.stack([unlabeled[i, :] for i in range(len(unlabeled)) if i % consistency_len != 0], dim = 0)
-        consistency_loss += consistency_loss_fn(preds, target)
+    task_loss = loss_fn(y_hat, y)
+
+    if len(unlabeled_y_hat) == 0:
+        return task_loss, torch.tensor(0.0, device=y.device)
+
+    consistency_len = K + 1
     
-    labeled_y_hat = y_hat[labeled_idx]
-    labeled_y = y[labeled_idx].squeeze()
-    task_loss = loss_fn(labeled_y_hat, labeled_y)
-    
-    return task_loss, consistency_loss, labeled_y_hat, labeled_y
+    # Select targets at intervals of consistency_len
+    target = unlabeled_y_hat[::consistency_len]
+    target = target.repeat_interleave(K, dim=0)
+
+    # Select predictions that are not at intervals of consistency_len
+    mask = torch.ones(len(unlabeled_y_hat), dtype=torch.bool, device=y.device)
+    mask[::consistency_len] = False
+    preds = unlabeled_y_hat[mask].view(-1, unlabeled_y_hat.shape[-1])
+
+    consistency_loss = consistency_loss_fn(preds, target)
+
+    return task_loss, consistency_loss

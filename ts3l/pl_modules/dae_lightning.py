@@ -89,7 +89,7 @@ class DAELightning(TS3LLightining):
 
         y_hat = F.dae.second_phase_step(self.model, batch)
 
-        loss = F.dae.second_phase_loss(y, y_hat, self.loss_fn)
+        loss = F.dae.second_phase_loss(y, y_hat, self.task_loss_fn)
 
         return loss, y, y_hat
 

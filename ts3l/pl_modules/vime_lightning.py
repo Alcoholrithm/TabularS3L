@@ -33,7 +33,6 @@ class VIMELightning(TS3LLightining):
         del config["beta"]
         
         self.K = config["K"]
-        self.consistency_len = self.K + 1
         del config["K"]
         
         self.num_categoricals, self.num_continuous = config["num_categoricals"], config["num_continuous"]
@@ -94,7 +93,15 @@ class VIMELightning(TS3LLightining):
         
         y_hat = F.vime.second_phase_step(self.model, batch)
         
-        task_loss, consistency_loss, labeled_y_hat, labeled_y = F.vime.second_phase_loss(y, y_hat, self.consistency_loss_fn, self.loss_fn, self.u_label, self.consistency_len, self.K)
+        labeled_idx = (y != self.u_label).flatten()
+        unlabeled_idx = (y == self.u_label).flatten()
+        
+        labeled_y_hat = y_hat[labeled_idx]
+        labeled_y = y[labeled_idx].squeeze()
+        
+        unlabeled_y_hat = y_hat[unlabeled_idx]
+        
+        task_loss, consistency_loss = F.vime.second_phase_loss(labeled_y, labeled_y_hat, unlabeled_y_hat, self.consistency_loss_fn, self.task_loss_fn, self.K)
         
         loss = task_loss + self.beta * consistency_loss
         

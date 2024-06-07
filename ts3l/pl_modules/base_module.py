@@ -41,7 +41,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         self.scheduler_hparams = _config["scheduler_hparams"]
         del _config["scheduler_hparams"]
         
-        self.loss_fn = getattr(torch.nn, _config["loss_fn"])(**_config["loss_hparams"])
+        self.task_loss_fn = getattr(torch.nn, _config["loss_fn"])(**_config["loss_hparams"])
         del _config["loss_fn"]
         del _config["loss_hparams"]
         
