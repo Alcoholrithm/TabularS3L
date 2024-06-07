@@ -44,10 +44,10 @@ class VIMEDataset(Dataset):
         self.label = None
         
         if not is_second_phase:
-            self.__getitem = self.__first_phase_get_item
+            self.__getitem = self.__first_phase_get_item # type: ignore
             
         else:
-            self.__getitem = self.__second_phase_get_item
+            self.__getitem = self.__second_phase_get_item # type: ignore
             
             self.label_class = torch.FloatTensor if is_regression else torch.LongTensor
             
@@ -84,7 +84,7 @@ class VIMEDataset(Dataset):
         
         self.u_label = u_label
     
-    def __getitem__(self, idx: int) -> Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]:
+    def __getitem__(self, idx: int) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """Retrieves the feature and label tensors for a given index. The structure of the label 
             varies depending on the learning phase: 
 
@@ -95,7 +95,7 @@ class VIMEDataset(Dataset):
             idx (int): The index of the data point to retrieve.
 
         Returns:
-            Dict[Any, torch.Tensor]: The feature tensor and the label for the given index. 
+            Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]: The feature tensor and the label for the given index. 
             For first phase learning, label is a tuple of mask and original feature tensor.
             For second phase learning, label is a one of a token for unlabeled samples or a label of it.
         """
@@ -164,14 +164,14 @@ class VIMEDataset(Dataset):
         
         return x_tilde
     
-    def __first_phase_get_item(self, idx: int) -> Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]:
+    def __first_phase_get_item(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Return a input and label pair
 
         Args:
             idx (int): The index of the data to sample
 
         Returns:
-            Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]: A pair of input and label for first phase learning
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A pair of input and label for first phase learning
         """
         cat_samples = self.cat_data[idx]
         m_unlab = self.__mask_generator(self.config.p_m, cat_samples)
@@ -186,19 +186,16 @@ class VIMEDataset(Dataset):
 
         x = torch.concat((cat_samples, cont_samples))
 
-        return {
-                "input" : x_tilde,
-                "label" : (m_label, x)
-                }
+        return x_tilde, m_label, x
 
-    def __second_phase_get_item(self, idx) -> Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]:
+    def __second_phase_get_item(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
         """Return a input and label pair
 
         Args:
             idx (int): The index of the data to sample
 
         Returns:
-            Dict[str, Union[torch.Tensor, Tuple[torch.Tensor, ...]]]: A pair of input and label for second phase learning
+            Tuple[torch.Tensor, torch.Tensor]: A pair of input and label for second phase learning
         """
         cat_samples = self.cat_data[idx]
         cont_samples = self.cont_data[idx]
@@ -209,21 +206,11 @@ class VIMEDataset(Dataset):
                 _xs = [x]
                 _xs.extend([self.__generate_x_tildes(cat_samples, cont_samples) for _ in range(self.config.K)])
                 xs = torch.stack(_xs)
-                
-                return {
-                    "input" : xs,
-                    "label" : self.label_class([self.u_label for _ in range(len(xs))])
-                }
+                return xs, self.label_class([self.u_label for _ in range(len(xs))])
             else:
-                return {
-                    "input" : x.unsqueeze(0),
-                    "label" : self.label[idx].unsqueeze(0)
-                }
+                return x.unsqueeze(0), self.label[idx].unsqueeze(0)
         else:
-            return {
-                    "input" : x,
-                    "label" : self.u_label
-            }
+            return x, self.u_label
             
     def __len__(self):
         """Return the length of the dataset
@@ -237,8 +224,6 @@ class VIMESecondPhaseCollateFN(object):
     This class is meant to be used as a collate function in a DataLoader, where it efficiently organizes batch data 
     for training during second phase learning.
     """
+    
     def __call__(self, batch):
-        return {
-            'input': torch.concat([x['input'] for x in batch], dim=0),
-            'label': torch.concat([x['label'] for x in batch], dim=0)
-        }
+        return torch.concat([x for x, _, in batch], dim=0), torch.concat([label for _, label in batch], dim=0)
