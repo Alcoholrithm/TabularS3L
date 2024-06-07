@@ -94,8 +94,8 @@ def second_phase_loss(
         preds = torch.stack([unlabeled[i, :] for i in range(len(unlabeled)) if i % consistency_len != 0], dim = 0)
         consistency_loss += consistency_loss_fn(preds, target)
     
+    labeled_y_hat = y_hat[labeled_idx]
     labeled_y = y[labeled_idx].squeeze()
-    task_loss = loss_fn(y_hat[labeled_idx], labeled_y)
+    task_loss = loss_fn(labeled_y_hat, labeled_y)
     
-    
-    return task_loss, consistency_loss, labeled_y
+    return task_loss, consistency_loss, labeled_y_hat, labeled_y

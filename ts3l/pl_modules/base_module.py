@@ -220,7 +220,6 @@ class TS3LLightining(ABC, pl.LightningModule):
             train_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).detach().mean()
             y = torch.cat([out["y"] for out in self.second_phase_step_outputs if out["y"].numel() != 1]).detach().cpu()
             y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs if out["y_hat"].numel() != 1]).detach().cpu()
-            
             train_score = self.metric(y_hat, y)
             
             self.log("train_loss", train_loss, prog_bar = True)

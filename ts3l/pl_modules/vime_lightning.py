@@ -94,11 +94,11 @@ class VIMELightning(TS3LLightining):
         
         y_hat = F.vime.second_phase_step(self.model, batch)
         
-        task_loss, consistency_loss, labeled_y = F.vime.second_phase_loss(y, y_hat, self.consistency_loss_fn, self.loss_fn, self.u_label, self.consistency_len, self.K)
+        task_loss, consistency_loss, labeled_y_hat, labeled_y = F.vime.second_phase_loss(y, y_hat, self.consistency_loss_fn, self.loss_fn, self.u_label, self.consistency_len, self.K)
         
         loss = task_loss + self.beta * consistency_loss
         
-        return loss, labeled_y, y_hat
+        return loss, labeled_y, labeled_y_hat
     
     def predict_step(self, batch, batch_idx: int
         ) -> torch.FloatTensor:
