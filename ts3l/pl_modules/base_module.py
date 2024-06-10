@@ -106,27 +106,27 @@ class TS3LLightining(ABC, pl.LightningModule):
 
     def forward(self,
                 batch:Dict[str, Any]
-    ) -> torch.FloatTensor:
+    ) -> torch.Tensor:
         """Do forward pass for given input
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The output of forward pass
+            torch.Tensor: The output of forward pass
         """
         return self.model(batch)
     
 
     @abstractmethod
-    def _get_first_phase_loss(self, batch: Any) -> torch.FloatTensor:
+    def _get_first_phase_loss(self, batch: Any) -> torch.Tensor:
         """Calculate the first phase loss
 
         Args:
             batch (Any): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of first phase step
+            torch.Tensor: The final loss of first phase step
         """
         pass
     

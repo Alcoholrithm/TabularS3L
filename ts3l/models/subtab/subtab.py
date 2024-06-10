@@ -9,7 +9,7 @@ import itertools
 
 from types import SimpleNamespace
 from typing import Dict, Any, Tuple, List, Union
-
+from ts3l.functional.subtab import arrange_tensors
 class ShallowEncoder(nn.Module):
     def __init__(self,
                  feat_dim : int,
@@ -97,8 +97,6 @@ class SubTab(nn.Module):
             nn.Linear(hidden_dim, output_dim)
         )
         self.set_first_phase()
-        
-    
 
     def set_first_phase(self) -> None:
         self.forward = self.__first_phase_step
@@ -112,18 +110,12 @@ class SubTab(nn.Module):
         
         return projections, x_recons
     
-    def __arange_subsets(self, latent: torch.Tensor) -> torch.Tensor:
-        no, dim = latent.shape
-        samples = int(no / self.n_subsets)
-        latent = latent.reshape((self.n_subsets, samples, dim))
-        return torch.concat([latent[:, i] for i in range(samples)])
-    
     def __second_phase_step(self, 
                   x : torch.Tensor,
                   return_embeddings : bool = False) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
 
         latent = self.ae.encode(x)
-        latent = self.__arange_subsets(latent)
+        latent = arrange_tensors(latent, self.n_subsets)
         
         latent = latent.reshape(x.shape[0] // self.n_subsets, self.n_subsets, -1).mean(1)
         out = self.head(latent)
