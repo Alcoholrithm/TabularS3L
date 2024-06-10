@@ -2,7 +2,7 @@ from typing import Dict, Any, Tuple, Union, Type
 
 from .base_module import TS3LLightining
 from ts3l.models import SubTab
-from ts3l.utils.subtab_utils import JointLoss
+from ts3l.models.subtab import JointLoss
 
 import torch
 from ts3l.utils.subtab_utils import SubTabConfig
