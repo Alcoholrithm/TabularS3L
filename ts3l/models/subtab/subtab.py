@@ -106,11 +106,11 @@ class SubTab(nn.Module):
     def set_second_phase(self) -> None:
         self.forward = self.__second_phase_step
 
-    def __first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
         latents, projections, x_recons = self.ae(x)
         
-        return projections, x_recons, x
+        return projections, x_recons
     
     def __arange_subsets(self, latent: torch.Tensor) -> torch.Tensor:
         no, dim = latent.shape
