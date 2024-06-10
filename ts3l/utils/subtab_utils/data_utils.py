@@ -179,8 +179,8 @@ class SubTabCollateFN(object):
         Returns:
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing the processed feature subsets, the original samples, and the labels.
         """
-        y_recons = torch.stack([sample[0] for sample in batch])
-        x = self.__generate_subset(y_recons)
+        x_originals = torch.stack([sample[0] for sample in batch])
+        x = self.__generate_subset(x_originals)
         y = torch.tensor([sample[1] for sample in batch])
         
-        return x, y_recons, y
+        return x, x_originals, y
