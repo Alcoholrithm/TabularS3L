@@ -79,7 +79,7 @@ def second_phase_loss(
     y_hat: torch.Tensor,
     unlabeled_y_hat: torch.Tensor,
     consistency_loss_fn: nn.Module,
-    loss_fn: nn.Module,
+    task_loss_fn: nn.Module,
     K: int,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Calculate the second phase loss of VIME
@@ -95,7 +95,7 @@ def second_phase_loss(
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The losses for the given task and consistency regularization and the ground truth labels
     """
 
-    task_loss = loss_fn(y_hat, y)
+    task_loss = task_loss_fn(y_hat, y)
 
     if len(unlabeled_y_hat) == 0:
         return task_loss, torch.tensor(0.0, device=y.device)
