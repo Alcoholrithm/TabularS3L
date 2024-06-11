@@ -69,8 +69,8 @@ class SCARFDataset(Dataset):
                 self.weights = [class_weights[self.label[i]] for i in range(int(num_samples))]
 
 
-    def __getitem__(self, idx) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        """Retrieves the feature tensor for a given index, along with an optional label or corrupted version of the feature.
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Retrieves the feature tensor for a given index, along with an label or corrupted version of the feature.
 
         For first phase learning, this method can return either the original feature tensor or, if corruption is applied, 
         a corrupted version of the feature tensor. For second phase learning, it returns the feature tensor and its corresponding label.
@@ -81,7 +81,8 @@ class SCARFDataset(Dataset):
         Returns:
             torch.Tensor: Only the feature tensor for the given index, suitable for test-time inference.
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing the original and corrupted feature tensors for first phase learning, 
-                or the feature tensor and its corresponding label for second phase learning.
+                or the feature tensor and its corresponding label for second phase learning,
+                or the feature tensor and dummy label for test-time inference.
         """
         if self.label is None:
             if self.corruption_len:
@@ -96,8 +97,9 @@ class SCARFDataset(Dataset):
                 _x_corrupted = self.data[x_random, torch.arange(self.n_features, device=self.data.device)].float()
                 
                 x_corrupted = torch.where(corruption_mask, _x_corrupted, self.data[idx])
+                
                 return self.data[idx], x_corrupted
-            return self.data[idx]
+            return self.data[idx], torch.tensor(-1)
         else:
             return self.data[idx], self.label[idx]
 
