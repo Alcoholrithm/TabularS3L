@@ -130,7 +130,7 @@ class SwitchTabDataset(Dataset):
         else:
             return x_1, x_1, y_1, x_2, x_2, y_2
 
-    def __second_phase_get_item(self, idx) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+    def __second_phase_get_item(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
         """Return a input and label pair for the second phase learning
 
         Args:
@@ -142,7 +142,7 @@ class SwitchTabDataset(Dataset):
         if self.label is not None:
             return self.data[idx], self.label[idx]
         else:
-            return self.data[idx]
+            return self.data[idx], torch.tensor(-1)
             
     def __len__(self):
         """Return the length of the dataset
