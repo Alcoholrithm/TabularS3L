@@ -41,7 +41,7 @@ class TS3LLightining(ABC, pl.LightningModule):
         self.scheduler_hparams = _config["scheduler_hparams"]
         del _config["scheduler_hparams"]
         
-        self.loss_fn = getattr(torch.nn, _config["loss_fn"])(**_config["loss_hparams"])
+        self.task_loss_fn = getattr(torch.nn, _config["loss_fn"])(**_config["loss_hparams"])
         del _config["loss_fn"]
         del _config["loss_hparams"]
         
@@ -106,27 +106,27 @@ class TS3LLightining(ABC, pl.LightningModule):
 
     def forward(self,
                 batch:Dict[str, Any]
-    ) -> torch.FloatTensor:
+    ) -> torch.Tensor:
         """Do forward pass for given input
 
         Args:
             batch (Dict[str, Any]): The input batch
 
         Returns:
-            torch.FloatTensor: The output of forward pass
+            torch.Tensor: The output of forward pass
         """
         return self.model(batch)
     
 
     @abstractmethod
-    def _get_first_phase_loss(self, batch: Any) -> torch.FloatTensor:
+    def _get_first_phase_loss(self, batch: Any) -> torch.Tensor:
         """Calculate the first phase loss
 
         Args:
             batch (Any): The input batch
 
         Returns:
-            torch.FloatTensor: The final loss of first phase step
+            torch.Tensor: The final loss of first phase step
         """
         pass
     
@@ -220,7 +220,6 @@ class TS3LLightining(ABC, pl.LightningModule):
             train_loss = torch.Tensor([out["loss"] for out in self.second_phase_step_outputs]).detach().mean()
             y = torch.cat([out["y"] for out in self.second_phase_step_outputs if out["y"].numel() != 1]).detach().cpu()
             y_hat = torch.cat([out["y_hat"] for out in self.second_phase_step_outputs if out["y_hat"].numel() != 1]).detach().cpu()
-            
             train_score = self.metric(y_hat, y)
             
             self.log("train_loss", train_loss, prog_bar = True)

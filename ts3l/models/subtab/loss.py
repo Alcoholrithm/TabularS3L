@@ -6,7 +6,8 @@ import itertools
 class JointLoss(nn.Module):
     """ JointLoss for SubTab during the first phase learning.
     
-    When computing the constrastive loss, we use a similarity matrix of size (N x k) x N. The matrix includes k positive samples and all other samples are considered negatives. 
+    When computing the constrastive loss, we use a similarity matrix of size (N x k) x N. 
+    he matrix includes k positive samples and all other samples are considered negatives. 
     The matrix is shown below as an 8x4 array, assuming a batch size of 4 and 2 subsets.
                                                         P . . .
                                                         P . . .

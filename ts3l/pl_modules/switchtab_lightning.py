@@ -5,6 +5,7 @@ from torch import nn
 from .base_module import TS3LLightining
 from ts3l.models import SwitchTab
 from ts3l.utils.switchtab_utils import SwitchTabConfig
+from ts3l import functional as F
 
 class SwitchTabLightning(TS3LLightining):
     
@@ -29,7 +30,7 @@ class SwitchTabLightning(TS3LLightining):
         del config["alpha"]
         del config["corruption_rate"]
         
-        self.first_phase_reconstruction_loss = nn.MSELoss()
+        self.reconstruction_loss_fn = nn.MSELoss()
         
         self._init_model(SwitchTab, config)
     
@@ -42,22 +43,20 @@ class SwitchTabLightning(TS3LLightining):
         Returns:
             torch.FloatTensor: The final loss of first phase step
         """
-        xs, xcs, ys = batch
+        
+        x_hat, labeled_y, labeled_y_hat = F.switchtab.first_phase_step(self.model, batch, self.u_label)
+
+        xs, _, _ = batch
+        
         size = len(batch)
         
-        xs = torch.concat([torch.concat([xs[:size], xs[:size]]), torch.concat([xs[size:], xs[size:]])])
+        xs = torch.concat(
+        [torch.concat([xs[:size], xs[:size]]), torch.concat([xs[size:], xs[size:]])]
+    )
         
-        cls_idx = (ys != self.u_label)
-        
-        x_hat, y_hat = self.model(xcs)
-        
-        recon_loss = self.first_phase_reconstruction_loss(x_hat, xs)
-        
-        cls_loss = 0
-        if sum(cls_idx) > 0:
-            cls_loss = self.loss_fn(y_hat[cls_idx].squeeze(), ys[cls_idx])
-        
-        return recon_loss + self.alpha * cls_loss
+        recon_loss, task_loss = F.switchtab.first_phase_loss(xs, x_hat, labeled_y, labeled_y_hat, self.reconstruction_loss_fn, self.task_loss_fn)
+    
+        return recon_loss + self.alpha * task_loss
     
     def _get_second_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate the second phase loss
@@ -70,15 +69,13 @@ class SwitchTabLightning(TS3LLightining):
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """
-        x, y = batch
-
-        y_hat = self.model(x).squeeze()
-
-        loss = self.loss_fn(y_hat, y)
+        _, y = batch
+        y_hat = F.switchtab.second_phase_step(self.model, batch)
+        task_loss = F.switchtab.second_phase_loss(y, y_hat, self.task_loss_fn)
         
-        return loss, y, y_hat
+        return task_loss, y, y_hat
     
-    def predict_step(self, batch: torch.Tensor, batch_idx: int
+    def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
         ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
             """The predict step of SwitchTab
 
@@ -89,9 +86,9 @@ class SwitchTabLightning(TS3LLightining):
             Returns:
                 Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]: The predicted output (logit) or (logit, salient_feature)
             """
-            out = self(batch)
+            y_hat = F.switchtab.second_phase_step(self.model, batch)
 
-            return out
+            return y_hat
         
     def return_salient_feature(self, flag: bool) -> None:
         """Configures the model to either return or not return salient features based on the provided flag.

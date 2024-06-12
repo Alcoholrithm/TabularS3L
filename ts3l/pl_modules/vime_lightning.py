@@ -1,10 +1,11 @@
-from typing import Dict, Any, Type
+from typing import Dict, Any, Tuple
 import torch
 from torch import nn
 
 from .base_module import TS3LLightining
 from ts3l.models import VIME
 from ts3l.utils.vime_utils import VIMEConfig
+from ts3l import functional as F
 
 class VIMELightning(TS3LLightining):
     
@@ -32,7 +33,6 @@ class VIMELightning(TS3LLightining):
         del config["beta"]
         
         self.K = config["K"]
-        self.consistency_len = self.K + 1
         del config["K"]
         
         self.num_categoricals, self.num_continuous = config["num_categoricals"], config["num_continuous"]
@@ -44,68 +44,68 @@ class VIMELightning(TS3LLightining):
         
         del config["p_m"]
         
-        self.first_phase_mask_loss = nn.BCELoss()
-        self.first_phase_feature_loss1 = nn.CrossEntropyLoss()
-        self.first_phase_feature_loss2 = nn.MSELoss()
+        self.mask_loss_fn = nn.BCELoss()
+        self.categorical_feature_loss_fn = nn.CrossEntropyLoss()
+        self.continuous_feature_loss_fn = nn.MSELoss()
         
-        self.consistency_loss = nn.MSELoss()
+        self.consistency_loss_fn = nn.MSELoss()
 
         self._init_model(VIME, config)
     
-    def _get_first_phase_loss(self, batch:Dict[str, Any]):
+    def _get_first_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
         """Calculate the first phase loss
 
         Args:
-            batch (Dict[str, Any]): The input batch
+            batch (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): The input batch
 
         Returns:
             torch.FloatTensor: The final loss of first phase step
         """
-        mask_output, feature_output = self.model(batch["input"])
         
-        mask_loss = self.first_phase_mask_loss(mask_output, batch["label"][0])
-        feature_loss1, feature_loss2 = 0, 0
-        if self.num_categoricals > 0:
-            feature_loss1 = self.first_phase_feature_loss1(feature_output[:, :self.num_categoricals], batch["label"][1][:, :self.num_categoricals])
-        if self.num_continuous > 0:
-            feature_loss2 = self.first_phase_feature_loss2(feature_output[:, self.num_categoricals:], batch["label"][1][:, self.num_categoricals:])
-        final_loss = mask_loss + self.alpha1 * feature_loss1 + self.alpha2 * feature_loss2
-
-        return final_loss
+        mask_preds, feature_preds = F.vime.first_phase_step(self.model, batch)
+        
+        mask_loss, categorical_feature_loss, continuous_feature_loss = F.vime.first_phase_loss(
+            batch[2][:, : self.num_categoricals],
+            batch[2][:, self.num_categoricals :],
+            batch[1],
+            feature_preds[:, : self.num_categoricals],
+            feature_preds[:, self.num_categoricals :],
+            mask_preds,
+            self.mask_loss_fn,
+            self.categorical_feature_loss_fn,
+            self.continuous_feature_loss_fn,
+        )
+        
+        return mask_loss + self.alpha1 * categorical_feature_loss + self.alpha2 * continuous_feature_loss
     
-    def _get_second_phase_loss(self, batch:Dict[str, Any]):
+    def _get_second_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Calculate the second phase loss
 
         Args:
-            batch (Dict[str, Any]): The input batch
+            batch (Tuple[torch.Tensor, torch.Tensor]): The input batch
 
         Returns:
             torch.FloatTensor: The final loss of second phase step
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """
-        x = batch["input"]
-        y = batch["label"]
+        _, y = batch
         
-        unsupervised_loss = 0
-        unlabeled = x[y == self.u_label]
+        y_hat = F.vime.second_phase_step(self.model, batch)
         
-        if len(unlabeled) > 0:
-            u_y_hat = self.model(unlabeled)
-            target = u_y_hat[::self.consistency_len]
-            target = target.repeat(1, self.K).reshape((-1, u_y_hat.shape[-1]))
-            preds = torch.stack([u_y_hat[i, :] for i in range(len(u_y_hat)) if i % self.consistency_len != 0], dim = 0)
-            unsupervised_loss += self.consistency_loss(preds, target)
+        labeled_idx = (y != self.u_label).flatten()
+        unlabeled_idx = (y == self.u_label).flatten()
         
-        labeled_x = x[y != self.u_label]
-        labeled_y = y[y != self.u_label]
-
-        y_hat = self.model(labeled_x).squeeze()
-
-        supervised_loss = self.loss_fn(y_hat, labeled_y)
-        loss = supervised_loss + self.beta * unsupervised_loss
+        labeled_y_hat = y_hat[labeled_idx]
+        labeled_y = y[labeled_idx].squeeze()
         
-        return loss, labeled_y, y_hat
+        unlabeled_y_hat = y_hat[unlabeled_idx]
+        
+        task_loss, consistency_loss = F.vime.second_phase_loss(labeled_y, labeled_y_hat, unlabeled_y_hat, self.consistency_loss_fn, self.task_loss_fn, self.K)
+        
+        loss = task_loss + self.beta * consistency_loss
+        
+        return loss, labeled_y, labeled_y_hat
     
     def predict_step(self, batch, batch_idx: int
         ) -> torch.FloatTensor:
@@ -118,6 +118,6 @@ class VIMELightning(TS3LLightining):
             Returns:
                 torch.FloatTensor: The predicted output (logit)
             """
-            y_hat = self(batch["input"])
+            y_hat = self(batch[0])
 
             return y_hat

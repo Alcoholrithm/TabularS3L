@@ -5,7 +5,7 @@ from ts3l.utils import BaseConfig
 from ts3l.pl_modules.base_module import TS3LLightining
 
 from ts3l.pl_modules import VIMELightning
-from ts3l.utils.vime_utils import VIMEConfig, VIMEDataset, VIMESemiSLCollateFN
+from ts3l.utils.vime_utils import VIMEConfig, VIMEDataset, VIMESecondPhaseCollateFN
 from ts3l.utils import TS3LDataModule
 
 from hparams_range.vime import hparams_range
@@ -83,7 +83,7 @@ class VIMEPipeLine(PipeLine):
         train_ds = VIMEDataset(X = self.X_train, Y = self.y_train.values, config = config, unlabeled_data=self.X_unlabeled, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
         test_ds = VIMEDataset(X = self.X_valid, Y = self.y_valid.values, config = config, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim==1 else False)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", train_collate_fn=VIMESemiSLCollateFN())
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", train_collate_fn=VIMESecondPhaseCollateFN())
             
         callbacks = [
             EarlyStopping(
@@ -94,9 +94,8 @@ class VIMEPipeLine(PipeLine):
             )
         ]
 
-        checkpoint_path = None
-
         checkpoint_path = f'benchmark_ckpt/'
+        
         checkpoint_callback = ModelCheckpoint(
             monitor='val_' + self.metric.__name__,
             dirpath=checkpoint_path,

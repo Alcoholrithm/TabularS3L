@@ -83,8 +83,6 @@ class SwitchTabDataset(Dataset):
 
         if not is_second_phase:
             self.__getitem = self.__first_phase_get_item # type: ignore
-            self.idx_arr = np.arange(len(self.data))
-            
         else:
             self.__getitem = self.__second_phase_get_item # type: ignore
 
@@ -115,9 +113,9 @@ class SwitchTabDataset(Dataset):
         """
         x_1 = self.data[idx]
         
-        idx2 = np.random.choice(self.idx_arr)
+        idx2 = idx
         while idx2 == idx:
-            idx2 = np.random.choice(self.idx_arr)
+            idx2 = np.random.randint(0, len(self.data))
         x_2 = self.data[idx2]
         
         if self.label is not None:
@@ -132,7 +130,7 @@ class SwitchTabDataset(Dataset):
         else:
             return x_1, x_1, y_1, x_2, x_2, y_2
 
-    def __second_phase_get_item(self, idx) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+    def __second_phase_get_item(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
         """Return a input and label pair for the second phase learning
 
         Args:
@@ -144,7 +142,7 @@ class SwitchTabDataset(Dataset):
         if self.label is not None:
             return self.data[idx], self.label[idx]
         else:
-            return self.data[idx]
+            return self.data[idx], torch.tensor(-1)
             
     def __len__(self):
         """Return the length of the dataset
@@ -160,13 +158,16 @@ class SwitchTabDataset(Dataset):
         Returns:
             torch.Tensor: A corrupted feature tensor.
         """
-        corruption_mask = torch.zeros((self.n_features), dtype=torch.bool)
-        corruption_idx = torch.randperm(self.n_features)[:self.corruption_len]
-
+        corruption_mask = torch.zeros((self.n_features), dtype=torch.bool, device=x.device)
+        corruption_idx = torch.randperm(self.n_features, device=x.device)[:self.corruption_len]
         corruption_mask[corruption_idx] = True
         
-        x_random = torch.randint(0, self.n_sampling_candidate, corruption_mask.shape)
-        _x_corrupted = torch.FloatTensor([self.data[:, i][x_random[i]] for i in range(self.n_features)])
+        # Generate random indices for each feature
+        x_random = torch.randint(0, self.n_sampling_candidate, (self.n_features,), device=x.device)
+
+        # Use advanced indexing to create the corrupted features
+        _x_corrupted = self.data[x_random, torch.arange(self.n_features, device=x.device)].float()
+        
         x_corrupted = torch.where(corruption_mask, _x_corrupted, x)
         return x_corrupted
     
