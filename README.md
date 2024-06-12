@@ -15,6 +15,8 @@
 
 TabularS3L is a PyTorch Lightning-based library designed to facilitate self- and semi-supervised learning with tabular data. While numerous self- and semi-supervised learning tabular models have been proposed, there is a lack of a comprehensive library that addresses the needs of tabular practitioners. This library aims to fill this gap by providing a unified PyTorch Lightning-based framework for exploring and deploying such models.
 
+<img src="https://github.com/Alcoholrithm/TabularS3L/assets/29500858/ba05aada-e801-42e6-ba20-10b7bef74b4d"/>
+
 ## Installation
 We provide a Python package ts3l of TabularS3L for users who want to use semi- and self-supervised learning tabular models.
 
