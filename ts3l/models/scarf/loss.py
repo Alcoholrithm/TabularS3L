@@ -21,20 +21,25 @@ class NTXentLoss(nn.Module):
             float: loss
         """
         batch_size = z_i.size(0)
-
-        # compute similarity between the sample's embedding and its corrupted view
+        
+        # Compute similarity between the sample's embedding and its corrupted view
         z = torch.cat([z_i, z_j], dim=0)
         similarity = F.cosine_similarity(z.unsqueeze(1), z.unsqueeze(0), dim=2)
+    
+        # Extract positive samples
+        positives = similarity[range(batch_size), range(batch_size, 2 * batch_size)]
+        positives = torch.cat([positives, similarity[range(batch_size, 2 * batch_size), range(batch_size)]], dim=0)
 
-        sim_ij = torch.diag(similarity, batch_size)
-        sim_ji = torch.diag(similarity, -batch_size)
-        positives = torch.cat([sim_ij, sim_ji], dim=0)
+        # Create mask to exclude self-comparisons
+        mask = torch.ones((2 * batch_size, 2 * batch_size), dtype=torch.bool, device=z.device)
+        mask.fill_diagonal_(0)
 
-        mask = (~torch.eye(batch_size * 2, batch_size * 2, dtype=torch.bool)).float()
-        numerator = torch.exp(positives / self.temperature).to(mask.device)
-        denominator = mask * torch.exp(similarity / self.temperature).to(mask.device)
+        # Compute numerator and denominator
+        exp_sim = torch.exp(similarity / self.temperature)
+        numerator = torch.exp(positives / self.temperature)
+        denominator = exp_sim * mask
 
-        all_losses = -torch.log(numerator / torch.sum(denominator, dim=1))
-        loss = torch.sum(all_losses) / (2 * batch_size)
-
+        # Compute loss
+        loss = -torch.log(numerator / denominator.sum(dim=1)).mean()
+        
         return loss
