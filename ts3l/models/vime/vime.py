@@ -27,11 +27,13 @@ class VIME(nn.Module):
         """Set first phase step as the forward pass
         """
         self.forward = self.__first_phase_step
+        self.self_net.requires_grad_(True)
     
-    def set_second_phase(self):
+    def set_second_phase(self, freeze_encoder: bool = True):
         """Set second phase step as the forward pass
         """
         self.forward = self.__second_phase_step
+        self.self_net.requires_grad_(not freeze_encoder)
         
     def __first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """The first phase step of VIME

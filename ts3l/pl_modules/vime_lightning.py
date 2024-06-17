@@ -107,17 +107,26 @@ class VIMELightning(TS3LLightining):
         
         return loss, labeled_y, labeled_y_hat
     
+    def set_second_phase(self, freeze_encoder: bool = True) -> None:
+        """Set the module to fine-tuning
+        
+        Args:
+            freeze_encoder (bool): If True, the encoder will be frozen during fine-tuning. Otherwise, the encoder will be trainable.
+                                    Default is True.
+        """
+        return super().set_second_phase(freeze_encoder)
+    
     def predict_step(self, batch, batch_idx: int
         ) -> torch.FloatTensor:
-            """The predict step of VIME
+        """The predict step of VIME
 
-            Args:
-                batch (Dict[str, Any]): The input batch
-                batch_idx (int): Only for compatibility, do not use
+        Args:
+            batch (Dict[str, Any]): The input batch
+            batch_idx (int): Only for compatibility, do not use
 
-            Returns:
-                torch.FloatTensor: The predicted output (logit)
-            """
-            y_hat = self(batch[0])
+        Returns:
+            torch.FloatTensor: The predicted output (logit)
+        """
+        y_hat = self(batch[0])
 
-            return y_hat
+        return y_hat

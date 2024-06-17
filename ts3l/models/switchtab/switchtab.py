@@ -102,11 +102,12 @@ class SwitchTab(nn.Module):
         """
         self.forward = self.__first_phase_step
     
-    def set_second_phase(self) -> None:
+    def set_second_phase(self, freeze_encoder: bool = False) -> None:
         """Set second phase step as the forward pass
         """
         self.forward = self.__second_phase_step
-
+        self.encoder.requires_grad_(not freeze_encoder)
+        
     @property
     def return_salient_feature(self) -> bool:
         """Gets the value of the private attribute '__return_salient_feature' which indicates whether 

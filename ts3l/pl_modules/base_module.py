@@ -95,10 +95,13 @@ class TS3LLightining(ABC, pl.LightningModule):
         self.validation_step = self._first_phase_step # type: ignore
         self.on_validation_epoch_end = self._first_phase_validation_epoch_end # type: ignore
 
-    def set_second_phase(self) -> None:
-        """Set the module to finetunning
+    def set_second_phase(self, freeze_encoder: bool) -> None:
+        """Set the module to fine-tuning
+        
+        Args:
+            freeze_encoder (bool): If True, the encoder will be frozen during fine-tuning. Otherwise, the encoder will be trainable.
         """
-        self.model.set_second_phase()
+        self.model.set_second_phase(freeze_encoder)
         self.training_step = self._second_phase_step # type: ignore
         self.on_validation_start = self._on_second_phase_validation_start # type: ignore
         self.validation_step = self._second_phase_step # type: ignore
