@@ -109,7 +109,7 @@ def second_phase_loss(
     # Select predictions that are not at intervals of consistency_len
     mask = torch.ones(len(unlabeled_y_hat), dtype=torch.bool, device=y.device)
     mask[::consistency_len] = False
-    preds = unlabeled_y_hat[mask].view(-1, unlabeled_y_hat.shape[-1])
+    preds = unlabeled_y_hat[mask].view(-1, unlabeled_y_hat[mask].shape[-1]).squeeze()
 
     consistency_loss = consistency_loss_fn(preds, target)
 
