@@ -93,6 +93,15 @@ class DAELightning(TS3LLightining):
 
         return loss, y, y_hat
 
+    def set_second_phase(self, freeze_encoder: bool = True) -> None:
+        """Set the module to fine-tuning
+        
+        Args:
+            freeze_encoder (bool): If True, the encoder will be frozen during fine-tuning. Otherwise, the encoder will be trainable.
+                                    Default is True.
+        """
+        return super().set_second_phase(freeze_encoder)
+    
     def predict_step(self, batch, batch_idx: int) -> torch.FloatTensor:
         """The predict step of DAE
 

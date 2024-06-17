@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import itertools
-
+from torch.nn import functional as F
 class JointLoss(nn.Module):
     """ JointLoss for SubTab during the first phase learning.
     
@@ -34,6 +34,8 @@ class JointLoss(nn.Module):
         # Temperature to use scale logits
         self.temperature = tau
 
+        self.use_cosine_similarity = use_cosine_similarity
+        
         # Function to generate similarity matrix: Cosine, or Dot product
         self.similarity_fn = self._cosine_simililarity if use_cosine_similarity else self._dot_simililarity
         # Loss function
@@ -55,42 +57,50 @@ class JointLoss(nn.Module):
         return similarity
 
     def _cosine_simililarity(self, x, y):
-        similarity = nn.CosineSimilarity(dim=-1)
         # Reshape x: (2N, C) -> (2N, 1, C)
         x = x.unsqueeze(1)
         # Reshape y: (2N, C) -> (1, C, 2N)
         y = y.unsqueeze(0)
         # Similarity shape: (2N, 2N)
-        return similarity(x, y)
+        return F.cosine_similarity(x, y, dim=-1)
     
-    def get_anchor_loss(self, turn, similarity):
-        group_start = (turn // self.n_subsets) * self.n_subsets
-        group_end = min(group_start + self.n_subsets, len(similarity))
+    def get_anchor_loss(self, similarity: torch.Tensor) -> torch.Tensor:
+        batch_size = similarity.size(0)
+        group_size = self.n_subsets
+        
+        # Create a mask to exclude self-similarity
+        identity_mask = torch.eye(
+            batch_size, dtype=torch.bool, device=similarity.device
+        )
 
-        # Select the positive and negative pairs for the anchor
-        positives = similarity[group_start:group_end]
-        negatives = torch.cat((similarity[:group_start], similarity[group_end:]), dim=0)
+        # Create masks for positive and negative pairs
+        group_indices = torch.arange(batch_size, device=similarity.device) // group_size
+        group_mask = group_indices.unsqueeze(0) == group_indices.unsqueeze(1)
 
-        # Exclude self-similarity
-        positives = positives[positives != 1]
+        positives_mask = group_mask & ~identity_mask
+        negatives_mask = ~group_mask
 
-        # Loss calculation for the anchor
-        pos_sum = torch.sum(torch.exp(positives))
-        neg_sum = torch.sum(torch.exp(negatives))
-        # return -torch.log(pos_sum / (pos_sum + neg_sum))
+        # Compute positive and negative sums
+        pos_sum = torch.sum(torch.exp(similarity) * positives_mask.float(), dim=1)
+        neg_sum = torch.sum(torch.exp(similarity) * negatives_mask.float(), dim=1)
+
+        # Exclude zero positive sums to avoid log(0)
+        pos_sum = torch.clamp(pos_sum, min=1e-10)
+
+        # Compute anchor losses
         anchor_loss = -torch.log(pos_sum / (pos_sum + neg_sum))
+
         return anchor_loss
         
     def XNegloss(self, projections: torch.FloatTensor) -> torch.Tensor:
         
-        
         # Compute cosine similarity using the provided function
-        similarity = self.similarity_fn(projections, projections) / self.temperature
+        similarity = self.similarity_fn(projections, projections)
         
         # return torch.stack([self.get_anchor_loss(turn, similarity[turn]) for turn in range(len(similarity))]).mean()
-        anchor_losses = [self.get_anchor_loss(turn, similarity[turn]) for turn in range(len(similarity))]
+        anchor_losses = self.get_anchor_loss(similarity)
         
-        return torch.stack(anchor_losses).mean()
+        return anchor_losses.mean()
 
     def forward(self, projections, xrecon, xorig):
         """
@@ -118,7 +128,15 @@ class JointLoss(nn.Module):
             combi = np.array(list(itertools.combinations(range(self.n_subsets), 2)))
             left = combi[:, 0]
             right = combi[:, 1]
-            dist_loss = torch.stack([self.mse_loss(projections[i:i + self.n_subsets][left], projections[i:i + self.n_subsets][right]) for i in range(0, len(projections), self.n_subsets)]).mean()
+            
+            # Create an index tensor for the pairs
+            indices = torch.arange(len(projections)).view(-1, self.n_subsets)
+            left_indices = indices[:, left].reshape(-1)
+            right_indices = indices[:, right].reshape(-1)
+
+            # Compute the MSE loss in a vectorized manner
+            dist_loss = self.mse_loss(projections[left_indices], projections[right_indices])
+        
             loss += dist_loss
 
         return loss, closs, recon_loss, dist_loss

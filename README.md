@@ -28,6 +28,8 @@ pip install ts3l
 
 TabularS3L employs a two-phase learning approach, where the learning strategies differ between phases. Below is an overview of the models available within TabularS3L, highlighting the learning strategies employed in each phase. The abbreviations 'Self-SL', 'Semi-SL', and 'SL' represent self-supervised learning, semi-supervised learning, and supervised learning, respectively.
 
+According to the original implementation and the paper, the encoder of DAE, VIME, and SubTab is frozen during the second phase of learning. However, you can choose to freeze the encoder or not by setting the **freeze_encoder** flag in the **set_second_phase** method.
+
 | Model | First Phase | Second Phase |
 |:---:|:---:|:---:|
 | **DAE** ([GitHub](https://github.com/ryancheunggit/tabular_dae))| Self-SL | SL |

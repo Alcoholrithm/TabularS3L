@@ -43,3 +43,6 @@ jobs:
     - name: Test DAE with pytest
       run: |
         pytest test/test_dae.py
+    - name: Test SwitchTab with pytest
+      run: |
+        pytest test/test_switchtab.py

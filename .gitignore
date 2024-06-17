@@ -9,3 +9,4 @@ dist/
 .pytest_cache/
 *benchmark_ckpt/
 .mypy_cache/
+*.lprof

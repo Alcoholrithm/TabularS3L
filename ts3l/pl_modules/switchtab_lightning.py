@@ -75,20 +75,29 @@ class SwitchTabLightning(TS3LLightining):
         
         return task_loss, y, y_hat
     
+    def set_second_phase(self, freeze_encoder: bool = False) -> None:
+        """Set the module to fine-tuning
+        
+        Args:
+            freeze_encoder (bool): If True, the encoder will be frozen during fine-tuning. Otherwise, the encoder will be trainable.
+                                    Default is False.
+        """
+        return super().set_second_phase(freeze_encoder)
+    
     def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
         ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-            """The predict step of SwitchTab
+        """The predict step of SwitchTab
 
-            Args:
-                batch (torch.Tensor): The input batch
-                batch_idx (int): Only for compatibility, do not use
+        Args:
+            batch (torch.Tensor): The input batch
+            batch_idx (int): Only for compatibility, do not use
 
-            Returns:
-                Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]: The predicted output (logit) or (logit, salient_feature)
-            """
-            y_hat = F.switchtab.second_phase_step(self.model, batch)
+        Returns:
+            Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]: The predicted output (logit) or (logit, salient_feature)
+        """
+        y_hat = F.switchtab.second_phase_step(self.model, batch)
 
-            return y_hat
+        return y_hat
         
     def return_salient_feature(self, flag: bool) -> None:
         """Configures the model to either return or not return salient features based on the provided flag.

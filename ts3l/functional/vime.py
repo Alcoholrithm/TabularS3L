@@ -47,8 +47,8 @@ def first_phase_loss(
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The losses for mask estimation and feature reconstruction
     """
     mask_loss = mask_loss_fn(mask_preds, mask)
-    categorical_feature_loss = torch.tensor(0.0)
-    continuous_feature_loss = torch.tensor(0.0)
+    categorical_feature_loss = torch.tensor(0.0, device=mask_preds.device)
+    continuous_feature_loss = torch.tensor(0.0, device=mask_preds.device)
 
     if x_cat.shape[1] > 0:
         categorical_feature_loss += categorical_loss_fn(cat_feature_preds, x_cat)
@@ -109,7 +109,7 @@ def second_phase_loss(
     # Select predictions that are not at intervals of consistency_len
     mask = torch.ones(len(unlabeled_y_hat), dtype=torch.bool, device=y.device)
     mask[::consistency_len] = False
-    preds = unlabeled_y_hat[mask].view(-1, unlabeled_y_hat.shape[-1])
+    preds = unlabeled_y_hat[mask].view(-1, unlabeled_y_hat[mask].shape[-1]).squeeze()
 
     consistency_loss = consistency_loss_fn(preds, target)
 

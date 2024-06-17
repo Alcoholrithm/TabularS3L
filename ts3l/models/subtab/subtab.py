@@ -101,8 +101,9 @@ class SubTab(nn.Module):
     def set_first_phase(self) -> None:
         self.forward = self.__first_phase_step
     
-    def set_second_phase(self) -> None:
+    def set_second_phase(self, freeze_encoder: bool = True) -> None:
         self.forward = self.__second_phase_step
+        self.ae.requires_grad_(not freeze_encoder)
 
     def __first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 

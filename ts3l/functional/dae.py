@@ -47,7 +47,7 @@ def first_phase_loss(
         Tuple[torch.Tensor, torch.Tensor]: The losses for mask estimation and feature reconstruction
     """
     mask_loss = mask_loss_fn(mask_preds, mask)
-    feature_loss = torch.tensor(0.0)
+    feature_loss = torch.tensor(0.0, device=mask_preds.device)
     
     if x_cat.shape[1] > 0:
         feature_loss += categorical_loss_fn(cat_feature_preds, x_cat)
