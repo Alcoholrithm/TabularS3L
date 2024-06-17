@@ -12,7 +12,7 @@ from ts3l.utils.switchtab_utils import SwitchTabConfig
 class SwitchTabDataset(Dataset):
     def __init__(self,
                 X: pd.DataFrame,
-                Y: Optional[Union[NDArray[np.int_], NDArray[np.float_]]] = None, 
+                Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None, 
                 config: Optional[SwitchTabConfig] = None, 
                 unlabeled_data: Optional[pd.DataFrame] = None, 
                 u_label: Optional[Any] = -1,
@@ -28,7 +28,7 @@ class SwitchTabDataset(Dataset):
 
         Args:
             X (pd.DataFrame): DataFrame containing the features of the labeled data.
-            Y (Union[NDArray[np.int_], NDArray[np.float_]], optional): Numpy array containing the labels for the data. 
+            Y (Union[NDArray[np.int_], NDArray[np.float64]], optional): Numpy array containing the labels for the data. 
                 Use integers for classification labels and floats for regression targets. Defaults to None.
             config (SwitchTabConfig): The given hyperparameter set for SwitchTab.
             unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 

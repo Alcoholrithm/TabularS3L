@@ -11,7 +11,7 @@ from ts3l.utils.dae_utils import DAEConfig
 
 class DAEDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
-                        Y: Optional[Union[NDArray[np.int_], NDArray[np.float_]]] = None,
+                        Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
                         unlabeled_data: Optional[pd.DataFrame] = None,
                         continuous_cols: Optional[List] = None, 
                         category_cols: Optional[List] = None,
@@ -24,7 +24,7 @@ class DAEDataset(Dataset):
 
         Args:
             X (pd.DataFrame): DataFrame containing the features of the labeled data.
-            Y (Optional[Union[NDArray[np.int_], NDArray[np.float_]]]): Numpy array containing the labels for the data. 
+            Y (Optional[Union[NDArray[np.int_], NDArray[np.float64]]]): Numpy array containing the labels for the data. 
                 Use integers for classification labels and floats for regression targets. Defaults to None.
             unlabeled_data (Optional[pd.DataFrame]): DataFrame containing the features of the unlabeled data, used for 
                 self-supervised learning. Defaults to None.
