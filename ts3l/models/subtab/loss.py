@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import itertools
-
+from torch.nn import functional as F
 class JointLoss(nn.Module):
     """ JointLoss for SubTab during the first phase learning.
     
@@ -34,6 +34,8 @@ class JointLoss(nn.Module):
         # Temperature to use scale logits
         self.temperature = tau
 
+        self.use_cosine_similarity = use_cosine_similarity
+        
         # Function to generate similarity matrix: Cosine, or Dot product
         self.similarity_fn = self._cosine_simililarity if use_cosine_similarity else self._dot_simililarity
         # Loss function
@@ -55,13 +57,12 @@ class JointLoss(nn.Module):
         return similarity
 
     def _cosine_simililarity(self, x, y):
-        similarity = nn.CosineSimilarity(dim=-1)
         # Reshape x: (2N, C) -> (2N, 1, C)
         x = x.unsqueeze(1)
         # Reshape y: (2N, C) -> (1, C, 2N)
         y = y.unsqueeze(0)
         # Similarity shape: (2N, 2N)
-        return similarity(x, y)
+        return F.cosine_similarity(x, y, dim=-1)
     
     def get_anchor_loss(self, turn, similarity):
         group_start = (turn // self.n_subsets) * self.n_subsets
@@ -72,20 +73,19 @@ class JointLoss(nn.Module):
         negatives = torch.cat((similarity[:group_start], similarity[group_end:]), dim=0)
 
         # Exclude self-similarity
-        positives = positives[positives != 1]
+        positives = positives[positives != 1] if self.use_cosine_similarity else positives[positives != 0]
 
         # Loss calculation for the anchor
-        pos_sum = torch.sum(torch.exp(positives))
-        neg_sum = torch.sum(torch.exp(negatives))
+        pos_sum = torch.sum(torch.exp(positives / self.temperature))
+        neg_sum = torch.sum(torch.exp(negatives / self.temperature))
         # return -torch.log(pos_sum / (pos_sum + neg_sum))
         anchor_loss = -torch.log(pos_sum / (pos_sum + neg_sum))
         return anchor_loss
         
     def XNegloss(self, projections: torch.FloatTensor) -> torch.Tensor:
         
-        
         # Compute cosine similarity using the provided function
-        similarity = self.similarity_fn(projections, projections) / self.temperature
+        similarity = self.similarity_fn(projections, projections)
         
         # return torch.stack([self.get_anchor_loss(turn, similarity[turn]) for turn in range(len(similarity))]).mean()
         anchor_losses = [self.get_anchor_loss(turn, similarity[turn]) for turn in range(len(similarity))]

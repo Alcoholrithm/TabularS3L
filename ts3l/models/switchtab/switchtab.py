@@ -127,7 +127,7 @@ class SwitchTab(nn.Module):
             flag (bool): A boolean value to set the '__return_salient_feature' attribute.
         """
         self.__return_salient_feature = flag
-        
+
     def __first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """The first phase step of SwitchTab
         Processes the given samples to decuple salient and mutual embeddings across data samples.
@@ -138,7 +138,7 @@ class SwitchTab(nn.Module):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: Reconstructed tensors and predicted labels.
         """
-
+        
         size = len(x) // 2
         
         zs = self.encoder(x)

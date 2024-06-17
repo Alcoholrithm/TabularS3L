@@ -190,7 +190,7 @@ class SwitchTabFirstPhaseCollateFN(object):
                 - xcs (Tensor): Concatenation of the x1_corrupted and x2_corrupted.
                 - ys (Tensor): Concatenation of the y1 and y2.
         """
-        xs = torch.concat([torch.stack([x[0] for x in batch]), torch.stack([x[3] for x in batch])])
-        xcs = torch.concat([torch.stack([x[1] for x in batch]), torch.stack([x[4] for x in batch])])
-        ys = torch.concat([torch.stack([x[2] for x in batch]), torch.stack([x[5] for x in batch])])
+        xs = torch.cat([torch.stack([x1 for x1, _, _, _, _, _ in batch]), torch.stack([x2 for _, _, _, x2, _, _ in batch])])
+        xcs = torch.cat([torch.stack([x1c for _, x1c, _, _, _, _ in batch]), torch.stack([x2c for _, _, _, _, x2c, _ in batch])])
+        ys = torch.cat([torch.stack([y1 for _, _, y1, _, _, _ in batch]), torch.stack([y2 for _, _, _, _, _, y2 in batch])])
         return xs, xcs, ys
