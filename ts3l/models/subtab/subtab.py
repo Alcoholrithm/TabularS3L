@@ -100,6 +100,7 @@ class SubTab(nn.Module):
 
     def set_first_phase(self) -> None:
         self.forward = self.__first_phase_step
+        self.ae.requires_grad_(True)
     
     def set_second_phase(self, freeze_encoder: bool = True) -> None:
         self.forward = self.__second_phase_step

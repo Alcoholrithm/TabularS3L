@@ -50,6 +50,7 @@ class SCARF(nn.Module):
             
     def set_first_phase(self):
         self.forward = self.__first_phase_step
+        self.encoder.requires_grad_(True)
     
     def set_second_phase(self, freeze_encoder: bool = False):
         self.forward = self.__second_phase_step

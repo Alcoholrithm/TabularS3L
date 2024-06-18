@@ -101,6 +101,7 @@ class SwitchTab(nn.Module):
         """Set first phase step as the forward pass
         """
         self.forward = self.__first_phase_step
+        self.encoder.requires_grad_(True)
     
     def set_second_phase(self, freeze_encoder: bool = False) -> None:
         """Set second phase step as the forward pass
