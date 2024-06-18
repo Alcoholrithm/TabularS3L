@@ -3,10 +3,11 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 
+from ts3l.models.common import TS3LModule
 from .vime_self import VIMESelfSupervised
 from .vime_semi import VIMESemiSupervised
 
-class VIME(nn.Module):
+class VIME(TS3LModule):
     def __init__(self, 
                 input_dim: int, hidden_dim: int, output_dim: int):
         """Initialize VIME
@@ -16,26 +17,15 @@ class VIME(nn.Module):
             hidden_dim (int): The hidden dimension of the predictor
             output_dim (int): The output dimension of the predictor
         """
-        super().__init__()
+        super(VIME, self).__init__()
+        self.__encoder = VIMESelfSupervised(input_dim)
+        self.predictor = VIMESemiSupervised(input_dim, hidden_dim, output_dim)
         
-        self.self_net = VIMESelfSupervised(input_dim)
-        self.semi_net = VIMESemiSupervised(input_dim, hidden_dim, output_dim)
+    @property
+    def encoder(self) -> nn.Module:
+        return self.__encoder
         
-        self.set_first_phase()
-    
-    def set_first_phase(self):
-        """Set first phase step as the forward pass
-        """
-        self.forward = self.__first_phase_step
-        self.self_net.requires_grad_(True)
-    
-    def set_second_phase(self, freeze_encoder: bool = True):
-        """Set second phase step as the forward pass
-        """
-        self.forward = self.__second_phase_step
-        self.self_net.requires_grad_(not freeze_encoder)
-        
-    def __first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """The first phase step of VIME
 
         Args:
@@ -44,19 +34,19 @@ class VIME(nn.Module):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: The predicted mask vector and predicted features
         """
-        mask_output, feature_output = self.self_net(x)
+        mask_output, feature_output = self.encoder(x)
         return mask_output, feature_output
     
     
-    def __second_phase_step(self, x):
+    def _second_phase_step(self, x: torch.Tensor) -> torch.Tensor:
         """The second phase step of VIME
 
         Args:
-            x (torch.FloatTensor): The input batch.
+            x (torch.Tensor): The input batch.
 
         Returns:
-            torch.FloatTensor: The predicted logits of VIME
+            torch.Tensor: The predicted logits of VIME
         """
-        x = self.self_net.h(x)
-        logits = self.semi_net(x)
+        x = self.encoder.h(x)
+        logits = self.predictor(x)
         return logits

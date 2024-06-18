@@ -1,17 +1,14 @@
-from numpy.typing import NDArray
-from typing import OrderedDict
+from typing import OrderedDict, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions.uniform import Uniform
 
-import numpy as np
 
+from ts3l.models.common import TS3LModule
 from ts3l.models.common import MLP
 
 
-class DAE(nn.Module):
+class DAE(TS3LModule):
     def __init__(
         self,
         input_dim,
@@ -33,9 +30,9 @@ class DAE(nn.Module):
             dropout_rate (float, optional): The probability of setting the outputs of the dropout layer to zero during training. Defaults to 0.04.
             output_dim (int, 2): The size of the outputs
         """
-        super().__init__()
+        super(DAE, self).__init__()
 
-        self.encoder = MLP(input_dim, hidden_dim, encoder_depth, dropout_rate)
+        self.__encoder = MLP(input_dim, hidden_dim, encoder_depth, dropout_rate)
         self.mask_predictor_head = MLP(hidden_dim, input_dim, head_depth, dropout_rate)
         self.reconstruction_head = MLP(hidden_dim, input_dim, head_depth, dropout_rate)
 
@@ -47,24 +44,19 @@ class DAE(nn.Module):
                 ("head_linear", nn.Linear(hidden_dim, output_dim))
             ])
         )
-        
-    def set_first_phase(self):
-        self.forward = self.__first_phase_step
-        self.encoder.requires_grad_(True)
     
-    def set_second_phase(self, freeze_encoder: bool = True):
-        self.forward = self.__second_phase_step
-        self.encoder.requires_grad_(not freeze_encoder)
+    @property
+    def encoder(self) -> nn.Module:
+        return self.__encoder
 
-    def __first_phase_step(self, x):
-
+    def _first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         emb = self.encoder(x)
         mask = torch.sigmoid(self.mask_predictor_head(emb))
         feature = self.reconstruction_head(emb)
 
         return mask, feature
     
-    def __second_phase_step(self, x):
+    def _second_phase_step(self, x: torch.Tensor) -> torch.Tensor:
         emb = self.encoder(x)
         output = self.head(emb)
         return output
