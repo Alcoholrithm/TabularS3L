@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from typing import Tuple, List, Union
+from ts3l.models.common import TS3LModule
 from ts3l.models.switchtab.ft_transformer import FTTransformer
 
 class Encoder(nn.Module):
@@ -62,7 +63,7 @@ class Decoder(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.linear(self.activation(x))
 
-class SwitchTab(nn.Module):
+class SwitchTab(TS3LModule):
     def __init__(self,
                     input_dim: int,
                     output_dim: int,
@@ -84,29 +85,22 @@ class SwitchTab(nn.Module):
             encoder_depth (int, optional): The number of layers in the encoder. Defaults to 3.
             n_head (int, optional): The number of attention heads in the encoder. Defaults to 2.
         """
-        super().__init__()
+        super(SwitchTab, self).__init__()
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.__return_salient_feature = False
         
         
-        self.encoder = Encoder(input_dim - len(category_dims), category_dims, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
+        self.__encoder = Encoder(input_dim - len(category_dims), category_dims, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
         self.projector_m = Projector(hidden_dim)
         self.projector_s = Projector(hidden_dim)
         self.decoder = Decoder(input_dim, hidden_dim)
         self.head = nn.Linear(hidden_dim, output_dim)
         self.activation = nn.SiLU()
-        
-    def set_first_phase(self) -> None:
-        """Set first phase step as the forward pass
-        """
-        self.forward = self.__first_phase_step
-    
-    def set_second_phase(self, freeze_encoder: bool = False) -> None:
-        """Set second phase step as the forward pass
-        """
-        self.forward = self.__second_phase_step
-        self.encoder.requires_grad_(not freeze_encoder)
+
+    @property
+    def encoder(self) -> nn.Module:
+        return self.__encoder
         
     @property
     def return_salient_feature(self) -> bool:
@@ -128,7 +122,7 @@ class SwitchTab(nn.Module):
         """
         self.__return_salient_feature = flag
 
-    def __first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """The first phase step of SwitchTab
         Processes the given samples to decuple salient and mutual embeddings across data samples.
         
@@ -161,7 +155,7 @@ class SwitchTab(nn.Module):
         return x_hat, y_hat
 
     
-    def __second_phase_step(self, 
+    def _second_phase_step(self, 
                 x : torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """The second phase step of SwitchTab
 

@@ -2,13 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-import numpy as np
-from numpy.typing import NDArray
-
-import itertools
-
-from types import SimpleNamespace
-from typing import Dict, Any, Tuple, List, Union
+from typing import Tuple, Union
+from ts3l.models.common import TS3LModule
 from ts3l.functional.subtab import arrange_tensors
 class ShallowEncoder(nn.Module):
     def __init__(self,
@@ -75,7 +70,7 @@ class AutoEncoder(nn.Module):
         x_recon = self.decode(latent)
         return latent, projection, x_recon
 
-class SubTab(nn.Module):
+class SubTab(TS3LModule):
 
     def __init__(self,
                  input_dim: int,
@@ -85,37 +80,33 @@ class SubTab(nn.Module):
                  n_subsets: int,
                  overlap_ratio: float,
     ) -> None:
-        super().__init__()
+        super(SubTab, self).__init__()
 
         self.feat_dim = input_dim
         
         self.n_subsets = n_subsets
         
-        self.ae = AutoEncoder(self.feat_dim, hidden_dim, n_subsets, overlap_ratio)
+        self.__auto_encoder = AutoEncoder(self.feat_dim, hidden_dim, n_subsets, overlap_ratio)
         
         self.head = nn.Sequential(
             nn.Linear(hidden_dim, output_dim)
         )
-        self.set_first_phase()
 
-    def set_first_phase(self) -> None:
-        self.forward = self.__first_phase_step
+    @property
+    def encoder(self) -> nn.Module:
+        return self.__auto_encoder
     
-    def set_second_phase(self, freeze_encoder: bool = True) -> None:
-        self.forward = self.__second_phase_step
-        self.ae.requires_grad_(not freeze_encoder)
+    def _first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
-    def __first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-
-        latents, projections, x_recons = self.ae(x)
+        latents, projections, x_recons = self.__auto_encoder(x)
         
         return projections, x_recons
     
-    def __second_phase_step(self, 
-                  x : torch.Tensor,
-                  return_embeddings : bool = False) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+    def _second_phase_step(self, 
+                x : torch.Tensor,
+                return_embeddings : bool = False) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
 
-        latent = self.ae.encode(x)
+        latent = self.__auto_encoder.encode(x)
         latent = arrange_tensors(latent, self.n_subsets)
         
         latent = latent.reshape(x.shape[0] // self.n_subsets, self.n_subsets, -1).mean(1)
