@@ -7,9 +7,11 @@ from ts3l.models.common import TS3LModule
 from .vime_self import VIMESelfSupervised
 from .vime_semi import VIMESemiSupervised
 
+from ts3l.utils import EmbeddingConfig
+
 class VIME(TS3LModule):
     def __init__(self, 
-                input_dim: int, hidden_dim: int, output_dim: int):
+                embedding_config: EmbeddingConfig, hidden_dim: int, output_dim: int, **kwargs):
         """Initialize VIME
 
         Args:
@@ -17,9 +19,9 @@ class VIME(TS3LModule):
             hidden_dim (int): The hidden dimension of the predictor
             output_dim (int): The output dimension of the predictor
         """
-        super(VIME, self).__init__()
-        self.__encoder = VIMESelfSupervised(input_dim)
-        self.predictor = VIMESemiSupervised(input_dim, hidden_dim, output_dim)
+        super(VIME, self).__init__(embedding_config)
+        self.__encoder = VIMESelfSupervised(self.embedding_module.output_dim, embedding_config.input_dim)
+        self.predictor = VIMESemiSupervised(self.embedding_module.output_dim, hidden_dim, output_dim)
         
     @property
     def encoder(self) -> nn.Module:
@@ -34,6 +36,7 @@ class VIME(TS3LModule):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: The predicted mask vector and predicted features
         """
+        x = self.embedding_module(x)
         mask_output, feature_output = self.encoder(x)
         return mask_output, feature_output
     
@@ -47,6 +50,7 @@ class VIME(TS3LModule):
         Returns:
             torch.Tensor: The predicted logits of VIME
         """
+        x = self.embedding_module(x)
         x = self.encoder.h(x)
         logits = self.predictor(x)
         return logits

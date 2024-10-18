@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class VIMESelfSupervised(nn.Module):
-    def __init__(self, input_dim:int):
+    def __init__(self, input_dim: int, output_dim: int):
         """Initialize self-supervised module of VIME
 
         Args:
@@ -10,8 +10,8 @@ class VIMESelfSupervised(nn.Module):
         """
         super().__init__()
         self.h = nn.Linear(input_dim, input_dim, bias=True)
-        self.mask_output = nn.Linear(input_dim, input_dim, bias=True)
-        self.feature_output = nn.Linear(input_dim, input_dim, bias=True)
+        self.mask_output = nn.Linear(input_dim, output_dim, bias=True)
+        self.feature_output = nn.Linear(input_dim, output_dim, bias=True)
 
     def forward(self, x):
         """The forward pass of self-supervised module of VIME

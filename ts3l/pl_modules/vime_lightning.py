@@ -6,6 +6,7 @@ from .base_module import TS3LLightining
 from ts3l.models import VIME
 from ts3l.utils.vime_utils import VIMEConfig
 from ts3l import functional as F
+from ts3l.utils import BaseConfig
 
 class VIMELightning(TS3LLightining):
     
@@ -17,32 +18,23 @@ class VIMELightning(TS3LLightining):
         """
         super(VIMELightning, self).__init__(config)
     
-    def _initialize(self, config: Dict[str, Any]) -> None:
+    def _initialize(self, config: BaseConfig) -> None:
         """Initializes the model with specific hyperparameters and sets up various components of VIMELightning.
 
         Args:
             config (Dict[str, Any]): The given hyperparameter set for VIME. 
         """
         
-        self.alpha1 = config["alpha1"]
-        self.alpha2 = config["alpha2"]
-        del config["alpha1"]
-        del config["alpha2"]
+        self.alpha1 = config.alpha1
+        self.alpha2 = config.alpha2
         
-        self.beta = config["beta"]
-        del config["beta"]
+        self.beta = config.beta
         
-        self.K = config["K"]
-        del config["K"]
+        self.K = config.K
         
-        self.num_categoricals, self.num_continuous = config["num_categoricals"], config["num_continuous"]
-        del config["num_categoricals"]
-        del config["num_continuous"]
+        self.num_categoricals, self.num_continuous = config.num_categoricals, config.num_continuous
         
-        self.u_label = config["u_label"]
-        del config["u_label"]
-        
-        del config["p_m"]
+        self.u_label = config.u_label
         
         self.mask_loss_fn = nn.BCELoss()
         self.categorical_feature_loss_fn = nn.CrossEntropyLoss()

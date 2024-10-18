@@ -90,7 +90,7 @@ class SubTabCollateFN(object):
         self.noise_type = self.config.noise_type
         self.noise_level = self.config.noise_level
         
-        self.input_dim = self.config.input_dim
+        self.input_dim = self.config.embedding_config.input_dim
         self.n_column_subset = int(self.input_dim / self.n_subsets)
         # Number of overlapping features between subsets
         self.n_overlap = int(self.overlap_ratio * self.n_column_subset)

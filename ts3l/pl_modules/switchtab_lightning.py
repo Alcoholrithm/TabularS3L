@@ -6,6 +6,7 @@ from .base_module import TS3LLightining
 from ts3l.models import SwitchTab
 from ts3l.utils.switchtab_utils import SwitchTabConfig
 from ts3l import functional as F
+from ts3l.utils import BaseConfig
 
 class SwitchTabLightning(TS3LLightining):
     
@@ -17,18 +18,15 @@ class SwitchTabLightning(TS3LLightining):
         """
         super(SwitchTabLightning, self).__init__(config)
     
-    def _initialize(self, config: Dict[str, Any]) -> None:
+    def _initialize(self, config: BaseConfig) -> None:
         """Initializes the model with specific hyperparameters and sets up various components of SwitchTabLightning.
 
         Args:
             config (Dict[str, Any]): The given hyperparameter set for SwitchTab. 
         """
         
-        self.u_label = config["u_label"]
-        self.alpha = config["alpha"]
-        del config["u_label"]
-        del config["alpha"]
-        del config["corruption_rate"]
+        self.u_label = config.u_label
+        self.alpha = config.alpha
         
         self.reconstruction_loss_fn = nn.MSELoss()
         

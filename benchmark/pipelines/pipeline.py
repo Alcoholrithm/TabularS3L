@@ -3,6 +3,7 @@ import pandas as pd
 from typing import List, Type, Dict, Any
 from ts3l.utils import BaseConfig, RegressionMetric, ClassificationMetric
 from ts3l.pl_modules.base_module import TS3LLightining
+from ts3l.utils import EmbeddingConfig
 
 from abc import ABC, abstractmethod
 import optuna
@@ -45,8 +46,9 @@ class PipeLine(ABC):
         self.config_class = None
         self.pl_module_class = None
         self.hparams_range = None
-    
+
         self.__configure_metric()
+        self._set_embedding_config()
         self.initialize()
         
         self.check_attributes()
@@ -60,6 +62,7 @@ class PipeLine(ABC):
             hparams[k] = getattr(trial, v[0])(*v[1])
 
         config = self._get_config(hparams)
+
         pl_module = self.pl_module_class(config)
 
         pl_module = self.fit_model(pl_module, config)
@@ -126,7 +129,9 @@ class PipeLine(ABC):
         hparams["random_seed"] = self.args.random_seed
         
         return hparams
-        
+    
+    def _set_embedding_config(self):
+        self._embedding_config = EmbeddingConfig(input_dim=self.data.shape[1])
     
     def benchmark(self):
         hparams = self.__tune_hyperparameters()

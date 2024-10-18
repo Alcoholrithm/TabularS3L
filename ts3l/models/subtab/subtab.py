@@ -5,6 +5,9 @@ from torch.nn import functional as F
 from typing import Tuple, Union
 from ts3l.models.common import TS3LModule
 from ts3l.functional.subtab import arrange_tensors
+
+from ts3l.utils import EmbeddingConfig
+
 class ShallowEncoder(nn.Module):
     def __init__(self,
                  feat_dim : int,
@@ -41,15 +44,16 @@ class ShallowDecoder(nn.Module):
 
 class AutoEncoder(nn.Module):
     def __init__(self,
-                 feat_dim : int,
+                 input_dim : int,
+                 output_dim : int,
                  hidden_dim : int,
                  n_subsets : int,
                  overlap_ratio : float,
     ) -> None:
         super().__init__()
 
-        self.encoder = ShallowEncoder(feat_dim, hidden_dim, n_subsets, overlap_ratio)
-        self.decoder = ShallowDecoder(hidden_dim, feat_dim)
+        self.encoder = ShallowEncoder(input_dim, hidden_dim, n_subsets, overlap_ratio)
+        self.decoder = ShallowDecoder(hidden_dim, output_dim)
 
         self.projection_net = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
@@ -73,20 +77,18 @@ class AutoEncoder(nn.Module):
 class SubTab(TS3LModule):
 
     def __init__(self,
-                 input_dim: int,
+                 embedding_config: EmbeddingConfig,
                  output_dim: int,
                  hidden_dim: int,
                  
                  n_subsets: int,
                  overlap_ratio: float,
+                 **kwargs
     ) -> None:
-        super(SubTab, self).__init__()
-
-        self.feat_dim = input_dim
+        super(SubTab, self).__init__(embedding_config)
         
         self.n_subsets = n_subsets
-        
-        self.__auto_encoder = AutoEncoder(self.feat_dim, hidden_dim, n_subsets, overlap_ratio)
+        self.__auto_encoder = AutoEncoder(self.embedding_module.output_dim, embedding_config.input_dim, hidden_dim, n_subsets, overlap_ratio)
         
         self.head = nn.Sequential(
             nn.Linear(hidden_dim, output_dim)
@@ -97,7 +99,10 @@ class SubTab(TS3LModule):
         return self.__auto_encoder
     
     def _first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-
+        # print(x.shape)
+        x = self.embedding_module(x)
+        # print(x.shape)
+        # exit()
         latents, projections, x_recons = self.__auto_encoder(x)
         
         return projections, x_recons
@@ -105,7 +110,7 @@ class SubTab(TS3LModule):
     def _second_phase_step(self, 
                 x : torch.Tensor,
                 return_embeddings : bool = False) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
-
+        x = self.embedding_module(x)
         latent = self.__auto_encoder.encode(x)
         latent = arrange_tensors(latent, self.n_subsets)
         

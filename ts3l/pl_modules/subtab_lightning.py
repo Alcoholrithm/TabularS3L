@@ -7,6 +7,7 @@ from ts3l.models.subtab import JointLoss
 import torch
 from ts3l.utils.subtab_utils import SubTabConfig
 from ts3l import functional as F
+from ts3l.utils import BaseConfig
 class SubTabLightning(TS3LLightining):
     
     def __init__(self, config: SubTabConfig) -> None:
@@ -17,30 +18,21 @@ class SubTabLightning(TS3LLightining):
         """
         super(SubTabLightning, self).__init__(config)
 
-    def _initialize(self, config: Dict[str, Any]):
+    def _initialize(self, config: BaseConfig):
         """Initializes the model with specific hyperparameters and sets up various components of SubTabLightning.
 
         Args:
             config (Dict[str, Any]): The given hyperparameter set for SubTab. 
         """
         self.joint_loss_fn = JointLoss(
-                                        config["tau"],
-                                        config["n_subsets"],
-                                        config["use_contrastive"],
-                                        config["use_distance"],
-                                        use_cosine_similarity = config["use_cosine_similarity"]
+                                        config.tau,
+                                        config.n_subsets,
+                                        config.use_contrastive,
+                                        config.use_distance,
+                                        use_cosine_similarity = config.use_cosine_similarity
                                         )
 
-        self.n_subsets = config["n_subsets"]
-
-        del config["tau"],
-        del config["use_contrastive"]
-        del config["use_distance"]
-        del config["use_cosine_similarity"]
-        del config["shuffle"]
-        del config["mask_ratio"]
-        del config["noise_type"]
-        del config["noise_level"]
+        self.n_subsets = config.n_subsets
         
         self._init_model(SubTab, config)
 

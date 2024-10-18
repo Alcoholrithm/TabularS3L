@@ -5,6 +5,8 @@ from torch import optim, nn
 import torchmetrics
 import sklearn
 
+from . import EmbeddingConfig
+
 import sys
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -30,7 +32,7 @@ class BaseConfig:
         metric_hparams (Dict[str, Any]): Hyperparameters for the metric. Default is an empty dictionary.
         initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
-
+        embedding_config (EmbeddingConfig): 
     Raises:
         ValueError: If the specified 'optim' is not a valid optimizer in 'torch.optim'.
         ValueError: If the specified 'scheduler' is not None and is not a valid scheduler in 'torch.optim.lr_scheduler'.
@@ -44,7 +46,7 @@ class BaseConfig:
     """
     task: str
     
-    input_dim: int
+    # input_dim: int
     
     output_dim: int
     
@@ -73,6 +75,10 @@ class BaseConfig:
     
     random_seed: int = field(default=42)
     
+    backbone: str = field(default="mlp")
+    
+    embedding_config: EmbeddingConfig = field(default_factory=lambda: EmbeddingConfig(module="identity", args={}))
+    
     def __post_init__(self):
 
         if (type(self.task) is not str or (self.task != "regression" and self.task != "classification")):
@@ -95,3 +101,6 @@ class BaseConfig:
                 
         elif (type(self.metric) is not str or (not hasattr(torchmetrics.functional, self.metric) and not hasattr(sklearn.metrics, self.metric))):
             raise ValueError(f"{self.metric} is not a valid metric in torchmetrics.functional or sklearn.metrics")
+        
+        if self.backbone == "transformer":
+            self.embedding_config.args["required_token_dim"] = 2

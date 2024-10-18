@@ -19,3 +19,5 @@ def get_args():
     args.devices = "auto"
     
     return args
+
+embeddings = ["identity", "feature_tokenizer"]

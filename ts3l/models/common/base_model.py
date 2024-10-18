@@ -2,10 +2,12 @@ from abc import ABC, abstractmethod
 import torch
 from torch import nn
 from typing import Any, Union, Tuple
-
+from ts3l.utils import EmbeddingConfig
+from ts3l.models.common import TS3LEmbeddingModule
 class TS3LModule(ABC, nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, config: EmbeddingConfig) -> None:
         super(TS3LModule, self).__init__()
+        self.embedding_module = TS3LEmbeddingModule(config)
         
     def __init_subclass__(cls) -> None:
         super().__init_subclass__()

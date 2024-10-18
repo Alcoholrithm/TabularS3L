@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 from typing import List, Type, Dict, Any
-from ts3l.utils import BaseConfig
+from ts3l.utils import BaseConfig, EmbeddingConfig
 from ts3l.pl_modules.base_module import TS3LLightining
 
 from ts3l.pl_modules import SwitchTabLightning
@@ -23,10 +23,10 @@ import torch
 class SwitchTabPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
+        self.category_dims = get_category_dims(data, category_cols)
         super().__init__(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
         
-        self.category_dims = get_category_dims(data, category_cols)
-            
+        
     def initialize(self):
         self.config_class = SwitchTabConfig
         self.pl_module_class = SwitchTabLightning
@@ -39,8 +39,13 @@ class SwitchTabPipeLine(PipeLine):
         del hparams["encoder_head_dim"]
         
         hparams["category_dims"] = self.category_dims
+                
+        self._embedding_config = EmbeddingConfig(input_dim=self.data.shape[1], module="feature_tokenizer", args={
+            "cont_nums" : self.data.shape[1] - len(self.category_cols),
+            "cat_dims" : self.category_dims
+        })
         
-        return self.config_class(input_dim = self.data.shape[1], output_dim = self.output_dim, **hparams)
+        return self.config_class(embedding_config=self._embedding_config, output_dim = self.output_dim, backbone="transformer", **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         

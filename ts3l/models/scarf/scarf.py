@@ -6,17 +6,18 @@ import torch.nn.functional as F
 
 from ts3l.models.common import TS3LModule
 from ts3l.models.common import MLP
-
+from ts3l.utils import EmbeddingConfig
 
 class SCARF(TS3LModule):
     def __init__(
         self,
-        input_dim,
+        embedding_config: EmbeddingConfig,
         hidden_dim,
         output_dim,
         encoder_depth=4,
         head_depth=2,
         dropout_rate = 0.04,
+        **kwargs
     ) -> None:
         """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
         It consists in an encoder that learns the embeddings.
@@ -30,9 +31,9 @@ class SCARF(TS3LModule):
                 head_depth (int, optional): The number of layers of the pretraining head. Defaults to 2.
                 dropout_rate (float, optional): A hyperparameter that is to control dropout layer. Default is 0.04.
         """
-        super(SCARF, self).__init__()
+        super(SCARF, self).__init__(embedding_config)
 
-        self.__encoder = MLP(input_dim, hidden_dim, encoder_depth)
+        self.__encoder = MLP(self.embedding_module.output_dim, hidden_dim, encoder_depth)
 
         self.pretraining_head = MLP(hidden_dim, hidden_dim, head_depth)
 
@@ -50,7 +51,9 @@ class SCARF(TS3LModule):
         return self.__encoder
         
     def _first_phase_step(self, x: torch.Tensor, x_corrupted: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-
+        
+        x = self.embedding_module(x)
+        
         emb_anchor = self.encoder(x)
         emb_anchor = self.pretraining_head(emb_anchor)
 
@@ -63,6 +66,7 @@ class SCARF(TS3LModule):
         return emb_anchor, emb_corrupted
     
     def _second_phase_step(self, x) -> torch.Tensor:
+        x = self.embedding_module(x)
         emb = self.encoder(x)
         output = self.head(emb)
 
