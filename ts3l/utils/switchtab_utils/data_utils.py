@@ -66,7 +66,7 @@ class SwitchTabDataset(Dataset):
             self.label = self.label_class(Y)
             
             if unlabeled_data is not None:
-                self.label = torch.concat((self.label, self.label_class([u_label for _ in range(len(unlabeled_data))])), dim=0)
+                self.label = torch.concat((self.label, self.label_class([u_label for _ in range(len(unlabeled_data))])), dim=0) # type: ignore
             
             if not is_regression:
                 class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]

@@ -25,6 +25,9 @@ class VIMELightning(TS3LLightining):
             config (Dict[str, Any]): The given hyperparameter set for VIME. 
         """
         
+        if not isinstance(config, VIMEConfig):
+            raise TypeError(f"Expected VIMEConfig, got {type(config)}")
+        
         self.alpha1 = config.alpha1
         self.alpha2 = config.alpha2
         

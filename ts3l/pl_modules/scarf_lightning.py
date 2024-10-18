@@ -24,6 +24,9 @@ class SCARFLightning(TS3LLightining):
         Args:
             config (Dict[str, Any]): The given hyperparameter set for SCARF.
         """
+        if not isinstance(config, SCARFConfig):
+            raise TypeError(f"Expected SCARFConfig, got {type(config)}")
+        
         self.contrastive_loss = NTXentLoss(config.tau)
 
         self._init_model(SCARF, config)

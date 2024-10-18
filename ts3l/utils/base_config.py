@@ -47,6 +47,7 @@ class BaseConfig:
     task: str
     
     # input_dim: int
+    embedding_config: EmbeddingConfig
     
     output_dim: int
     
@@ -77,7 +78,6 @@ class BaseConfig:
     
     backbone: str = field(default="mlp")
     
-    embedding_config: EmbeddingConfig = field(default_factory=lambda: EmbeddingConfig(module="identity", args={}))
     
     def __post_init__(self):
 

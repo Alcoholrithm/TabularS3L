@@ -24,6 +24,9 @@ class SubTabLightning(TS3LLightining):
         Args:
             config (Dict[str, Any]): The given hyperparameter set for SubTab. 
         """
+        if not isinstance(config, SubTabConfig):
+            raise TypeError(f"Expected SubTabConfig, got {type(config)}")
+        
         self.joint_loss_fn = JointLoss(
                                         config.tau,
                                         config.n_subsets,

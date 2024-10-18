@@ -24,6 +24,8 @@ class SwitchTabLightning(TS3LLightining):
         Args:
             config (Dict[str, Any]): The given hyperparameter set for SwitchTab. 
         """
+        if not isinstance(config, SwitchTabConfig):
+            raise TypeError(f"Expected SwitchTabConfig, got {type(config)}")
         
         self.u_label = config.u_label
         self.alpha = config.alpha

@@ -24,8 +24,6 @@ class TS3LLightining(ABC, pl.LightningModule):
         """
         super(TS3LLightining, self).__init__()
         
-        # _config = asdict(config)
-        
         self.random_seed = config.random_seed
         
         pl.seed_everything(self.random_seed)

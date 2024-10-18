@@ -38,7 +38,7 @@ class Encoder(nn.Module):
             n_head = closest_num_heads
         
         self.encoder_layers = nn.ModuleList([
-                nn.TransformerEncoderLayer(d_model=d_model, nhead=n_head, dim_feedforward=hidden_dim*ffn_factor, dropout=dropout_rate, batch_first=True)
+                nn.TransformerEncoderLayer(d_model=d_model, nhead=n_head, dim_feedforward=int(hidden_dim*ffn_factor), dropout=dropout_rate, batch_first=True)
                 for _ in range(encoder_depth)
             ])
         

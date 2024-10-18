@@ -24,7 +24,9 @@ class DAELightning(TS3LLightining):
         Args:
             config (Dict[str, Any]): The given hyperparameter set for DAE.
         """
-
+        if not isinstance(config, DAEConfig):
+            raise TypeError(f"Expected DAEConfig, got {type(config)}")
+        
         self.mask_loss_weight = config.mask_loss_weight
 
         self.num_categoricals, self.num_continuous = (
