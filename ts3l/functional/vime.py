@@ -71,6 +71,7 @@ def second_phase_step(
         torch.Tensor: The predicted label (logit)
     """
     x, _ = batch
+    
     return model(x).squeeze()
 
 

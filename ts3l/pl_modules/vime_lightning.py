@@ -85,7 +85,7 @@ class VIMELightning(TS3LLightining):
             torch.Tensor: The predicted label of the labeled data
         """
         _, y = batch
-        
+
         y_hat = F.vime.second_phase_step(self.model, batch)
         
         labeled_idx = (y != self.u_label).flatten()

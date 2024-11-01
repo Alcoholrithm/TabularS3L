@@ -6,10 +6,12 @@ from typing import Tuple, Union
 from ts3l.models.common import TS3LModule
 from ts3l.functional.subtab import arrange_tensors
 
-from ts3l.utils import EmbeddingConfig
+from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
+from ts3l.models.common import TS3LBackboneModule
 
 class ShallowEncoder(nn.Module):
     def __init__(self,
+                 backbone_config: BaseBackboneConfig,
                  feat_dim : int,
                  hidden_dim : int,
                  n_subsets : int,
@@ -21,6 +23,7 @@ class ShallowEncoder(nn.Module):
         n_overlap = int(overlap_ratio * n_column_subset)
 
         self.net = nn.Sequential(
+            
             nn.Linear(n_column_subset + n_overlap, hidden_dim),
             nn.LeakyReLU(),
         )
@@ -45,6 +48,7 @@ class ShallowDecoder(nn.Module):
 class AutoEncoder(nn.Module):
     def __init__(self,
                  input_dim : int,
+                 backbone_config: BaseBackboneConfig,
                  output_dim : int,
                  hidden_dim : int,
                  n_subsets : int,
@@ -52,7 +56,7 @@ class AutoEncoder(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.encoder = ShallowEncoder(input_dim, hidden_dim, n_subsets, overlap_ratio)
+        self.encoder = ShallowEncoder(backbone_config, input_dim, hidden_dim, n_subsets, overlap_ratio)
         self.decoder = ShallowDecoder(hidden_dim, output_dim)
 
         self.projection_net = nn.Sequential(
@@ -74,45 +78,75 @@ class AutoEncoder(nn.Module):
         x_recon = self.decode(latent)
         return latent, projection, x_recon
 
+class Projector(nn.Module):
+    def __init__(self, emb_dim, hidden_dim):
+        super().__init__()
+        self.projection_net = nn.Sequential(
+            nn.Linear(emb_dim, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+    
+    def forward(self, x):
+        x = self.projection_net(x)
+        return F.normalize(x, p = 2, dim = 1)
 class SubTab(TS3LModule):
 
     def __init__(self,
-                 embedding_config: EmbeddingConfig,
+                 embedding_config: BaseEmbeddingConfig,
+                 backbone_config: BaseBackboneConfig,
                  output_dim: int,
-                 hidden_dim: int,
+                 projection_dim: int,
                  
                  n_subsets: int,
                  overlap_ratio: float,
                  **kwargs
     ) -> None:
-        super(SubTab, self).__init__(embedding_config)
+        self.n_column_subset = int(embedding_config.output_dim / n_subsets)
+        self.n_overlap = int(overlap_ratio * self.n_column_subset)
+        
+        super(SubTab, self).__init__(embedding_config, backbone_config)
+        
         
         self.n_subsets = n_subsets
-        self.__auto_encoder = AutoEncoder(self.embedding_module.output_dim, embedding_config.input_dim, hidden_dim, n_subsets, overlap_ratio)
+        self.projector = Projector(backbone_config.output_dim, projection_dim)
+        self.decoder = ShallowDecoder(backbone_config.output_dim, self.embedding_module.output_dim)
+        # self.__auto_encoder = AutoEncoder(self.embedding_module.output_dim, embedding_config.input_dim, hidden_dim, n_subsets, overlap_ratio)
         
         self.head = nn.Sequential(
-            nn.Linear(hidden_dim, output_dim)
+            nn.Linear(backbone_config.output_dim, output_dim)
         )
 
+    def _set_backbone_module(self, backbone_config):
+
+        if hasattr(backbone_config, "input_dim"):
+            backbone_config.input_dim = self.n_column_subset + self.n_overlap
+
+        self.backbone_module = TS3LBackboneModule(backbone_config)
     @property
     def encoder(self) -> nn.Module:
-        return self.__auto_encoder
+        return self.backbone_module
     
     def _first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # print(x.shape)
         x = self.embedding_module(x)
         # print(x.shape)
-        # exit()
-        latents, projections, x_recons = self.__auto_encoder(x)
-        
+        x = self.backbone_module(x)
+        # print(x.shape)
+        projections = self.projector(x)
+        x_recons = self.decoder(x)
+        # latents, projections, x_recons = self.__auto_encoder(x)
+
         return projections, x_recons
     
     def _second_phase_step(self, 
                 x : torch.Tensor,
                 return_embeddings : bool = False) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
         x = self.embedding_module(x)
-        latent = self.__auto_encoder.encode(x)
-        latent = arrange_tensors(latent, self.n_subsets)
+        x = self.backbone_module(x)
+        
+        # latent = self.__auto_encoder.encode(x)
+        latent = arrange_tensors(x, self.n_subsets)
         
         latent = latent.reshape(x.shape[0] // self.n_subsets, self.n_subsets, -1).mean(1)
         out = self.head(latent)

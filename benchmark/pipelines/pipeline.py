@@ -3,7 +3,8 @@ import pandas as pd
 from typing import List, Type, Dict, Any
 from ts3l.utils import BaseConfig, RegressionMetric, ClassificationMetric
 from ts3l.pl_modules.base_module import TS3LLightining
-from ts3l.utils import EmbeddingConfig
+from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+from ts3l.utils.backbone_utils import MLPBackboneConfig
 
 from abc import ABC, abstractmethod
 import optuna
@@ -49,6 +50,7 @@ class PipeLine(ABC):
 
         self.__configure_metric()
         self._set_embedding_config()
+        self._set_backbone_config()
         self.initialize()
         
         self.check_attributes()
@@ -131,8 +133,11 @@ class PipeLine(ABC):
         return hparams
     
     def _set_embedding_config(self):
-        self._embedding_config = EmbeddingConfig(input_dim=self.data.shape[1])
+        self._embedding_config = IdentityEmbeddingConfig(input_dim=self.data.shape[1])
     
+    def _set_backbone_config(self):
+        self._backbone_config = MLPBackboneConfig(input_dim = self._embedding_config.output_dim, hidden_dims=128)
+        
     def benchmark(self):
         hparams = self.__tune_hyperparameters()
         

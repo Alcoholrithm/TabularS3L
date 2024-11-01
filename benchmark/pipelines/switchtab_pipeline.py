@@ -1,7 +1,9 @@
 import argparse
 import pandas as pd
 from typing import List, Type, Dict, Any
-from ts3l.utils import BaseConfig, EmbeddingConfig
+from ts3l.utils import BaseConfig
+from ts3l.utils.embedding_utils import FTEmbeddingConfig
+from ts3l.utils.backbone_utils import TransformerBackboneConfig
 from ts3l.pl_modules.base_module import TS3LLightining
 
 from ts3l.pl_modules import SwitchTabLightning
@@ -40,12 +42,14 @@ class SwitchTabPipeLine(PipeLine):
         
         hparams["category_dims"] = self.category_dims
                 
-        self._embedding_config = EmbeddingConfig(input_dim=self.data.shape[1], module="feature_tokenizer", args={
-            "cont_nums" : self.data.shape[1] - len(self.category_cols),
-            "cat_dims" : self.category_dims
-        })
-        
-        return self.config_class(embedding_config=self._embedding_config, output_dim = self.output_dim, backbone="transformer", **hparams)
+        self._embedding_config = FTEmbeddingConfig(input_dim=self.data.shape[1],
+            cont_nums = self.data.shape[1] - len(self.category_cols),
+            cat_dims = self.category_dims,
+            required_token_dim=2
+        )
+
+        self._backbone_config = TransformerBackboneConfig(d_model = self._embedding_config.emb_dim, ffn_factor=hparams["ffn_factor"], hidden_dim=hparams["hidden_dim"], encoder_depth=hparams["encoder_depth"], n_head=hparams["n_head"])
+        return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         

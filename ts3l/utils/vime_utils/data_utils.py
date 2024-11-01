@@ -208,7 +208,7 @@ class VIMEDataset(Dataset):
                 xs = torch.stack(_xs)
                 return xs, self.label_class([self.u_label for _ in range(len(xs))])
             else:
-                return x.unsqueeze(0), self.label[idx].unsqueeze(0)
+                return x, self.label[idx].unsqueeze(0)
         else:
             return x, self.u_label
             
@@ -226,4 +226,4 @@ class VIMESecondPhaseCollateFN(object):
     """
     
     def __call__(self, batch):
-        return torch.concat([x for x, _, in batch], dim=0), torch.concat([label for _, label in batch], dim=0)
+        return torch.stack([x for x, _, in batch], dim=0), torch.concat([label for _, label in batch], dim=0)

@@ -32,7 +32,7 @@ class SubTabPipeLine(PipeLine):
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
         
-        return self.config_class(embedding_config=self._embedding_config, output_dim = self.output_dim, **hparams)
+        return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         train_ds = SubTabDataset(self.X_train, unlabeled_data=self.X_unlabeled)

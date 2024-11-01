@@ -35,7 +35,7 @@ class VIMEPipeLine(PipeLine):
         hparams["num_continuous"] = len(self.continuous_cols)
         hparams["num_categoricals"] = len(self.category_cols)
         
-        return self.config_class(embedding_config=self._embedding_config, output_dim = self.output_dim, **hparams)
+        return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         train_ds = VIMEDataset(X = self.X_train, unlabeled_data = self.X_unlabeled, config=config, continuous_cols = self.continuous_cols, category_cols = self.category_cols)

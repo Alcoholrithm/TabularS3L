@@ -3,7 +3,7 @@ from torch import nn
 
 from typing import Tuple, List, Union
 from ts3l.models.common import TS3LModule
-from ts3l.utils import EmbeddingConfig
+from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
 class Encoder(nn.Module):
     def __init__(self, 
@@ -43,7 +43,6 @@ class Encoder(nn.Module):
             ])
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
         for layer in self.encoder_layers:
             x = layer(x)
         cls_token = x[:, 0]
@@ -83,13 +82,15 @@ class Decoder(nn.Module):
 
 class SwitchTab(TS3LModule):
     def __init__(self,
-                    embedding_config: EmbeddingConfig,
+                    embedding_config: BaseEmbeddingConfig,
+                    backbone_config: BaseBackboneConfig,
                     output_dim: int,
-                    hidden_dim: int,
-                    ffn_factor: int,
-                    dropout_rate: float,
-                    encoder_depth: int = 3,
-                    n_head: int = 2, **kwargs) -> None:
+                    # hidden_dim: int,
+                    # ffn_factor: int,
+                    # dropout_rate: float,
+                    # encoder_depth: int = 3,
+                    # n_head: int = 2, 
+                    **kwargs) -> None:
         """Initialize SwitchTab
 
         Args:
@@ -102,13 +103,13 @@ class SwitchTab(TS3LModule):
             encoder_depth (int, optional): The number of layers in the encoder. Defaults to 3.
             n_head (int, optional): The number of attention heads in the encoder. Defaults to 2.
         """
-        super(SwitchTab, self).__init__(embedding_config)
+        super(SwitchTab, self).__init__(embedding_config, backbone_config)
         # self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.__return_salient_feature = False
         
         
-        self.__encoder = Encoder(self.embedding_module.output_dim, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
+        # self.__encoder = Encoder(self.embedding_module.output_dim, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
         self.projector_m = Projector(self.embedding_module.output_dim)
         self.projector_s = Projector(self.embedding_module.output_dim)
         
@@ -118,7 +119,7 @@ class SwitchTab(TS3LModule):
 
     @property
     def encoder(self) -> nn.Module:
-        return self.__encoder
+        return self.backbone_module
         
     @property
     def return_salient_feature(self) -> bool:

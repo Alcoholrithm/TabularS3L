@@ -2,12 +2,16 @@ from abc import ABC, abstractmethod
 import torch
 from torch import nn
 from typing import Any, Union, Tuple
-from ts3l.utils import EmbeddingConfig
-from ts3l.models.common import TS3LEmbeddingModule
+from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
+from .embedding import TS3LEmbeddingModule
+from .backbone import TS3LBackboneModule
+# from ts3l.models.common.backbone import TS3LBackboneModule
+
 class TS3LModule(ABC, nn.Module):
-    def __init__(self, config: EmbeddingConfig) -> None:
+    def __init__(self, embedding_config: BaseEmbeddingConfig, backbone_config: BaseBackboneConfig) -> None:
         super(TS3LModule, self).__init__()
-        self.embedding_module = TS3LEmbeddingModule(config)
+        self.embedding_module = TS3LEmbeddingModule(embedding_config)
+        self._set_backbone_module(backbone_config)
         
     def __init_subclass__(cls) -> None:
         super().__init_subclass__()
@@ -18,6 +22,8 @@ class TS3LModule(ABC, nn.Module):
             return new_init
         cls.__init__ = init_decorator(cls.__init__) # type: ignore
         
+    def _set_backbone_module(self, backbone_config):
+        self.backbone_module = TS3LBackboneModule(backbone_config)
         
     @property
     @abstractmethod

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from typing import Union, Type, List
 
-from ts3l.utils import EmbeddingConfig
+from ts3l.utils import BaseEmbeddingConfig
 
 class FeatureTokenizer(nn.Module):
 
@@ -11,6 +11,7 @@ class FeatureTokenizer(nn.Module):
                 cont_nums : int,
                 cat_dims : List[int],
                 required_token_dim: int = 1,
+                **kwargs,
         ) -> None:
         super().__init__()
         self.emb_dim = emb_dim
@@ -82,7 +83,7 @@ class FeatureTokenizer(nn.Module):
         return x.reshape(-1, self.emb_dim * self.n_features)
         
 class TS3LEmbeddingModule(nn.Module):
-    def __init__(self, config: EmbeddingConfig):
+    def __init__(self, config: BaseEmbeddingConfig):
         super().__init__()
         self.config = config
         
@@ -96,10 +97,10 @@ class TS3LEmbeddingModule(nn.Module):
         if self.config.module == "identity":
             self.output_dim = self.config.input_dim
         else:
-            self.output_dim = self.config.args["emb_dim"]
+            self.output_dim = self.config.emb_dim
     
     def __set_embedding_layer(self):
         if self.config.module == "identity":
             self.embeding_layer = nn.Identity()
         elif self.config.module == "feature_tokenizer":
-            self.embeding_layer = FeatureTokenizer(**self.config.args)
+            self.embeding_layer = FeatureTokenizer(**self.config.__dict__)

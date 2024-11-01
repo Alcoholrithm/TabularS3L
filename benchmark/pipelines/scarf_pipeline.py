@@ -32,7 +32,7 @@ class SCARFPipeLine(PipeLine):
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
         
-        return self.config_class(embedding_config=self._embedding_config, output_dim = self.output_dim, **hparams)
+        return self.config_class(embedding_config=self._embedding_config, output_dim = self.output_dim, backbone_config=self._backbone_config, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         

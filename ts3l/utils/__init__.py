@@ -1,7 +1,8 @@
 from .datamodule import TS3LDataModule
 from .misc import RegressionMetric, ClassificationMetric, get_category_dims
-from .embedding_config import EmbeddingConfig
+from .backbone_config import BackboneConfig
 from .base_config import BaseConfig
+from .embedding_utils import BaseEmbeddingConfig
+from .backbone_utils import BaseBackboneConfig
 
-
-__all__ = ["TS3LDataModule", "vime_utils", "subtab_utils", "scarf_utils", "RegressionMetric", "ClassificationMetric", "BaseConfig", "EmbeddingConfig", "get_category_dims"]
+__all__ = ["TS3LDataModule", "vime_utils", "subtab_utils", "scarf_utils", "RegressionMetric", "ClassificationMetric", "BaseConfig", "BaseEmbeddingConfig", "BaseBackboneConfig", "get_category_dims"]

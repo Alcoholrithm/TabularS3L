@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Type
 from torch import optim, nn
 import torchmetrics
 import sklearn
 
-from . import EmbeddingConfig
+from .embedding_utils import BaseEmbeddingConfig
+from .backbone_utils import BaseBackboneConfig
 
 import sys
 if sys.version_info >= (3, 8):
@@ -47,7 +48,9 @@ class BaseConfig:
     task: str
     
     # input_dim: int
-    embedding_config: EmbeddingConfig
+    embedding_config: BaseEmbeddingConfig
+    
+    backbone_config: BaseBackboneConfig
     
     output_dim: int
     
