@@ -1,4 +1,4 @@
 from .subtab_config import SubTabConfig
-from .data_utils import SubTabDataset, SubTabCollateFN
+from .data_utils import SubTabDataset
 
-__all__ = ["SubTabDataset", "SubTabCollateFN", "SubTabConfig"]
+__all__ = ["SubTabDataset", "SubTabConfig"]

@@ -28,6 +28,8 @@ class DAEPipeLine(PipeLine):
         self.config_class = DAEConfig
         self.pl_module_class = DAELightning
         self.hparams_range = hparams_range
+        
+        super().initialize()
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)

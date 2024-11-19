@@ -28,6 +28,8 @@ class SCARFPipeLine(PipeLine):
         self.config_class = SCARFConfig
         self.pl_module_class = SCARFLightning
         self.hparams_range = hparams_range
+        
+        super().initialize()
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)

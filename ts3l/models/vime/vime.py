@@ -20,10 +20,10 @@ class VIME(TS3LModule):
         """
         super(VIME, self).__init__(embedding_config, backbone_config)
         # self.__encoder = VIMESelfSupervised(self.embedding_module.output_dim, embedding_config.input_dim)
-        self.mask_predictor = nn.Linear(self.backbone_module.config.output_dim, embedding_config.input_dim, bias=True)
-        self.feature_predictor = nn.Linear(self.backbone_module.config.output_dim, embedding_config.input_dim, bias=True)
+        self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
+        self.feature_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
         
-        self.predictor = VIMESemiSupervised(self.backbone_module.config.output_dim, hidden_dim, output_dim)
+        self.predictor = VIMESemiSupervised(self.backbone_module.output_dim, hidden_dim, output_dim)
         
     @property
     def encoder(self) -> nn.Module:

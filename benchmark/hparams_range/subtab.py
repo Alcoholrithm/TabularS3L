@@ -1,6 +1,6 @@
 hparams_range = {
         
-    'hidden_dim' : ['suggest_int', ['hidden_dim', 4, 1024]],
+    'projection_dim' : ['suggest_int', ['projection_dim', 4, 1024]],
     
     'tau' : ["suggest_float", ["tau", 0.05, 0.15]],
     "use_cosine_similarity" : ["suggest_categorical", ["use_cosine_similarity", [True, False]]],

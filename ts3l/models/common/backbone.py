@@ -13,10 +13,12 @@ class TS3LBackboneModule(nn.Module):
         self.__set_backbone_network()
     
     def __set_backbone_network(self):
-        if self.config.module == "mlp":
+        if self.config.name == "mlp":
             self.backbone = MLP(**self.config.__dict__)
-        elif self.config.module == "transformer":
+        elif self.config.name == "transformer":
             self.backbone = TransformerEncoder(**self.config.__dict__)
+        
+        self.output_dim = self.backbone.output_dim
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.backbone(x)

@@ -9,7 +9,6 @@ from ts3l.pl_modules.base_module import TS3LLightining
 from ts3l.pl_modules import SwitchTabLightning
 from ts3l.utils.switchtab_utils import SwitchTabConfig, SwitchTabDataset, SwitchTabFirstPhaseCollateFN
 from ts3l.utils import TS3LDataModule
-from ts3l.utils.misc import get_category_dims
 
 from hparams_range.switchtab import hparams_range
 
@@ -25,7 +24,6 @@ import torch
 class SwitchTabPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
-        self.category_dims = get_category_dims(data, category_cols)
         super().__init__(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
         
         
@@ -34,21 +32,12 @@ class SwitchTabPipeLine(PipeLine):
         self.pl_module_class = SwitchTabLightning
         self.hparams_range = hparams_range
         
+        super().initialize()
+        
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
-        hparams["hidden_dim"] = hparams["encoder_head_dim"] * hparams["n_head"]
-        del hparams["encoder_head_dim"]
         
-        hparams["category_dims"] = self.category_dims
-                
-        self._embedding_config = FTEmbeddingConfig(input_dim=self.data.shape[1],
-            cont_nums = self.data.shape[1] - len(self.category_cols),
-            cat_dims = self.category_dims,
-            required_token_dim=2
-        )
-
-        self._backbone_config = TransformerBackboneConfig(d_model = self._embedding_config.emb_dim, ffn_factor=hparams["ffn_factor"], hidden_dim=hparams["hidden_dim"], encoder_depth=hparams["encoder_depth"], n_head=hparams["n_head"])
         return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):

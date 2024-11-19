@@ -44,7 +44,7 @@ def arrange_tensors(x: torch.Tensor, n_subsets: int) -> torch.Tensor:
     return torch.concat([x[:, i] for i in range(samples)])
     
 def first_phase_step(
-    model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Forward step of SubTab during the first phase.
 
@@ -55,7 +55,8 @@ def first_phase_step(
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: The projections of each subset and the reconstructed input feature vectors.
     """
-    x, _, _ = batch
+    #x, _, _ = batch
+    x, _ = batch
     
     projections, x_recons = model(x)
     
@@ -93,7 +94,7 @@ def first_phase_loss(
 
 
 def second_phase_step(
-    model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
 ) -> torch.Tensor:
     """Forward step of SubTab during the second phase.
 
@@ -104,7 +105,7 @@ def second_phase_step(
     Returns:
         torch.Tensor: The predicted label (logit).
     """
-    x, _, _ = batch
+    x, _ = batch
     return model(x).squeeze()
 
 def second_phase_loss(

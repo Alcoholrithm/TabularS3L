@@ -65,7 +65,7 @@ class Projector(nn.Module):
         return self.linear(self.activation(x))
 
 class Decoder(nn.Module):
-    def __init__(self, output_dim:int, hidden_dim: int) -> None:
+    def __init__(self, hidden_dim: int, output_dim:int) -> None:
         """Initializes the decoder module used in the SwitchTab
 
         Args:
@@ -110,11 +110,11 @@ class SwitchTab(TS3LModule):
         
         
         # self.__encoder = Encoder(self.embedding_module.output_dim, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
-        self.projector_m = Projector(self.embedding_module.output_dim)
-        self.projector_s = Projector(self.embedding_module.output_dim)
+        self.projector_m = Projector(self.backbone_module.output_dim)
+        self.projector_s = Projector(self.backbone_module.output_dim)
         
-        self.decoder = Decoder(embedding_config.input_dim, self.embedding_module.output_dim)
-        self.head = nn.Linear(self.embedding_module.output_dim, output_dim)
+        self.decoder = Decoder(self.backbone_module.output_dim, self.embedding_module.input_dim)
+        self.head = nn.Linear(self.backbone_module.output_dim, output_dim)
         self.activation = nn.SiLU()
 
     @property
@@ -153,10 +153,9 @@ class SwitchTab(TS3LModule):
         """
         
         size = len(x) // 2
-        
         x = self.embedding_module(x)
         zs = self.encoder(x)
-
+        
         ms = self.projector_m(zs)
         ss = self.projector_s(zs)
         
@@ -170,7 +169,6 @@ class SwitchTab(TS3LModule):
         x2_switch_recover = self.decoder(x2_hat_tilde)
         
         x_hat = torch.concat([x1_recover_switch, x2_switch_recover])
-
         y_hat = self.head(self.activation(zs))
 
         return x_hat, y_hat

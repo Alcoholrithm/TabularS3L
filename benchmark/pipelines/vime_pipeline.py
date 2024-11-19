@@ -28,6 +28,8 @@ class VIMEPipeLine(PipeLine):
         self.config_class = VIMEConfig
         self.pl_module_class = VIMELightning
         self.hparams_range = hparams_range
+        
+        super().initialize()
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)

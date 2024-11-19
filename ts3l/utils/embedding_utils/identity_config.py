@@ -5,5 +5,5 @@ from typing import List
 @dataclass
 class IdentityEmbeddingConfig(BaseEmbeddingConfig):
     def __post_init__(self):
-        self.module = "identity"
+        self.name = "identity"
         self.output_dim = self.input_dim

@@ -5,7 +5,7 @@ from ts3l.utils import BaseConfig
 from ts3l.pl_modules.base_module import TS3LLightining
 
 from ts3l.pl_modules import SubTabLightning
-from ts3l.utils.subtab_utils import SubTabConfig, SubTabDataset, SubTabCollateFN
+from ts3l.utils.subtab_utils import SubTabConfig, SubTabDataset
 from ts3l.utils import TS3LDataModule
 
 from hparams_range.subtab import hparams_range
@@ -28,17 +28,18 @@ class SubTabPipeLine(PipeLine):
         self.config_class = SubTabConfig
         self.pl_module_class = SubTabLightning
         self.hparams_range = hparams_range
+        
+        super().initialize()
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
-        
         return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         train_ds = SubTabDataset(self.X_train, unlabeled_data=self.X_unlabeled)
         test_ds = SubTabDataset(self.X_valid)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, self.args.batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs = self.args.n_jobs)
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, self.args.batch_size, train_sampler='random', n_jobs = self.args.n_jobs)
 
         pl_module.set_first_phase()
 
@@ -80,7 +81,7 @@ class SubTabPipeLine(PipeLine):
         train_ds = SubTabDataset(self.X_train, self.y_train.values, is_regression=True if self.output_dim == 1 else False)
         test_ds = SubTabDataset(self.X_valid, self.y_valid.values, is_regression=True if self.output_dim == 1 else False)
         
-        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs=self.args.n_jobs)
+        pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", n_jobs=self.args.n_jobs)
             
         callbacks = [
             EarlyStopping(
@@ -132,7 +133,7 @@ class SubTabPipeLine(PipeLine):
         )
 
         test_ds = SubTabDataset(X, is_regression=True if self.output_dim == 1 else False)
-        test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs, collate_fn=SubTabCollateFN(config))
+        test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs)
 
         preds = trainer.predict(pl_module, test_dl)
         

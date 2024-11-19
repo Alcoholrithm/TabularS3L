@@ -39,7 +39,7 @@ class SubTabLightning(TS3LLightining):
         
         self._init_model(SubTab, config)
 
-    def _get_first_phase_loss(self, batch:Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    def _get_first_phase_loss(self, batch:Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         """Calculate the first phase loss
 
         Args:
@@ -50,13 +50,14 @@ class SubTabLightning(TS3LLightining):
         """
         projections, x_recons = F.subtab.first_phase_step(self.model, batch)
         
-        _, x_originals, _ = batch
+        # _, x_originals, _ = batch
+        x_originals, _ = batch
         
         total_loss, contrastive_loss, recon_loss, dist_loss = F.subtab.first_phase_loss(projections, x_recons, x_originals, self.n_subsets, self.joint_loss_fn)
         
         return total_loss
     
-    def _get_second_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
+    def _get_second_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Calculate the second phase loss
 
         Args:
@@ -69,7 +70,7 @@ class SubTabLightning(TS3LLightining):
         """
         y_hat = F.subtab.second_phase_step(self.model, batch)
         
-        _, _, y = batch
+        _, y = batch
         
         task_loss = F.subtab.second_phase_loss(y, y_hat, self.task_loss_fn)
         
@@ -84,7 +85,7 @@ class SubTabLightning(TS3LLightining):
         """
         return super().set_second_phase(freeze_encoder)
     
-    def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
+    def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
         """The perdict step of SubTab
 
         Args:

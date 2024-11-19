@@ -40,7 +40,7 @@ class SubTabConfig(BaseConfig):
         ValueError: If the specified 'noise_level' is not a valid value.
     """
     
-    hidden_dim: int = field(default=256)
+    projection_dim: int = field(default=256)
     
     tau: float = field(default=0.1)
     

@@ -36,15 +36,15 @@ class DAE(TS3LModule):
         super(DAE, self).__init__(embedding_config, backbone_config)
 
         # self.__encoder = MLP(input_dim=self.embedding_module.output_dim, hidden_dims=hidden_dim, n_hiddens=encoder_depth, dropout_rate=dropout_rate)
-        self.mask_predictor_head = MLP(input_dim=backbone_config.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
-        self.reconstruction_head = MLP(input_dim=backbone_config.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
+        self.mask_predictor_head = MLP(input_dim=self.backbone_module.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
+        self.reconstruction_head = MLP(input_dim=self.backbone_module.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
 
         self.head = nn.Sequential(
             OrderedDict([
                 ("head_activation", nn.ReLU(inplace=True)),
-                ("head_batchnorm", nn.BatchNorm1d(backbone_config.output_dim)),
+                ("head_batchnorm", nn.BatchNorm1d(self.backbone_module.output_dim)),
                 ("head_dropout", nn.Dropout(dropout_rate)),
-                ("head_linear", nn.Linear(backbone_config.output_dim, output_dim))
+                ("head_linear", nn.Linear(self.backbone_module.output_dim, output_dim))
             ])
         )
     

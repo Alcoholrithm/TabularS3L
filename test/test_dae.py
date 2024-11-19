@@ -1,4 +1,4 @@
-from misc import get_args, embeddings
+from misc import get_args
 
 import sys
 import os
@@ -17,10 +17,8 @@ def test_dae_classification():
     
     args = get_args()
     
-    for embedding in embeddings:
-        args.embedding = embedding
-        pipeline = DAEPipeLine(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
-        pipeline.benchmark()
+    pipeline = DAEPipeLine(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
+    pipeline.benchmark()
 
 def test_dae_regression():
     
@@ -33,10 +31,8 @@ def test_dae_regression():
     
     args = get_args()
     
-    for embedding in embeddings:
-        args.embedding = embedding
-        pipeline = DAEPipeLine(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
-        pipeline.benchmark()
+    pipeline = DAEPipeLine(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
+    pipeline.benchmark()
     
 if __name__ == "__main__":
     test_dae_classification()

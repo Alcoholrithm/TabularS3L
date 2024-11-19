@@ -38,6 +38,8 @@ class TransformerEncoder(nn.Module):
                 nn.TransformerEncoderLayer(d_model=d_model, nhead=n_head, dim_feedforward=int(hidden_dim*ffn_factor), dropout=dropout_rate, batch_first=True)
                 for _ in range(encoder_depth)
             ])
+
+        self.output_dim = d_model
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 

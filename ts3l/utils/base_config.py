@@ -21,7 +21,7 @@ class BaseConfig:
 
     Attributes:
         task (str): Specify whether the problem is regression or classification.
-        input_dim (int): The dimension of the input.
+        
         output_dim (int): The dimension of output.
         loss_fn (str): Name of the loss function to be used. Must be an attribute of 'torch.nn'.
         optim (str): Name of the optimizer to be used. Must be an attribute of 'torch.optim'. Default is 'AdamW'.
@@ -47,7 +47,6 @@ class BaseConfig:
     """
     task: str
     
-    # input_dim: int
     embedding_config: BaseEmbeddingConfig
     
     backbone_config: BaseBackboneConfig
@@ -79,8 +78,6 @@ class BaseConfig:
     
     random_seed: int = field(default=42)
     
-    backbone: str = field(default="mlp")
-    
     
     def __post_init__(self):
 
@@ -105,5 +102,8 @@ class BaseConfig:
         elif (type(self.metric) is not str or (not hasattr(torchmetrics.functional, self.metric) and not hasattr(sklearn.metrics, self.metric))):
             raise ValueError(f"{self.metric} is not a valid metric in torchmetrics.functional or sklearn.metrics")
         
-        if self.backbone == "transformer":
-            self.embedding_config.args["required_token_dim"] = 2
+        if self.backbone_config.name == "transformer" and self.embedding_config.name == "identity":
+            raise ValueError(f"Transformer Backbone and Identity Embedding are incompatible.")
+        
+        if self.backbone_config.name == "transformer" and self.embedding_config.required_token_dim == 1:
+            raise ValueError(f"Embedding's 'required_token_dim' should be 2, not {self.embedding_config.required_token_dim}")

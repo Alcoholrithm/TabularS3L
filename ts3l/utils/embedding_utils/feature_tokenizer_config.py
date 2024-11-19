@@ -4,7 +4,6 @@ from typing import List
 
 @dataclass
 class FTEmbeddingConfig(BaseEmbeddingConfig):
-    input_dim: int
     emb_dim: int = field(default=128)
     cont_nums: int = field(default=0)
     cat_dims: List[int] = field(default_factory=lambda: [])
@@ -12,12 +11,12 @@ class FTEmbeddingConfig(BaseEmbeddingConfig):
     
     def __set_output_dim(self):
         if self.required_token_dim == 1:
-            self.output_dim = self.emb_dim * (self.cont_nums + len(self.cat_dims))
+            self.output_dim = self.emb_dim * (self.cont_nums + len(self.cat_dims) + 1)
         else:
             self.output_dim = self.cont_nums + len(self.cat_dims)
             
     def __post_init__(self):
-        self.module = "feature_tokenizer"
+        self.name = "feature_tokenizer"
         self.__set_output_dim()
         if not self.required_token_dim in [1, 2]:
             raise ValueError(f"{self.required_token_dim} is not a valid value. Choices are: [1, 2]")

@@ -35,24 +35,24 @@ class SwitchTabConfig(BaseConfig):
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
     """
-    
+    """
     hidden_dim: int = field(default=256)
     
     encoder_depth: int = field(default=3)
     
     n_head: int = field(default=2)
-    
+    """
     u_label: Any = field(default=-1)
     
     corruption_rate: float = field(default=0.3)
     
     alpha: float = field(default=1.0)
-    
+    """
     dropout_rate: float = field(default=0.3)
     
     ffn_factor: float = field(default=2.0)
     
     category_dims: List[int] = field(default_factory=lambda: [])
-    
+    """
     def __post_init__(self):
         super().__post_init__()
