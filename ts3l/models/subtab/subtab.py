@@ -12,29 +12,6 @@ from ts3l.functional.subtab import arrange_tensors
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 from ts3l.models.common import TS3LBackboneModule
 
-class ShallowEncoder(nn.Module):
-    def __init__(self,
-                 feat_dim : int,
-                 hidden_dim : int,
-                 n_subsets : int,
-                 overlap_ratio : float,
-    ) -> None:
-        super().__init__()
-
-        n_column_subset = int(feat_dim / n_subsets)
-        n_overlap = int(overlap_ratio * n_column_subset)
-
-        self.net = nn.Sequential(
-            
-            nn.Linear(n_column_subset + n_overlap, hidden_dim),
-            nn.LeakyReLU(),
-        )
-        
-    def forward(self,
-                x : torch.Tensor
-    ) -> torch.Tensor:
-        return self.net(x)
-
 class ShallowDecoder(nn.Module):
     def __init__(self,
                  hidden_dim : int,
@@ -46,38 +23,6 @@ class ShallowDecoder(nn.Module):
     
     def forward(self, x : torch.Tensor) -> torch.Tensor:
         return self.net(x)
-
-class AutoEncoder(nn.Module):
-    def __init__(self,
-                 input_dim : int,
-                 output_dim : int,
-                 hidden_dim : int,
-                 n_subsets : int,
-                 overlap_ratio : float,
-    ) -> None:
-        super().__init__()
-
-        self.encoder = ShallowEncoder(input_dim, hidden_dim, n_subsets, overlap_ratio)
-        self.decoder = ShallowDecoder(hidden_dim, output_dim)
-
-        self.projection_net = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-        )
-    
-    def encode(self, x : torch.Tensor) -> torch.Tensor:
-        return self.encoder(x)
-    
-    def decode(self, x : torch.Tensor) -> torch.Tensor:
-        return self.decoder(x)
-    
-    def forward(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        latent = self.encode(x)
-        projection = self.projection_net(latent)
-        projection = F.normalize(projection, p = 2, dim = 1)
-        x_recon = self.decode(latent)
-        return latent, projection, x_recon
 
 class Projector(nn.Module):
     def __init__(self, emb_dim, hidden_dim):
@@ -98,33 +43,27 @@ class SubTab(TS3LModule):
                  backbone_config: BaseBackboneConfig,
                  output_dim: int,
                  projection_dim: int,
-                 
                  shuffle: bool,
                  n_subsets: int,
                  overlap_ratio: float,
                  mask_ratio: float,
                  noise_type: str,
                  noise_level: float,
-                 
                  **kwargs
     ) -> None:
-        """_summary_
+        """Initialize SubTab
 
         Args:
-            embedding_config (BaseEmbeddingConfig): _description_
-            backbone_config (BaseBackboneConfig): _description_
-            output_dim (int): _description_
-            projection_dim (int): _description_
-            shuffle (bool): _description_
-            n_subsets (int): _description_
-            overlap_ratio (float): _description_
-            mask_ratio (floats): _description_
-            noise_type (str): _description_
-            noise_level (float): _description_
-            
-            transformer backbone이면 input_dim = embedding의 input_dim
-            mlp backbone이고 feature_tokenizer 썼을 땐, input_dim == embedding의 input_dim * emb_dim
-            mlp backbone이고 identity면 input_dim == embedding의 input_dim
+            embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
+            backbone_config (BaseBackboneConfig): Configuration for the backbone network.
+            output_dim (int): The dimensionality of the output.
+            projection_dim (int): The dimensionality of the projector.
+            shuffle (bool): Whether to shuffle the subsets. 
+            n_subsets (int): The number of subsets to generate different views of the data.
+            overlap_ratio (float): A hyperparameter that is to control the extent of overlapping between the subsets.
+            mask_ratio (floats): Ratio of features to be masked as noise.
+            noise_type (str): The type of noise to apply.
+            noise_level (float): Intensity of Gaussian noise to be applied.
         """
         
         self.shuffle = shuffle
@@ -152,7 +91,6 @@ class SubTab(TS3LModule):
         
         # Number of overlapping features between subsets
         self.n_overlap = int(self.overlap_ratio * self.subset_dim) 
-        # self.column_idx = np.array(range(self.input_dim * self.emb_dim))
         
         if backbone_config.name == "mlp" and embedding_config.name == "feature_tokenizer": # type: ignore
             self.subset_dim = self.subset_dim * embedding_config.emb_dim # type: ignore
@@ -164,11 +102,8 @@ class SubTab(TS3LModule):
         
         super(SubTab, self).__init__(embedding_config, backbone_config)
         
-        
-        # self.n_subsets = n_subsets
         self.projector = Projector(self.backbone_module.output_dim, projection_dim)
         self.decoder = ShallowDecoder(self.backbone_module.output_dim, self.embedding_module.input_dim)
-        # self.__auto_encoder = AutoEncoder(self.embedding_module.output_dim, embedding_config.input_dim, hidden_dim, n_subsets, overlap_ratio)
         
         self.head = nn.Sequential(
             nn.Linear(self.backbone_module.output_dim, output_dim)
@@ -199,28 +134,21 @@ class SubTab(TS3LModule):
         return x
     
     def _first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        # print(x.shape)
         x = self.__generate_subset_embedding(x)
-        # x = self.embedding_module(x)
-        # print(x.shape)
         x = self.encoder(x)
-        # print(x.shape)
+        
         projections = self.projector(x)
         x_recons = self.decoder(x)
-        # latents, projections, x_recons = self.__auto_encoder(x)
-
+        
         return projections, x_recons
     
     def _second_phase_step(self, 
                 x : torch.Tensor,
                 return_embeddings : bool = False) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
         x = self.__generate_subset_embedding(x)
-        # x = self.embedding_module(x)
         x = self.encoder(x)
         
-        # latent = self.__auto_encoder.encode(x)
         latent = arrange_tensors(x, self.n_subsets)
-        
         latent = latent.reshape(x.shape[0] // self.n_subsets, self.n_subsets, -1).mean(1)
         out = self.head(latent)
 
@@ -272,11 +200,8 @@ class SubTab(TS3LModule):
         """
 
         x_bar = x[:, subset_column_idx]
-        
         x_bar_noisy = self.__generate_noisy_xbar(x_bar)
-        
         mask = torch.bernoulli(torch.full(x_bar.shape, self.mask_ratio, device=x_bar.device))
-        
         x_bar = x_bar * (1 - mask) + x_bar_noisy * mask
         
         return x_bar
@@ -294,10 +219,9 @@ class SubTab(TS3LModule):
         """
 
         permuted_order = np.random.permutation(self.n_subsets) if self.shuffle else np.arange(self.n_subsets)
-
+        
         subset_column_indice_list = [self.column_idx[:(self.subset_dim + self.n_overlap)]]
         subset_column_indice_list.extend([self.column_idx[range((i * self.subset_dim - self.n_overlap), ((i + 1) * self.subset_dim))] for i in range(self.n_subsets)])
-        
         
         subset_column_indice = np.array(subset_column_indice_list)
         subset_column_indice = subset_column_indice[permuted_order]
@@ -308,4 +232,3 @@ class SubTab(TS3LModule):
         x_tildes = torch.concat([self.__generate_x_tilde(x, subset_column_indice[i]) for i in range(self.n_subsets)]) # [subset1, subset2, ... ,  subsetN]
 
         return x_tildes
-
