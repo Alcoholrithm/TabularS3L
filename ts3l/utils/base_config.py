@@ -37,13 +37,10 @@ class BaseConfig:
     Raises:
         ValueError: If the specified 'optim' is not a valid optimizer in 'torch.optim'.
         ValueError: If the specified 'scheduler' is not None and is not a valid scheduler in 'torch.optim.lr_scheduler'.
-
-        ValueError: If the specified 'loss_fn' is not None and is not a valid loss function in 'torch.nn'.
-        
+        ValueError: If the specified 'loss_fn' is not None and is not a valid loss function in 'torch.nn'.        
         ValueError: If the specified 'metric' is not a valid metric in 'torchmetrics' or 'sklearn.metrics'.
-        
         ValueError: If the specified 'task' is not a valid task in ['regression', 'classification']'.
-        
+        ValueError: If the combination of `backbone_config` and `embedding_config` is invalid.
     """
     task: str
     
