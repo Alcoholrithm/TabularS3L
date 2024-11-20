@@ -26,7 +26,6 @@ class SCARF(TS3LModule):
             Args:
                 embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
                 backbone_config (BaseBackboneConfig): Configuration for the backbone network.
-                input_dim (int): The dimensionality of the inputs.
                 hidden_dim (int): The dimensionality of the pretraining head.
                 output_dim (int): The dimensionality of output.
                 head_depth (int, optional): The number of layers of the pretraining head. Defaults to 2.
@@ -34,7 +33,7 @@ class SCARF(TS3LModule):
         """
         super(SCARF, self).__init__(embedding_config, backbone_config)
 
-        self.pretraining_head = MLP(input_dim = self.backbone_module.output_dim, hidden_dims=hidden_dim, n_hiddens=head_depth)
+        self.pretraining_head = MLP(input_dim = self.backbone_module.output_dim, hidden_dims=hidden_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
 
         self.head = nn.Sequential(
             OrderedDict([
