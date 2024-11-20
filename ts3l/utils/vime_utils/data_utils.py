@@ -1,12 +1,11 @@
 import pandas as pd
-from typing import Dict, Any, List, Union, Optional, Tuple
+from typing import Any, List, Union, Optional, Tuple
 from numpy.typing import NDArray
 
 import torch
 from torch.utils.data import Dataset
 
 import numpy as np
-from dataclasses import asdict
 from ts3l.utils.vime_utils import VIMEConfig
 
 class VIMEDataset(Dataset):
@@ -156,7 +155,7 @@ class VIMEDataset(Dataset):
             torch.Tensor: x_tilde for consistency regularization
         """
         m_unlab = self.__mask_generator(self.config.p_m, cat_samples)
-        dcat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
+        cat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
         
         m_unlab = self.__mask_generator(self.config.p_m, cont_samples)
         cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
