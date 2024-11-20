@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple, Union, Optional
+from typing import Tuple, Union, Optional
 from numpy.typing import NDArray
 
 import torch
@@ -6,8 +6,6 @@ from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
 
-from dataclasses import asdict
-from ts3l.utils.subtab_utils import SubTabConfig
 class SubTabDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,

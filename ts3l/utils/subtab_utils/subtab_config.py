@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from ts3l.utils import BaseConfig
 
-from typing import Any, List, Optional
-
 @dataclass
 class SubTabConfig(BaseConfig):
     """ Configuration class for initializing components of the SubTabLightning Module, including hyperparameters of SubTab,
@@ -21,7 +19,7 @@ class SubTabConfig(BaseConfig):
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
         
     New Attributes:
-        hidden_dim (int): The dimension of hidden layer. Default is 256.
+        projection_dim (int): The dimension of projection module. Default is 256.
         tau (float): A hyperparameter that is to scale similarity between projections during the first phase.
         use_cosine_similarity (bool):  A hyperparameter that is to select whether using cosine similarity or dot similarity when calculating similarity
                                         between projections during the first phase. Default is False.
