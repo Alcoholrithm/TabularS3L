@@ -30,4 +30,3 @@ class MLPBackboneConfig(BaseBackboneConfig):
 
         if not hasattr(nn, self.activation):
             raise ValueError(f"{self.activation} is not a valid activation of torch.nn")
-            

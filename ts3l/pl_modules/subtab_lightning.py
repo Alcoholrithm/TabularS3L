@@ -50,7 +50,6 @@ class SubTabLightning(TS3LLightining):
         """
         projections, x_recons = F.subtab.first_phase_step(self.model, batch)
         
-        # _, x_originals, _ = batch
         x_originals, _ = batch
         
         total_loss, contrastive_loss, recon_loss, dist_loss = F.subtab.first_phase_loss(projections, x_recons, x_originals, self.n_subsets, self.joint_loss_fn)
