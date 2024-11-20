@@ -24,14 +24,14 @@ class DAE(TS3LModule):
         The denoising task enables the model to learn the input distribution and generate latent representations that are robust to corruption. 
         These latent representations can be utilized for a variety of downstream tasks.
         Args:
-            input_dim (int): The size of the inputs.
-            head_depth (int, optional): The number of layers of the pretraining head. Defaults to 2.
-            dropout_rate (float, optional): The probability of setting the outputs of the dropout layer to zero during training. Defaults to 0.04.
-            output_dim (int, 2): The size of the outputs
+            embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
+            backbone_config (BaseBackboneConfig): Configuration for the backbone network.
+            head_depth (int, optional): The number of layers of the pretraining heads. Defaults to 2.
+            dropout_rate (float, optional): A hyperparameter that is to control dropout layer. Default is 0.04.
+            output_dim (int): The dimensionality of output.
         """
         super(DAE, self).__init__(embedding_config, backbone_config)
 
-        # self.__encoder = MLP(input_dim=self.embedding_module.output_dim, hidden_dims=hidden_dim, n_hiddens=encoder_depth, dropout_rate=dropout_rate)
         self.mask_predictor_head = MLP(input_dim=self.backbone_module.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
         self.reconstruction_head = MLP(input_dim=self.backbone_module.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
 
