@@ -5,50 +5,6 @@ from typing import Tuple, List, Union
 from ts3l.models.common import TS3LModule
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
-class Encoder(nn.Module):
-    def __init__(self, 
-                    d_model: int,
-                    ffn_factor: float,
-                    hidden_dim: int,
-                    dropout_rate: float,
-                    encoder_depth: int = 3,
-                    n_head: int = 2) -> None:
-        """Initializes the encoder module used in the SwitchTab, employing an FT-Transformer architecture
-
-        Args:
-            cont_nums (int): The number of continuous features.
-            category_dims (List[int]): A list of dimensions of the categorical features.
-            ffn_factor (float): The scaling factor for the size of the feedforward network within the transformer blocks.
-            hidden_dim (int): The dimensionality of the hidden layers within the network.
-            dropout_rate (float): The dropout rate used within the encoder.
-            encoder_depth (int, optional): The number of layers in the encoder. Defaults to 3.
-            n_head (int, optional): The number of attention heads in the encoder. Defaults to 2.
-        """
-        super().__init__()
-        
-        if d_model % n_head != 0:
-            divisors = [n for n in range(1, d_model + 1) if d_model % n == 0]
-    
-            # Find the closest divisor to the original num_heads
-            closest_num_heads = min(divisors, key=lambda x: abs(x - n_head))
-            
-            if closest_num_heads != n_head:
-                print(f"Adjusting num_heads from {n_head} to {closest_num_heads} (closest valid divisor of {d_model})")
-            
-            n_head = closest_num_heads
-        
-        self.encoder_layers = nn.ModuleList([
-                nn.TransformerEncoderLayer(d_model=d_model, nhead=n_head, dim_feedforward=int(hidden_dim*ffn_factor), dropout=dropout_rate, batch_first=True)
-                for _ in range(encoder_depth)
-            ])
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        for layer in self.encoder_layers:
-            x = layer(x)
-        cls_token = x[:, 0]
-        
-        return cls_token
-    
 class Projector(nn.Module):
     def __init__(self, hidden_dim: int) -> None:
         """Initializes the projector module used in the SwitchTab
@@ -69,8 +25,8 @@ class Decoder(nn.Module):
         """Initializes the decoder module used in the SwitchTab
 
         Args:
-            input_dim (int): The dimensionality of input features of SwitchTab.
             hidden_dim (int): The dimensionality of the output of the projector.
+            output_dim (int): The dimensionality of input features of SwitchTab.
         """
         super().__init__()
         
@@ -85,31 +41,18 @@ class SwitchTab(TS3LModule):
                     embedding_config: BaseEmbeddingConfig,
                     backbone_config: BaseBackboneConfig,
                     output_dim: int,
-                    # hidden_dim: int,
-                    # ffn_factor: int,
-                    # dropout_rate: float,
-                    # encoder_depth: int = 3,
-                    # n_head: int = 2, 
                     **kwargs) -> None:
         """Initialize SwitchTab
 
         Args:
-            input_dim (int): The dimensionality of the input features.
+            embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
+            backbone_config (BaseBackboneConfig): Configuration for the backbone network.
             output_dim (int): The dimensionality of the output.
-            category_dims (List[int]): A list of dimensions of the categorical features.
-            hidden_dim (int): The dimensionality of the hidden layers within the network.
-            ffn_factor (int): The scaling factor for the size of the feedforward network inside the encoder.
-            dropout_rate (float): The dropout rate used within the encoder.
-            encoder_depth (int, optional): The number of layers in the encoder. Defaults to 3.
-            n_head (int, optional): The number of attention heads in the encoder. Defaults to 2.
         """
         super(SwitchTab, self).__init__(embedding_config, backbone_config)
-        # self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.__return_salient_feature = False
         
-        
-        # self.__encoder = Encoder(self.embedding_module.output_dim, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
         self.projector_m = Projector(self.backbone_module.output_dim)
         self.projector_s = Projector(self.backbone_module.output_dim)
         
