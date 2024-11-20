@@ -10,21 +10,21 @@ class DAEConfig(BaseConfig):
 
     Inherits Attributes:
         task (str): Specify whether the problem is regression or classification.
-        input_dim (int): The dimension of the input.
+        embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
+        backbone_config (BaseBackboneConfig): Configuration for the backbone network.
         output_dim (int): The dimension of output.
         loss_fn (str): Name of the loss function to be used. Must be an attribute of 'torch.nn'.
+        loss_hparams (Dict[str, Any]): Hyperparameters for the loss function. Default is empty dictionary.
+        metric (str): Name of the metric to be used. Must be an attribute of 'torchmetrics.functional' or 'sklearn.metrics'. Default is None.
+        metric_hparams (Dict[str, Any]): Hyperparameters for the metric. Default is an empty dictionary.
         optim (str): Name of the optimizer to be used. Must be an attribute of 'torch.optim'. Default is 'AdamW'.
         optim_hparams (Dict[str, Any]): Hyperparameters for the optimizer. Default is {'lr': 0.0001, 'weight_decay': 0.00005}.
         scheduler (str): Name of the learning rate scheduler to be used. Must be an attribute of 'torch.optim.lr_scheduler' or None. Default is None.
         scheduler_hparams (Dict[str, Any]): Hyperparameters for the scheduler. Default is None, indicating no scheduler is used.
-        loss_hparams (Dict[str, Any]): Hyperparameters for the loss function. Default is empty dictionary.
-        metric (str): Name of the metric to be used. Must be an attribute of 'torchmetrics.functional' or 'sklearn.metrics'. Default is None.
-        metric_hparams (Dict[str, Any]): Hyperparameters for the metric. Default is an empty dictionary.
+        initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
         
     New Attributes:
-        hidden_dim (int): The dimension of hidden layer. Default is 256.
-        encoder_depth (bool):  The depth of encoder. Default is 4.
         head_depth (bool): The depth of head. Default is 2.
         noise_type (str): The type of noise to apply. Choices are ["Swap", "Gaussian", "Zero_Out"].
         noise_level (float): Intensity of Gaussian noise to be applied.
@@ -40,10 +40,6 @@ class DAEConfig(BaseConfig):
         ValueError: If the specified 'noise_level' is not a valid value.
         ValueError: Raised if both `num_categoricals` and `num_continuous` are None, indicating that at least one attribute must be specified.
     """
-    
-    hidden_dim: int = field(default=256)
-    
-    encoder_depth: int = field(default=4)
     
     head_depth: int = field(default=2)
     
