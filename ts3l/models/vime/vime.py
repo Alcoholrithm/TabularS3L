@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from ts3l.models.common import TS3LModule
-from .vime_semi import VIMESemiSupervised
+from .vime_predictor import VIMEPredictor
 
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
@@ -19,11 +19,11 @@ class VIME(TS3LModule):
             output_dim (int): The output dimension of the predictor
         """
         super(VIME, self).__init__(embedding_config, backbone_config)
-        # self.__encoder = VIMESelfSupervised(self.embedding_module.output_dim, embedding_config.input_dim)
+
         self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
         self.feature_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
         
-        self.predictor = VIMESemiSupervised(self.backbone_module.output_dim, hidden_dim, output_dim)
+        self.predictor = VIMEPredictor(self.backbone_module.output_dim, hidden_dim, output_dim)
         
     @property
     def encoder(self) -> nn.Module:
