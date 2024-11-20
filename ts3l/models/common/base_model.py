@@ -5,7 +5,6 @@ from typing import Any, Union, Tuple
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 from .embedding import TS3LEmbeddingModule
 from .backbone import TS3LBackboneModule
-# from ts3l.models.common.backbone import TS3LBackboneModule
 
 class TS3LModule(ABC, nn.Module):
     def __init__(self, embedding_config: BaseEmbeddingConfig, backbone_config: BaseBackboneConfig) -> None:
