@@ -20,7 +20,6 @@ class JointLoss(nn.Module):
     """
 
     def __init__(self,
-                 # batch_size: int,
                  tau: float,
                  n_subsets: int,
                  use_contrastive: bool = True,
@@ -29,8 +28,9 @@ class JointLoss(nn.Module):
         ) -> None:
         super(JointLoss, self).__init__()
 
-        # n_subsets
+
         self.n_subsets = n_subsets
+        
         # Temperature to use scale logits
         self.temperature = tau
 
@@ -38,6 +38,7 @@ class JointLoss(nn.Module):
         
         # Function to generate similarity matrix: Cosine, or Dot product
         self.similarity_fn = self._cosine_simililarity if use_cosine_similarity else self._dot_simililarity
+        
         # Loss function
         self.mse_loss = nn.MSELoss()
         self.criterion = nn.CrossEntropyLoss(reduction="sum")
