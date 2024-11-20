@@ -55,7 +55,7 @@ def first_phase_step(
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: The projections of each subset and the reconstructed input feature vectors.
     """
-    #x, _, _ = batch
+
     x, _ = batch
     
     projections, x_recons = model(x)
