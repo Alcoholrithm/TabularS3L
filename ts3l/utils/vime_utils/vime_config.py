@@ -25,7 +25,7 @@ class VIMEConfig(BaseConfig):
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
         
     New Attributes:
-        hidden_dim (int): The hidden dimension of predictor. Default is 256.
+        predictor_dim (int): The hidden dimension of predictor. Default is 256.
         num_categoricals int: The number of categorical features.
         num_continuous int: The number of continuous features.
         u_label (Any): The special token for unlabeled samples.
@@ -47,7 +47,7 @@ class VIMEConfig(BaseConfig):
         
     """
     
-    hidden_dim: int = field(default=256)
+    predictor_dim: int = field(default=256)
     
     num_categoricals: Optional[int] = field(default=None)
     

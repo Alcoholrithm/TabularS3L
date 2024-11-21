@@ -10,12 +10,12 @@ from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
 class VIME(TS3LModule):
     def __init__(self, 
-                embedding_config: BaseEmbeddingConfig,  backbone_config: BaseBackboneConfig, hidden_dim: int, output_dim: int, **kwargs):
+                embedding_config: BaseEmbeddingConfig,  backbone_config: BaseBackboneConfig, predictor_dim: int, output_dim: int, **kwargs):
         """Initialize VIME
 
         Args:
             input_dim (int): The dimension of the encoder
-            hidden_dim (int): The hidden dimension of the predictor
+            predictor_dim (int): The hidden dimension of the predictor
             output_dim (int): The output dimension of the predictor
         """
         super(VIME, self).__init__(embedding_config, backbone_config)
@@ -23,7 +23,7 @@ class VIME(TS3LModule):
         self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
         self.feature_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
         
-        self.predictor = VIMEPredictor(self.backbone_module.output_dim, hidden_dim, output_dim)
+        self.predictor = VIMEPredictor(self.backbone_module.output_dim, predictor_dim, output_dim)
         
     @property
     def encoder(self) -> nn.Module:
