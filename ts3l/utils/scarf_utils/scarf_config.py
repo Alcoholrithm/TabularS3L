@@ -25,8 +25,7 @@ class SCARFConfig(BaseConfig):
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
         
     New Attributes:
-        hidden_dim (int): The dimension of hidden layer. Default is 256.
-        encoder_depth (bool):  The depth of encoder. Default is 4.
+        pretraining_head_dim (int): The dimension of the pretraining head. Default is 256.
         head_depth (bool): The depth of head. Default is 2.
         dropout_rate (bool): A hyperparameter that is to control dropout layer. Default is 0.04.
         tau (float): A hyperparameter that is to scale similarity between views during the first phase.
@@ -38,9 +37,7 @@ class SCARFConfig(BaseConfig):
         
     """
     
-    hidden_dim: int = field(default=256)
-    
-    encoder_depth: int = field(default=4)
+    pretraining_head_dim: int = field(default=256)
     
     head_depth: int = field(default=2)
     
@@ -49,7 +46,6 @@ class SCARFConfig(BaseConfig):
     tau: float = field(default=0.1)
     
     corruption_rate: float = field(default=0)
-    
     
     def __post_init__(self):
         super().__post_init__()

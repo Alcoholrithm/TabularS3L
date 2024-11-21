@@ -13,7 +13,7 @@ class SCARF(TS3LModule):
         self,
         embedding_config: BaseEmbeddingConfig,
         backbone_config: BaseBackboneConfig,
-        hidden_dim: int,
+        pretraining_head_dim: int,
         output_dim: int,
         head_depth: int =2,
         dropout_rate: float = 0.04,
@@ -26,14 +26,14 @@ class SCARF(TS3LModule):
             Args:
                 embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
                 backbone_config (BaseBackboneConfig): Configuration for the backbone network.
-                hidden_dim (int): The dimensionality of the pretraining head.
+                pretraining_head_dim (int): The dimensionality of the pretraining head.
                 output_dim (int): The dimensionality of output.
                 head_depth (int, optional): The number of layers of the pretraining head. Defaults to 2.
                 dropout_rate (float, optional): A hyperparameter that is to control dropout layer of the head. Default is 0.04.
         """
         super(SCARF, self).__init__(embedding_config, backbone_config)
 
-        self.pretraining_head = MLP(input_dim = self.backbone_module.output_dim, hidden_dims=hidden_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
+        self.pretraining_head = MLP(input_dim = self.backbone_module.output_dim, hidden_dims=pretraining_head_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
 
         self.head = nn.Sequential(
             OrderedDict([
