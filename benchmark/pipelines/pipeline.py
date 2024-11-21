@@ -50,8 +50,6 @@ class PipeLine(ABC):
         self.__configure_metric()
         
         self.initialize()
-        # self._set_embedding_config()
-        # self._set_backbone_config()
         
         self.check_attributes()
         
