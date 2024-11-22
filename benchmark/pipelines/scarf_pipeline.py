@@ -19,6 +19,8 @@ from torch.nn import functional as F
 from torch.utils.data import SequentialSampler, DataLoader
 import torch
 
+from copy import deepcopy
+
 class SCARFPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
@@ -27,7 +29,7 @@ class SCARFPipeLine(PipeLine):
     def initialize(self):
         self.config_class = SCARFConfig
         self.pl_module_class = SCARFLightning
-        self.hparams_range = hparams_range
+        self.hparams_range = deepcopy(hparams_range)
         
         super().initialize()
     

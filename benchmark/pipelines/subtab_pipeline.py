@@ -19,6 +19,8 @@ from torch.nn import functional as F
 from torch.utils.data import SequentialSampler, DataLoader
 import torch
 
+from copy import deepcopy
+
 class SubTabPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
@@ -27,7 +29,7 @@ class SubTabPipeLine(PipeLine):
     def initialize(self):
         self.config_class = SubTabConfig
         self.pl_module_class = SubTabLightning
-        self.hparams_range = hparams_range
+        self.hparams_range = deepcopy(hparams_range)
         
         super().initialize()
     

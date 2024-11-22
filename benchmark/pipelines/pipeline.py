@@ -186,17 +186,18 @@ class PipeLine(ABC):
     
     def _set_backbone_config(self, hparams: Dict[str, Any]):
         backbone_hparams = {}
+        
         for k, v in hparams.items():
             if "backbone_" in k:
                 backbone_hparams[k.split("backbone_")[1]] = v
                 
         if self.args.backbone == "mlp":
-            print(backbone_hparams)
             self._backbone_config = self._backbone_config_cls(
                 input_dim = self._embedding_config.output_dim,
                 **backbone_hparams
             )
         elif self.args.backbone == "transformer":
+
             self._backbone_config = self._backbone_config_cls(
                 d_model = self._embedding_config.emb_dim,
                 **backbone_hparams
