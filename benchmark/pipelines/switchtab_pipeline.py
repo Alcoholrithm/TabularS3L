@@ -57,7 +57,7 @@ class SwitchTabPipeLine(PipeLine):
                 verbose = False
             )
         ]
-        pretraining_path = f'benchmark_ckpt/' + self.args.data + '/pretraining/'
+        pretraining_path = f'benchmark_ckpt/pretraining/'
         checkpoint_callback = ModelCheckpoint(
             monitor='val_loss',
             dirpath=pretraining_path,
@@ -100,7 +100,7 @@ class SwitchTabPipeLine(PipeLine):
 
         checkpoint_path = None
 
-        checkpoint_path = f'benchmark_ckpt/' + self.args.data + '/'
+        checkpoint_path = f'benchmark_ckpt/'
         checkpoint_callback = ModelCheckpoint(
             monitor='val_' + self.metric.__name__,
             dirpath=checkpoint_path,

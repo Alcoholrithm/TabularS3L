@@ -32,17 +32,17 @@ jobs:
         pip install .
     - name: Test SCARF with pytest
       run: |
-        pytest test/test_scarf.py
+        pytest test/test_scarf_total.py
     - name: Test SubTab with pytest
       run: |
-        pytest test/test_subtab.py
+        pytest test/test_subtab_total.py
 
     - name: Test VIME with pytest
       run: |
-        pytest test/test_vime.py
+        pytest test/test_vime_total.py
     - name: Test DAE with pytest
       run: |
-        pytest test/test_dae.py
+        pytest test/test_dae_total.py
     - name: Test SwitchTab with pytest
       run: |
-        pytest test/test_switchtab.py
+        pytest test/test_switchtab_total.py

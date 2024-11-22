@@ -3,11 +3,11 @@ from types import SimpleNamespace
 def get_args():
     args = SimpleNamespace()
     
-    args.embedding = "feature_tokenizer"
-    args.embedding = "identity"
+    # args.embedding = "feature_tokenizer"
+    # args.embedding = "identity"
     
-    args.backbone = "transformer"
-    args.backbone = "mlp"
+    # args.backbone = "transformer"
+    # args.backbone = "mlp"
     
     args.max_epochs = 1
     args.first_phase_patience = 1
@@ -25,5 +25,3 @@ def get_args():
     args.devices = "auto"
     
     return args
-
-embeddings = ["identity", "feature_tokenizer"]
