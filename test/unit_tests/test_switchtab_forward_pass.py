@@ -26,7 +26,7 @@ def test_switchtab_first_phase_forward(load_data, embedding_type, backbone_type)
     
     pl_module = SwitchTabLightning(config)
     
-    test_ds = SwitchTabDataset(data, config=config, continuous_cols=continuous_cols, category_cols=category_cols)
+    test_ds = SwitchTabDataset(data, label, config=config, continuous_cols=continuous_cols, category_cols=category_cols, is_regression= True if output_dim == 1 else False)
     test_dl = DataLoader(test_ds, 128, shuffle=False, sampler = SequentialSampler(test_ds), collate_fn=SwitchTabFirstPhaseCollateFN())
 
     batch = next(iter(test_dl))
@@ -61,4 +61,4 @@ def test_switchtab_second_phase_forward(load_data, embedding_type, backbone_type
 if __name__ == "__main__":
     # test_switchtab_first_phase_forward(load_diabetes, "feature_tokenizer", "transformer")
     # test_switchtab_first_phase_forward(load_diabetes, "identity", "mlp")
-    test_switchtab_first_phase_forward(load_cmc, "feature_tokenizer", "mlp")
+    test_switchtab_first_phase_forward(load_abalone, "feature_tokenizer", "mlp")
