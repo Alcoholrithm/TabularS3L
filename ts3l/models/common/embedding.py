@@ -46,7 +46,7 @@ class FeatureTokenizer(nn.Module):
 
     def __generate_tokens(self, x: torch.Tensor) -> torch.Tensor:
         x_cats, x_conts = x[:, :self.cat_nums].long(), x[:, self.cat_nums:]
-        
+
         x_conts = torch.cat(
             [torch.ones(
                 len(x_conts) if x_conts is not None else len(x_cats), 1, 
@@ -59,7 +59,6 @@ class FeatureTokenizer(nn.Module):
         x = self.weight[None] * x_conts[:, :, None]
 
         if x_cats is not None:
-
             x = torch.cat(
                 [x, self.cat_weights(x_cats + self.category_offsets[None])],
                 dim=1,

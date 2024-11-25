@@ -1,4 +1,4 @@
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Optional, List
 from numpy.typing import NDArray
 
 import torch
@@ -9,7 +9,9 @@ import pandas as pd
 class SubTabDataset(Dataset):
     def __init__(self, X: pd.DataFrame, 
                         Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
-                        unlabeled_data: Optional[pd.DataFrame] = None, 
+                        unlabeled_data: Optional[pd.DataFrame] = None,
+                        continuous_cols: Optional[List] = None, 
+                        category_cols: Optional[List] = None,
                         is_regression: Optional[bool] = False
                         ) -> None:
         """A dataset class for SubTab that handles labeled and unlabeled data.
@@ -23,13 +25,18 @@ class SubTabDataset(Dataset):
                 Use integers for classification labels and floats for regression targets. Defaults to None.
             unlabeled_data (Optional[pd.DataFrame]): DataFrame containing the features of the unlabeled data, used for 
                 self-supervised learning. Defaults to None.
+            continuous_cols (List, optional): List of continuous columns. Defaults to None.
+            category_cols (List, optional): List of categorical columns. Defaults to None.
             is_regression (Optional[bool]): Flag indicating whether the task is regression (True) or classification (False).
                 Defaults to False.
         """
         if unlabeled_data is not None:
             X = pd.concat([X, unlabeled_data])
-            
-        self.data = torch.FloatTensor(X.values)
+        
+        cat_data = torch.FloatTensor(X[category_cols].values)
+        cont_data = torch.FloatTensor(X[continuous_cols].values)
+        
+        self.data = torch.concat([cat_data, cont_data], dim=1)
         
         self.label_class = torch.FloatTensor if is_regression else torch.LongTensor
             

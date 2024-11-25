@@ -90,10 +90,12 @@ class SubTab(TS3LModule):
         self.subset_dim = self.n_feature_subset
         
         # Number of overlapping features between subsets
-        self.n_overlap = int(self.overlap_ratio * self.subset_dim) 
+        self.n_overlap = int(self.overlap_ratio * self.n_feature_subset)
+        self.n_overlap_dim = self.n_overlap
         
         if backbone_config.name == "mlp" and embedding_config.name == "feature_tokenizer": # type: ignore
             self.subset_dim = self.subset_dim * embedding_config.emb_dim # type: ignore
+            self.n_overlap_dim = self.n_overlap_dim * embedding_config.emb_dim # type: ignore
         
         if embedding_config.name == "feature_tokenizer": # type: ignore
             self.__generate_subset_embedding = self.__post_embedding_subset # type: ignore
@@ -104,7 +106,6 @@ class SubTab(TS3LModule):
         
         self.projector = Projector(self.backbone_module.output_dim, projection_dim)
         self.decoder = ShallowDecoder(self.backbone_module.output_dim, self.embedding_module.input_dim)
-        
         self.head = nn.Sequential(
             nn.Linear(self.backbone_module.output_dim, output_dim)
         )
@@ -112,7 +113,7 @@ class SubTab(TS3LModule):
     def _set_backbone_module(self, backbone_config):
         
         if hasattr(backbone_config, "input_dim"):
-            backbone_config.input_dim = self.subset_dim + self.n_overlap
+            backbone_config.input_dim = self.subset_dim + self.n_overlap_dim
 
         self.backbone_module = TS3LBackboneModule(backbone_config)
         
@@ -136,7 +137,6 @@ class SubTab(TS3LModule):
     def _first_phase_step(self, x : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         x = self.__generate_subset_embedding(x)
         x = self.encoder(x)
-        
         projections = self.projector(x)
         x_recons = self.decoder(x)
         
@@ -167,7 +167,7 @@ class SubTab(TS3LModule):
         """
         
         no = len(x)
-        dim = self.n_feature_subset
+        dim = self.n_feature_subset + self.n_overlap
         
         # Initialize corruption array
         x_bar = torch.zeros(x.shape).to(x.device)
@@ -220,15 +220,15 @@ class SubTab(TS3LModule):
 
         permuted_order = np.random.permutation(self.n_subsets) if self.shuffle else np.arange(self.n_subsets)
         
-        subset_column_indice_list = [self.column_idx[:(self.subset_dim + self.n_overlap)]]
-        subset_column_indice_list.extend([self.column_idx[range((i * self.subset_dim - self.n_overlap), ((i + 1) * self.subset_dim))] for i in range(self.n_subsets)])
+        subset_column_indice_list = [self.column_idx[:(self.subset_dim + self.n_overlap_dim)]]
+        subset_column_indice_list.extend([self.column_idx[range((i * self.subset_dim - self.n_overlap_dim), ((i + 1) * self.subset_dim))] for i in range(self.n_subsets)])
         
         subset_column_indice = np.array(subset_column_indice_list)
         subset_column_indice = subset_column_indice[permuted_order]
         
         if len(subset_column_indice) == 1:
             subset_column_indice = np.concatenate([subset_column_indice, subset_column_indice])
-        
+
         x_tildes = torch.concat([self.__generate_x_tilde(x, subset_column_indice[i]) for i in range(self.n_subsets)]) # [subset1, subset2, ... ,  subsetN]
 
         return x_tildes

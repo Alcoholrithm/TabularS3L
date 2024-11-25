@@ -44,5 +44,5 @@ def test_subtab_regression(embedding, backbone):
     pipeline.benchmark()
     
 if __name__ == "__main__":
-    test_subtab_classification()
-    test_subtab_regression()
+    test_subtab_classification("identity", "mlp")
+    test_subtab_regression("identity", "mlp")
