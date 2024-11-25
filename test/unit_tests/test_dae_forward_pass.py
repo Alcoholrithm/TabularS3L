@@ -33,8 +33,9 @@ def test_dae_first_phase_forward(load_data, embedding_type, backbone_type):
     
     batch = next(iter(test_dl))
 
-    print("Test First Phase Forward")
+    print("Test The First Phase Forward")
     pl_module._get_first_phase_loss(batch)
+    print("Passed The First Phase Forward")
 
 @pytest.mark.parametrize("load_data", [load_diabetes, load_cmc, load_abalone])
 @pytest.mark.parametrize("embedding_type, backbone_type", embedding_backbone_list)
@@ -56,8 +57,9 @@ def test_dae_second_phase_forward(load_data, embedding_type, backbone_type):
     
     batch = next(iter(test_dl))
     
-    print("Test Second Phase Forward")
+    print("Test The Second Phase Forward")
     pl_module._get_second_phase_loss(batch)
+    print("Passed The Second Phase Forward")
     
 if __name__ == "__main__":
     test_dae_first_phase_forward(load_diabetes, "feature_tokenizer", "transformer")
