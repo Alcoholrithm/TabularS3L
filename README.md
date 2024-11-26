@@ -139,81 +139,96 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
   <summary>Quick Start</summary>
   
   ```python
-  # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
-  # Prepare the VIMELightning Module
-  from ts3l.pl_modules import VIMELightning
-  from ts3l.utils.vime_utils import VIMEDataset
-  from ts3l.utils import TS3LDataModule
-  from ts3l.utils.vime_utils import VIMEConfig
-  from pytorch_lightning import Trainer
+# Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
-  metric = "accuracy_score"
-  input_dim = X_train.shape[1]
-  hidden_dim = 1024
-  output_dim = 2
-  alpha1 = 2.0
-  alpha2 = 2.0
-  beta = 1.0
-  K = 3
-  p_m = 0.2
+# Prepare the VIMELightning Module
+from ts3l.pl_modules import VIMELightning
+from ts3l.utils.vime_utils import VIMEDataset
+from ts3l.utils import TS3LDataModule
+from ts3l.utils.vime_utils import VIMEConfig
+from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+from ts3l.utils.backbone_utils import MLPBackboneConfig
+from pytorch_lightning import Trainer
 
-  batch_size = 128
+metric = "accuracy_score"
+input_dim = X_train.shape[1]
+predictor_dim = 1024
+output_dim = 2
+alpha1 = 2.0
+alpha2 = 2.0
+beta = 1.0
+K = 3
+p_m = 0.2
 
-  X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
+batch_size = 128
+max_epochs = 20
 
-  config = VIMEConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, alpha1=alpha1, alpha2=alpha2, 
-  beta=beta, K=K, p_m = p_m,
-  num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
-  )
+X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  pl_vime = VIMELightning(config)
+embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
 
-  ### First Phase Learning
-  train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
-  valid_ds = VIMEDataset(X = X_valid, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
+config = VIMEConfig( 
+                    task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                    embedding_config=embedding_config, backbone_config=backbone_config,
+                    predictor_dim=predictor_dim,
+                    output_dim=output_dim, alpha1=alpha1, alpha2=alpha2, 
+                    beta=beta, K=K, p_m = p_m,
+                    num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
+)
 
-  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random')
+pl_vime = VIMELightning(config)
 
-  trainer = Trainer(
-                      accelerator = 'cpu',
-                      max_epochs = 20,
-                      num_sanity_val_steps = 2,
-      )
+### First Phase Learning
+train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
+valid_ds = VIMEDataset(X = X_valid, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
 
-  trainer.fit(pl_vime, datamodule)
+datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random')
 
-  ### Second Phase Learning
-  from ts3l.utils.vime_utils import VIMESecondPhaseCollateFN
+trainer = Trainer(
+                    accelerator = 'cpu',
+                    max_epochs = max_epochs,
+                    num_sanity_val_steps = 2,
+    )
 
-  pl_vime.set_second_phase()
+trainer.fit(pl_vime, datamodule)
 
-  train_ds = VIMEDataset(X_train, y_train.values, config, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
-  valid_ds = VIMEDataset(X_valid, y_valid.values, config, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
-          
-  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESecondPhaseCollateFN())
+### Second Phase Learning
+from ts3l.utils.vime_utils import VIMESecondPhaseCollateFN
 
-  trainer.fit(pl_vime, datamodule)
+pl_vime.set_second_phase()
 
-  # Evaluation
-  from sklearn.metrics import accuracy_score
-  import torch
-  from torch.nn import functional as F
-  from torch.utils.data import DataLoader, SequentialSampler
+train_ds = VIMEDataset(X_train, y_train.values, config, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+valid_ds = VIMEDataset(X_valid, y_valid.values, config, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+        
+datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESecondPhaseCollateFN())
 
-  test_ds = VIMEDataset(X_test, category_cols=category_cols, continuous_cols=continuous_cols, is_second_phase=True)
-  test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
+trainer = Trainer(
+                    accelerator = 'cpu',
+                    max_epochs = max_epochs,
+                    num_sanity_val_steps = 2,
+    )
 
-  preds = trainer.predict(pl_vime, test_dl)
-          
-  preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+trainer.fit(pl_vime, datamodule)
 
-  accuracy = accuracy_score(y_test, preds.argmax(1))
+# Evaluation
+from sklearn.metrics import accuracy_score
+import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, SequentialSampler
 
-  print("Accuracy %.2f" % accuracy)
-  ```
+test_ds = VIMEDataset(X_test, category_cols=category_cols, continuous_cols=continuous_cols, is_second_phase=True)
+test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
+
+preds = trainer.predict(pl_vime, test_dl)
+        
+preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+
+accuracy = accuracy_score(y_test, preds.argmax(1))
+
+print("Accuracy %.2f" % accuracy)
+```
 
 </details>
 
