@@ -239,86 +239,99 @@ SubTab turns the task of learning from tabular data into as a multi-view represe
 <details close>
   <summary>Quick Start</summary>
   
-  ```python
-  # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
+```python
+# Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
-  # Prepare the SubTabLightning Module
-  from ts3l.pl_modules import SubTabLightning
-  from ts3l.utils.subtab_utils import SubTabDataset, SubTabCollateFN
-  from ts3l.utils import TS3LDataModule
-  from ts3l.utils.subtab_utils import SubTabConfig
-  from pytorch_lightning import Trainer
+# Prepare the SubTabLightning Module
+from ts3l.pl_modules import SubTabLightning
+from ts3l.utils.subtab_utils import SubTabDataset
+from ts3l.utils import TS3LDataModule
+from ts3l.utils.subtab_utils import SubTabConfig
+from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+from ts3l.utils.backbone_utils import MLPBackboneConfig
+from pytorch_lightning import Trainer
 
-  metric = "accuracy_score"
-  input_dim = X_train.shape[1]
-  hidden_dim = 1024
-  output_dim = 2
-  tau = 1.0
-  use_cosine_similarity = True
-  use_contrastive = True
-  use_distance = True
-  n_subsets = 4
-  overlap_ratio = 0.75
+metric = "accuracy_score"
+input_dim = X_train.shape[1]
+projection_dim = 1024
+output_dim = 2
+tau = 1.0
+use_cosine_similarity = True
+use_contrastive = True
+use_distance = True
+n_subsets = 4
+overlap_ratio = 0.75
 
-  mask_ratio = 0.1
-  noise_type = "Swap"
-  noise_level = 0.1
+mask_ratio = 0.1
+noise_type = "Swap"
+noise_level = 0.1
 
-  batch_size = 128
-  max_epochs = 3
+batch_size = 128
+max_epochs = 20
 
-  X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
+X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  config = SubTabConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, tau=tau, use_cosine_similarity= use_cosine_similarity, use_contrastive=use_contrastive, use_distance=use_distance, 
-  n_subsets=n_subsets, overlap_ratio=overlap_ratio, mask_ratio=mask_ratio, noise_type=noise_type, noise_level=noise_level
-  )
+embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
 
-  pl_subtab = SubTabLightning(config)
+config = SubTabConfig( 
+                    task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                    embedding_config=embedding_config, backbone_config=backbone_config,
+                    projection_dim=projection_dim,
+                    output_dim=output_dim, tau=tau, use_cosine_similarity= use_cosine_similarity, use_contrastive=use_contrastive, use_distance=use_distance, 
+                    n_subsets=n_subsets, overlap_ratio=overlap_ratio, mask_ratio=mask_ratio, noise_type=noise_type, noise_level=noise_level
+)
 
-  ### First Phase Learning
-  train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled)
-  valid_ds = SubTabDataset(X_valid)
+pl_subtab = SubTabLightning(config)
 
-  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs = 4)
+### First Phase Learning
+train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols)
+valid_ds = SubTabDataset(X_valid, continuous_cols=continuous_cols, category_cols=category_cols)
 
-  trainer = Trainer(
-                      accelerator = 'cpu',
-                      max_epochs = max_epochs,
-                      num_sanity_val_steps = 2,
-      )
+datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', n_jobs = 4)
 
-  trainer.fit(pl_subtab, datamodule)
+trainer = Trainer(
+                    accelerator = 'cpu',
+                    max_epochs = max_epochs,
+                    num_sanity_val_steps = 2,
+    )
 
-  ### Second Phase Learning
+trainer.fit(pl_subtab, datamodule)
 
-  pl_subtab.set_second_phase()
+### Second Phase Learning
 
-  train_ds = SubTabDataset(X_train, y_train.values)
-  valid_ds = SubTabDataset(X_valid, y_valid.values)
+pl_subtab.set_second_phase()
 
-  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config))
+train_ds = SubTabDataset(X_train, y_train.values, continuous_cols=continuous_cols, category_cols=category_cols)
+valid_ds = SubTabDataset(X_valid, y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols)
 
-  trainer.fit(pl_subtab, datamodule)
+datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
 
-  # Evaluation
-  from sklearn.metrics import accuracy_score
-  import torch
-  from torch.nn import functional as F
-  from torch.utils.data import DataLoader, SequentialSampler
+trainer = Trainer(
+                    accelerator = 'cpu',
+                    max_epochs = max_epochs,
+                    num_sanity_val_steps = 2,
+    )
 
-  test_ds = SubTabDataset(X_test)
-  test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=4, collate_fn=SubTabCollateFN(config))
+trainer.fit(pl_subtab, datamodule)
 
-  preds = trainer.predict(pl_subtab, test_dl)
-          
-  preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+# Evaluation
+from sklearn.metrics import accuracy_score
+import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, SequentialSampler
 
-  accuracy = accuracy_score(y_test, preds.argmax(1))
+test_ds = SubTabDataset(X_test, continuous_cols=continuous_cols, category_cols=category_cols)
+test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=4)
 
-  print("Accuracy %.2f" % accuracy)
-  ```
+preds = trainer.predict(pl_subtab, test_dl)
+        
+preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+
+accuracy = accuracy_score(y_test, preds.argmax(1))
+
+print("Accuracy %.2f" % accuracy)
+```
 
 </details>
 
