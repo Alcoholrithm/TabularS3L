@@ -54,8 +54,10 @@ These latent representations can be utilized for a variety of downstream tasks.
   from ts3l.utils.dae_utils import DAEDataset, DAECollateFN
   from ts3l.utils import TS3LDataModule
   from ts3l.utils.dae_utils import DAEConfig
+  from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+  from ts3l.utils.backbone_utils import MLPBackboneConfig
   from pytorch_lightning import Trainer
-  
+
   metric = "accuracy_score"
   input_dim = X_train.shape[1]
   hidden_dim = 1024
@@ -64,69 +66,73 @@ These latent representations can be utilized for a variety of downstream tasks.
   head_depth = 2
   noise_type = "Swap"
   noise_ratio = 0.3
-  
+
   max_epochs = 20
   batch_size = 128
-  
+
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
-  
-  config = DAEConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, encoder_depth=encoder_depth,
-  head_depth = head_depth,
-  noise_type = noise_type,
-  noise_ratio = noise_ratio,
-  num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
+
+  embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+  backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
+
+  config = DAEConfig( 
+                  task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                  embedding_config=embedding_config, backbone_config=backbone_config,
+                  output_dim=output_dim,
+                  head_depth = head_depth,
+                  noise_type = noise_type,
+                  noise_ratio = noise_ratio,
+                  num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
   )
-  
+
   pl_dae = DAELightning(config)
-  
+
   ### First Phase Learning
   train_ds = DAEDataset(X = X_train, unlabeled_data = X_unlabeled, continuous_cols = continuous_cols, category_cols = category_cols)
   valid_ds = DAEDataset(X = X_valid, continuous_cols = continuous_cols, category_cols = category_cols)
-  
+
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', train_collate_fn=DAECollateFN(config), valid_collate_fn=DAECollateFN(config))
-  
+
   trainer = Trainer(
                       accelerator = 'cpu',
                       max_epochs = max_epochs,
                       num_sanity_val_steps = 2,
       )
-  
+
   trainer.fit(pl_dae, datamodule)
-  
+
   ### Second Phase Learning
-  
+
   pl_dae.set_second_phase()
-  
+
   train_ds = DAEDataset(X = X_train, Y = y_train.values, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols)
   valid_ds = DAEDataset(X = X_valid, Y = y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols)
           
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
-  
+
   trainer = Trainer(
                       accelerator = 'cpu',
                       max_epochs = max_epochs,
                       num_sanity_val_steps = 2,
       )
-  
+
   trainer.fit(pl_dae, datamodule)
-  
+
   # Evaluation
   from sklearn.metrics import accuracy_score
   import torch
   from torch.nn import functional as F
   from torch.utils.data import DataLoader, SequentialSampler
-  
+
   test_ds = DAEDataset(X_test, category_cols=category_cols, continuous_cols=continuous_cols)
   test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
-  
+
   preds = trainer.predict(pl_dae, test_dl)
           
   preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
-  
+
   accuracy = accuracy_score(y_test, preds.argmax(1))
-  
+
   print("Accuracy %.2f" % accuracy)
   ```
 
