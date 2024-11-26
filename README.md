@@ -349,14 +349,15 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
   from ts3l.utils.scarf_utils import SCARFDataset
   from ts3l.utils import TS3LDataModule
   from ts3l.utils.scarf_utils import SCARFConfig
+  from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+  from ts3l.utils.backbone_utils import MLPBackboneConfig
   from pytorch_lightning import Trainer
 
   metric = "accuracy_score"
   input_dim = X_train.shape[1]
-  hidden_dim = 1024
+  pretraining_head_dim = 1024
   output_dim = 2
-  encoder_depth = 3
-  head_depth = 1
+  head_depth = 2
   dropout_rate = 0.04
 
   corruption_rate = 0.6
@@ -366,17 +367,22 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
 
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  config = SCARFConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, encoder_depth=encoder_depth, head_depth=head_depth,
-  dropout_rate=dropout_rate, corruption_rate = corruption_rate
+  embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+  backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
+
+  config = SCARFConfig( 
+                      task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                      embedding_config=embedding_config, backbone_config=backbone_config,
+                      pretraining_head_dim=pretraining_head_dim,
+                      output_dim=output_dim, head_depth=head_depth,
+                      dropout_rate=dropout_rate, corruption_rate = corruption_rate
   )
 
   pl_scarf = SCARFLightning(config)
 
   ### First Phase Learning
-  train_ds = SCARFDataset(X_train, unlabeled_data=X_unlabeled, config = config)
-  valid_ds = SCARFDataset(X_valid, config=config)
+  train_ds = SCARFDataset(X_train, unlabeled_data=X_unlabeled, config = config, continuous_cols=continuous_cols, category_cols=category_cols)
+  valid_ds = SCARFDataset(X_valid, config=config, continuous_cols=continuous_cols, category_cols=category_cols)
 
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size=batch_size, train_sampler="random")
 
@@ -392,10 +398,16 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
 
   pl_scarf.set_second_phase()
 
-  train_ds = SCARFDataset(X_train, y_train.values, is_second_phase=True)
-  valid_ds = SCARFDataset(X_valid, y_valid.values, is_second_phase=True)
+  train_ds = SCARFDataset(X_train, y_train.values, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+  valid_ds = SCARFDataset(X_valid, y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
 
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
+
+  trainer = Trainer(
+                      accelerator = 'cpu',
+                      max_epochs = max_epochs,
+                      num_sanity_val_steps = 2,
+      )
 
   trainer.fit(pl_scarf, datamodule)
 
@@ -405,7 +417,7 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
   from torch.nn import functional as F
   from torch.utils.data import DataLoader, SequentialSampler
 
-  test_ds = SCARFDataset(X_test, is_second_phase=True)
+  test_ds = SCARFDataset(X_test, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
   test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=4)
 
   preds = trainer.predict(pl_scarf, test_dl)
