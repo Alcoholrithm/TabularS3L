@@ -225,4 +225,4 @@ class VIMESecondPhaseCollateFN(object):
     """
     
     def __call__(self, batch):
-        return torch.stack([x for x, _, in batch], dim=0), torch.concat([label for _, label in batch], dim=0)
+        return torch.concat([x.unsqueeze(0) if x.ndim == 1 else x for x, _, in batch], dim=0), torch.concat([label for _, label in batch], dim=0)
