@@ -33,7 +33,7 @@ class MLP(nn.Sequential):
             layers.append(("dropout_%d" % i, torch.nn.Dropout(dropout_rate))) # type: ignore
             in_dim = hidden_dims[i]
         
-        if len(hidden_dims) > 0:
+        if len(hidden_dims) > 0 and len(layers) > 0:
             layers.append((f"linear_{n_hiddens - 1}_layers", torch.nn.Linear(hidden_dims[-1], output_dim))) # type: ignore
         else:
             layers.append((f"linear_{n_hiddens - 1}_layers", torch.nn.Linear(input_dim, output_dim))) # type: ignore
