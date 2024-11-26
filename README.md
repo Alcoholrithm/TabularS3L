@@ -452,6 +452,9 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   from ts3l.utils.switchtab_utils import SwitchTabDataset, SwitchTabFirstPhaseCollateFN
   from ts3l.utils import TS3LDataModule
   from ts3l.utils.switchtab_utils import SwitchTabConfig
+  from ts3l.utils.embedding_utils import FTEmbeddingConfig
+  from ts3l.utils.backbone_utils import TransformerBackboneConfig
+  from ts3l.utils.misc import get_category_dims
   from pytorch_lightning import Trainer
 
   metric = "accuracy_score"
@@ -467,11 +470,15 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
 
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  config = SwitchTabConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, encoder_depth=encoder_depth,
-  n_head = n_head,
-  u_label = u_label
+  embedding_config = FTEmbeddingConfig(input_dim = input_dim, emb_dim = 128, cont_nums = len(continuous_cols),
+                                          cat_dims=get_category_dims(data, category_cols), required_token_dim=2)
+  backbone_config = TransformerBackboneConfig(d_model = embedding_config.emb_dim, encoder_depth = encoder_depth, n_head = n_head, hidden_dim = hidden_dim)
+
+  config = SwitchTabConfig(
+      task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+      embedding_config=embedding_config, backbone_config=backbone_config,
+      output_dim = output_dim,
+      u_label = u_label
   )
 
   pl_switchtab = SwitchTabLightning(config)
