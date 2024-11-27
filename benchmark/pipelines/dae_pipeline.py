@@ -35,8 +35,8 @@ class DAEPipeLine(PipeLine):
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
         
+        hparams["cat_dims"] = self.category_dims
         hparams["num_continuous"] = len(self.continuous_cols)
-        hparams["num_categoricals"] = len(self.category_cols)
         
         return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
