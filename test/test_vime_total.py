@@ -44,5 +44,5 @@ def test_vime_regression(embedding, backbone):
     pipeline.benchmark()
     
 if __name__ == "__main__":
-    test_vime_classification()
-    test_vime_regression()
+    test_vime_classification("identity", "mlp")
+    test_vime_regression("identity", "mlp")

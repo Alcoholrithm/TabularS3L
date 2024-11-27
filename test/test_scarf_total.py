@@ -44,5 +44,5 @@ def test_scarf_regression(embedding, backbone):
     pipeline.benchmark()
     
 if __name__ == "__main__":
-    test_scarf_classification()
-    test_scarf_regression()
+    test_scarf_classification("identity", "mlp")
+    test_scarf_regression("identity", "mlp")

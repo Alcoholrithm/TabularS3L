@@ -44,5 +44,5 @@ def test_switchtab_regression(embedding, backbone):
     pipeline.benchmark()
     
 if __name__ == "__main__":
-    test_switchtab_classification()
-    test_switchtab_regression()
+    test_switchtab_classification("identity", "mlp")
+    test_switchtab_regression("identity", "mlp")

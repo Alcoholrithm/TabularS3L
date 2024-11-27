@@ -42,5 +42,5 @@ def test_dae_regression(embedding, backbone):
     pipeline.benchmark()
     
 if __name__ == "__main__":
-    test_dae_classification()
-    test_dae_regression()
+    test_dae_classification("identity", "mlp")
+    test_dae_regression("identity", "mlp")
