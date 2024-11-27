@@ -574,16 +574,29 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | SCARF | 0.7442 | **0.5521** | **4.4443** |
 | SwitchTab | 0.7585 | 0.5411 | 4.7489 |
 
-## To DO
-
-- [x] Release nn.Module and Dataset of VIME, SubTab, and SCARF
-- [x] Release LightningModules of VIME, SubTab, and SCARF
-- [x] Release Denoising AutoEncoder
-- [x] Release SwitchTab
-- [x] Add example codes
-- [ ] Release more tabular models
-
 ## Contributing
 
 Contributions to this implementation are highly appreciated. Whether it's suggesting improvements, reporting bugs, or proposing new features, feel free to open an issue or submit a pull request.
+
+## Citation
+
+#### BibTex
+
+```
+@software{Kim_TabularS3L_2024,
+author = {Kim, Minwook},
+doi = {10.5281/zenodo.10776538},
+month = jun,
+title = {{TabularS3L}},
+url = {https://github.com/Alcoholrithm/TabularS3L},
+version = {0.6.0},
+year = {2024}
+}
+```
+
+#### APA
+
+```
+Kim, M. (2024). TabularS3L (Version 0.6.0) [Computer software]. https://doi.org/10.5281/zenodo.10776538
+```
 
