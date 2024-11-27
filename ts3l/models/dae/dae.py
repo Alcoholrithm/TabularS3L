@@ -1,4 +1,4 @@
-from typing import OrderedDict, Tuple
+from typing import OrderedDict, Tuple, List
 
 import torch
 import torch.nn as nn
@@ -6,6 +6,7 @@ import torch.nn as nn
 
 from ts3l.models.common import TS3LModule
 from ts3l.models.common import MLP
+from ts3l.models.common.reconstruction_head import ReconstructionHead
 
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
@@ -14,7 +15,8 @@ class DAE(TS3LModule):
         self,
         embedding_config: BaseEmbeddingConfig,
         backbone_config: BaseBackboneConfig,
-        head_depth=2,
+        num_continuous: int, 
+        cat_dims: List[int],
         dropout_rate = 0.04,
         output_dim = 2,
         **kwargs
@@ -26,14 +28,15 @@ class DAE(TS3LModule):
         Args:
             embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
             backbone_config (BaseBackboneConfig): Configuration for the backbone network.
-            head_depth (int, optional): The number of layers of the pretraining heads. Defaults to 2.
+            num_continuous (int): The number of continuous features.
+            cat_dims (List[int]): The cardinality of categorical features.
             dropout_rate (float, optional): A hyperparameter that is to control dropout layer. Default is 0.04.
             output_dim (int): The dimensionality of output.
         """
         super(DAE, self).__init__(embedding_config, backbone_config)
 
-        self.mask_predictor_head = MLP(input_dim=self.backbone_module.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
-        self.reconstruction_head = MLP(input_dim=self.backbone_module.output_dim, hidden_dims=embedding_config.input_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
+        self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
+        self.feature_predictor = ReconstructionHead(self.backbone_module.output_dim, num_continuous, cat_dims)
 
         self.head = nn.Sequential(
             OrderedDict([
@@ -48,13 +51,13 @@ class DAE(TS3LModule):
     def encoder(self) -> nn.Module:
         return self.backbone_module
 
-    def _first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         x = self.embedding_module(x)
         emb = self.encoder(x)
-        mask = torch.sigmoid(self.mask_predictor_head(emb))
-        feature = self.reconstruction_head(emb)
+        mask = torch.sigmoid(self.mask_predictor(emb))
+        cat_preds, cont_preds = self.feature_predictor(emb)
 
-        return mask, feature
+        return mask, cat_preds, cont_preds
     
     def _second_phase_step(self, x: torch.Tensor) -> torch.Tensor:
         x = self.embedding_module(x)

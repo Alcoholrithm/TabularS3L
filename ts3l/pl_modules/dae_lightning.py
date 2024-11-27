@@ -30,7 +30,7 @@ class DAELightning(TS3LLightining):
         self.mask_loss_weight = config.mask_loss_weight
 
         self.num_categoricals, self.num_continuous = (
-            config.num_categoricals,
+            len(config.cat_dims),
             config.num_continuous,
         )
 
@@ -53,14 +53,14 @@ class DAELightning(TS3LLightining):
         """
         x, _, mask = batch
         
-        mask_preds, feature_preds = F.dae.first_phase_step(self.model, batch)
+        mask_preds, cat_preds, cont_preds = F.dae.first_phase_step(self.model, batch)
         
         mask_loss, feature_loss = F.dae.first_phase_loss(
             x[:, : self.num_categoricals],
             x[:, self.num_categoricals :],
             mask,
-            feature_preds[:, : self.num_categoricals],
-            feature_preds[:, self.num_categoricals :],
+            cat_preds, 
+            cont_preds,
             mask_preds,
             self.mask_loss_fn,
             self.categorical_feature_loss,
