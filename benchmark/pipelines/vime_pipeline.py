@@ -6,7 +6,7 @@ from ts3l.pl_modules.base_module import TS3LLightining
 
 from ts3l.pl_modules import VIMELightning
 from ts3l.utils.vime_utils import VIMEConfig, VIMEDataset, VIMESecondPhaseCollateFN
-from ts3l.utils import TS3LDataModule
+from ts3l.utils import TS3LDataModule, get_category_dims
 
 from hparams_range.vime import hparams_range
 
@@ -37,7 +37,7 @@ class VIMEPipeLine(PipeLine):
         hparams = super()._get_config(hparams)
         
         hparams["num_continuous"] = len(self.continuous_cols)
-        hparams["num_categoricals"] = len(self.category_cols)
+        hparams["cat_dims"] = get_category_dims(self.data, self.category_cols)
         
         return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     

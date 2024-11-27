@@ -1,5 +1,6 @@
 from ts3l.utils.vime_utils import VIMEConfig, VIMEDataset, VIMESecondPhaseCollateFN
 from ts3l.pl_modules import VIMELightning
+from ts3l.utils import get_category_dims
 
 from torch.utils.data import DataLoader, SequentialSampler
 
@@ -21,7 +22,7 @@ def test_vime_first_phase_forward(load_data, embedding_type, backbone_type):
     data, label, continuous_cols, category_cols, output_dim, kwargs = prepare_test(load_data, embedding_type, backbone_type)
     
     config = VIMEConfig(
-        num_categoricals = len(category_cols),
+        cat_dims = get_category_dims(data, category_cols),
         num_continuous = len(continuous_cols),
         **kwargs
     )
@@ -44,7 +45,7 @@ def test_vime_second_phase_forward(load_data, embedding_type, backbone_type):
     data, label, continuous_cols, category_cols, output_dim, kwargs = prepare_test(load_data, embedding_type, backbone_type)
     
     config = VIMEConfig(
-        num_categoricals = len(category_cols),
+        cat_dims = get_category_dims(data, category_cols),
         num_continuous = len(continuous_cols),
         **kwargs
     )
@@ -62,5 +63,5 @@ def test_vime_second_phase_forward(load_data, embedding_type, backbone_type):
     print("Passed The Second Phase Forward")
     
 if __name__ == "__main__":
-    # test_vime_first_phase_forward(load_diabetes, "feature_tokenizer", "transformer")
-    test_vime_second_phase_forward(load_diabetes, "feature_tokenizer", "transformer")
+    test_vime_first_phase_forward(load_cmc, "feature_tokenizer", "transformer")
+    # test_vime_second_phase_forward(load_diabetes, "feature_tokenizer", "transformer")

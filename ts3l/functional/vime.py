@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Any
+from typing import Tuple, List
 import torch
 from torch import nn
 
@@ -13,17 +13,17 @@ def first_phase_step(
         batch (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): The input batch
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: The predicted mask vector and the predicted feature vector
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The predicted mask vector and the predicted feature vector
     """
-    mask_preds, feature_preds = model(batch[0])
-    return mask_preds, feature_preds
+    mask_preds, cat_preds, cont_preds = model(batch[0])
+    return mask_preds, cat_preds, cont_preds
 
 
 def first_phase_loss(
     x_cat: torch.Tensor,
     x_cont: torch.Tensor,
     mask: torch.Tensor,
-    cat_feature_preds: torch.Tensor,
+    cat_feature_preds: List[torch.Tensor],
     cont_feature_preds: torch.Tensor,
     mask_preds: torch.Tensor,
     mask_loss_fn: nn.Module,
@@ -51,7 +51,8 @@ def first_phase_loss(
     continuous_feature_loss = torch.tensor(0.0, device=mask_preds.device)
 
     if x_cat.shape[1] > 0:
-        categorical_feature_loss += categorical_loss_fn(cat_feature_preds, x_cat)
+        for idx in range(x_cat.shape[1]):
+            categorical_feature_loss += categorical_loss_fn(cat_feature_preds[idx], x_cat[:, idx].long())
     if x_cont.shape[1] > 0:
         continuous_feature_loss += continuous_loss_fn(cont_feature_preds, x_cont)
 

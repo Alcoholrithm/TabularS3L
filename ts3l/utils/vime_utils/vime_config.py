@@ -49,7 +49,8 @@ class VIMEConfig(BaseConfig):
     
     predictor_dim: int = field(default=256)
     
-    num_categoricals: Optional[int] = field(default=None)
+    # num_categoricals: Optional[int] = field(default=None)
+    cat_dims: List[int] = field(default_factory=lambda: [])
     
     num_continuous: Optional[int] = field(default=None)
     
@@ -68,8 +69,7 @@ class VIMEConfig(BaseConfig):
     def __post_init__(self):
         super().__post_init__()
         
-        if self.num_categoricals is None and self.num_continuous is None:
+        if len(self.cat_dims) == 0 and self.num_continuous is None:
             raise ValueError("At least one attribute (num_categorical or num_continuous) must be specified.")
         else:
-            self.num_categoricals = self.num_categoricals if self.num_categoricals is not None else 0
             self.num_continuous = self.num_continuous if self.num_continuous is not None else 0

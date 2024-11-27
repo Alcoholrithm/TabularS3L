@@ -35,7 +35,7 @@ class VIMELightning(TS3LLightining):
         
         self.K = config.K
         
-        self.num_categoricals, self.num_continuous = config.num_categoricals, config.num_continuous
+        self.num_categoricals, self.num_continuous = len(config.cat_dims), config.num_continuous
         
         self.u_label = config.u_label
         
@@ -57,14 +57,14 @@ class VIMELightning(TS3LLightining):
             torch.FloatTensor: The final loss of first phase step
         """
         
-        mask_preds, feature_preds = F.vime.first_phase_step(self.model, batch)
+        mask_preds, cat_preds, cont_preds = F.vime.first_phase_step(self.model, batch)
         
         mask_loss, categorical_feature_loss, continuous_feature_loss = F.vime.first_phase_loss(
             batch[2][:, : self.num_categoricals],
             batch[2][:, self.num_categoricals :],
             batch[1],
-            feature_preds[:, : self.num_categoricals],
-            feature_preds[:, self.num_categoricals :],
+            cat_preds,
+            cont_preds,
             mask_preds,
             self.mask_loss_fn,
             self.categorical_feature_loss_fn,
