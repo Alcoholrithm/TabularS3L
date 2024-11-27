@@ -63,8 +63,8 @@ class ClassificationMetric(object):
     def torchmetrics_forward(self, preds, target):
         return self.metric(preds.argmax(1), target, **self.metric_hparams)
     
-def get_category_dims(data: pd.DataFrame, category_cols: List[str]):
-    """Calculate the number of unique values (dimensionality) for each categorical column specified in a dataset.
+def get_category_cardinality(data: pd.DataFrame, category_cols: List[str]):
+    """Calculate the number of unique values (cardinality) for each categorical column specified in a dataset.
 
     This function iterates over each column specified as categorical in 'category_cols', determines
     the unique elements in each of those columns, and appends the count of these unique elements

@@ -26,8 +26,8 @@ class VIMEConfig(BaseConfig):
         
     New Attributes:
         predictor_dim (int): The hidden dimension of predictor. Default is 256.
-        num_categoricals int: The number of categorical features.
-        num_continuous int: The number of continuous features.
+        cat_cardinality (List[int]): The cardinality of categorical features.
+        num_continuous (int): The number of continuous features.
         u_label (Any): The special token for unlabeled samples.
         alpha1 (float): A hyperparameter that is to control the trade-off between 
                         the mask estimation and categorical feature estimation loss during first phase. 
@@ -50,7 +50,7 @@ class VIMEConfig(BaseConfig):
     predictor_dim: int = field(default=256)
     
     # num_categoricals: Optional[int] = field(default=None)
-    cat_dims: List[int] = field(default_factory=lambda: [])
+    cat_cardinality: List[int] = field(default_factory=lambda: [])
     
     num_continuous: Optional[int] = field(default=None)
     
@@ -69,7 +69,7 @@ class VIMEConfig(BaseConfig):
     def __post_init__(self):
         super().__post_init__()
         
-        if len(self.cat_dims) == 0 and self.num_continuous is None:
+        if len(self.cat_cardinality) == 0 and self.num_continuous is None:
             raise ValueError("At least one attribute (num_categorical or num_continuous) must be specified.")
         else:
             self.num_continuous = self.num_continuous if self.num_continuous is not None else 0

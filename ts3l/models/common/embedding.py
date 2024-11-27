@@ -9,29 +9,29 @@ class FeatureTokenizer(nn.Module):
     def __init__(self, 
                 emb_dim : int,
                 cont_nums : int,
-                cat_dims : List[int],
+                cat_cardinality : List[int],
                 required_token_dim: int = 1,
                 **kwargs,
         ) -> None:
         super().__init__()
         self.emb_dim = emb_dim
         self.cont_nums = cont_nums
-        self.cat_nums = len(cat_dims)
+        self.cat_nums = len(cat_cardinality)
         
-        self.cat_dims = cat_dims
+        self.cat_cardinality = cat_cardinality
 
         bias_dim = 0
 
         if cont_nums is not None:
             bias_dim += cont_nums
 
-        if cat_dims is not None:
-            bias_dim += len(cat_dims)
+        if cat_cardinality is not None:
+            bias_dim += len(cat_cardinality)
 
-            category_offsets = torch.tensor([0] + cat_dims[:-1]).cumsum(0)
+            category_offsets = torch.tensor([0] + cat_cardinality[:-1]).cumsum(0)
             self.register_buffer('category_offsets', category_offsets)
 
-            self.cat_weights = nn.Embedding(sum(cat_dims), emb_dim)
+            self.cat_weights = nn.Embedding(sum(cat_cardinality), emb_dim)
         
         self.weight = nn.Parameter(torch.Tensor(cont_nums + 1, emb_dim))
         self.bias = nn.Parameter(torch.Tensor(bias_dim, emb_dim))

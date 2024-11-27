@@ -30,7 +30,7 @@ class DAEConfig(BaseConfig):
         noise_ratio (float): A hyperparameter that is to control the noise ratio during the first phase learning. Default is 0.3.
         mask_loss_weight (float): The special token for unlabeled samples.
         dropout_rate (bool): A hyperparameter that is to control dropout layer. Default is 0.04.
-        cat_dims (List[int]): The cardinality of categorical features.
+        cat_cardinality (List[int]): The cardinality of categorical features.
         num_continuous (int): The number of continuous features.
         
     Raises:
@@ -50,7 +50,7 @@ class DAEConfig(BaseConfig):
     
     dropout_rate: float = field(default=0.04)
     
-    cat_dims: List[int] = field(default_factory=lambda: [])
+    cat_cardinality: List[int] = field(default_factory=lambda: [])
     
     num_continuous: Optional[int] = field(default=None)
     
@@ -63,7 +63,7 @@ class DAEConfig(BaseConfig):
         if (self.noise_type == "Gaussian") and ((self.noise_level == None) or (self.noise_level <= 0)):
             raise ValueError("The noise level must be a float that is > 0 when the noise type is Gaussian.")
         
-        if len(self.cat_dims) == 0 and self.num_continuous is None:
+        if len(self.cat_cardinality) == 0 and self.num_continuous is None:
             raise ValueError("At least one attribute (num_categorical or num_continuous) must be specified.")
         else:
             self.num_continuous = self.num_continuous if self.num_continuous is not None else 0

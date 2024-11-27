@@ -11,21 +11,21 @@ from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
 class VIME(TS3LModule):
     def __init__(self, 
-                embedding_config: BaseEmbeddingConfig,  backbone_config: BaseBackboneConfig, num_continuous: int, cat_dims: List[int], predictor_dim: int, output_dim: int, **kwargs):
+                embedding_config: BaseEmbeddingConfig,  backbone_config: BaseBackboneConfig, num_continuous: int, cat_cardinality: List[int], predictor_dim: int, output_dim: int, **kwargs):
         """Initialize VIME
 
         Args:
             embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
             backbone_config (BaseBackboneConfig): Configuration for the backbone network.
             num_continuous (int): The number of continuous features.
-            cat_dims (List[int]): The cardinality of categorical features.
+            cat_cardinality (List[int]): The cardinality of categorical features.
             predictor_dim (int): The hidden dimension of the predictor.
             output_dim (int): The output dimension of the predictor.
         """
         super(VIME, self).__init__(embedding_config, backbone_config)
 
         self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
-        self.feature_predictor = ReconstructionHead(self.backbone_module.output_dim, num_continuous, cat_dims)
+        self.feature_predictor = ReconstructionHead(self.backbone_module.output_dim, num_continuous, cat_cardinality)
         self.predictor = VIMEPredictor(self.backbone_module.output_dim, predictor_dim, output_dim)
         
     @property

@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List, Type, Dict, Any
 from ts3l.utils import BaseConfig, RegressionMetric, ClassificationMetric
 from ts3l.pl_modules.base_module import TS3LLightining
-from ts3l.utils.misc import get_category_dims
+from ts3l.utils.misc import get_category_cardinality
 
 from abc import ABC, abstractmethod
 import optuna
@@ -114,7 +114,7 @@ class PipeLine(ABC):
             from ts3l.utils.backbone_utils import TransformerBackboneConfig
             self._backbone_config_cls = TransformerBackboneConfig
         
-        self.category_dims = get_category_dims(self.data, self.category_cols)
+        self.cat_cardinality = get_category_cardinality(self.data, self.category_cols)
         
     def check_attributes(self):
         if self.config_class is None:
@@ -177,7 +177,7 @@ class PipeLine(ABC):
             self._embedding_config = self._embedding_config_cls(input_dim=self.data.shape[1],
                                                         emb_dim = hparams["embedding_emb_dim"], 
                                                         cont_nums = self.data.shape[1] - len(self.category_cols), 
-                                                        cat_dims = self.category_dims, 
+                                                        cat_cardinality = self.cat_cardinality, 
                                                         required_token_dim=required_token_dim)
 
             del hparams["embedding_emb_dim"]

@@ -4,9 +4,9 @@ from torch import nn
 from typing import List, Tuple
 
 class ReconstructionHead(nn.Module):
-    def __init__(self, input_dim: int, num_continuous: int, cat_dims: List[int]):
+    def __init__(self, input_dim: int, num_continuous: int, cat_cardinality: List[int]):
         super().__init__()
-        self.categorical_head = nn.ModuleList([nn.Linear(input_dim, card) for card in cat_dims])
+        self.categorical_head = nn.ModuleList([nn.Linear(input_dim, card) for card in cat_cardinality])
         self.continuous_head = nn.Linear(input_dim, num_continuous)
         
     def forward(self, x: torch.Tensor)-> Tuple[List[torch.Tensor], torch.Tensor]:

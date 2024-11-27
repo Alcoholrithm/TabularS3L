@@ -30,7 +30,7 @@ class DAELightning(TS3LLightining):
         self.mask_loss_weight = config.mask_loss_weight
 
         self.num_categoricals, self.num_continuous = (
-            len(config.cat_dims),
+            len(config.cat_cardinality),
             config.num_continuous,
         )
 

@@ -37,7 +37,7 @@ class VIMEPipeLine(PipeLine):
         hparams = super()._get_config(hparams)
         
         hparams["num_continuous"] = len(self.continuous_cols)
-        hparams["cat_dims"] = self.category_dims
+        hparams["cat_cardinality"] = self.cat_cardinality
         
         return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     

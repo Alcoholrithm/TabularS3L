@@ -16,7 +16,7 @@ class DAE(TS3LModule):
         embedding_config: BaseEmbeddingConfig,
         backbone_config: BaseBackboneConfig,
         num_continuous: int, 
-        cat_dims: List[int],
+        cat_cardinality: List[int],
         dropout_rate = 0.04,
         output_dim = 2,
         **kwargs
@@ -29,14 +29,14 @@ class DAE(TS3LModule):
             embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
             backbone_config (BaseBackboneConfig): Configuration for the backbone network.
             num_continuous (int): The number of continuous features.
-            cat_dims (List[int]): The cardinality of categorical features.
+            cat_cardinality (List[int]): The cardinality of categorical features.
             dropout_rate (float, optional): A hyperparameter that is to control dropout layer. Default is 0.04.
             output_dim (int): The dimensionality of output.
         """
         super(DAE, self).__init__(embedding_config, backbone_config)
 
         self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
-        self.feature_predictor = ReconstructionHead(self.backbone_module.output_dim, num_continuous, cat_dims)
+        self.feature_predictor = ReconstructionHead(self.backbone_module.output_dim, num_continuous, cat_cardinality)
 
         self.head = nn.Sequential(
             OrderedDict([

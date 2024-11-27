@@ -4,7 +4,7 @@ import pandas as pd
 
 from ts3l.utils.embedding_utils import BaseEmbeddingConfig, IdentityEmbeddingConfig, FTEmbeddingConfig
 from ts3l.utils.backbone_utils import BaseBackboneConfig, MLPBackboneConfig, TransformerBackboneConfig
-from ts3l.utils.misc import get_category_dims
+from ts3l.utils.misc import get_category_cardinality
 
 def get_args():
     args = SimpleNamespace()
@@ -35,7 +35,7 @@ def get_embedding_config(data: pd.DataFrame, embedding_type: str, input_dim: int
         embedding_config = FTEmbeddingConfig(
             input_dim = input_dim,
             cont_nums = len(continuous_cols),
-            cat_dims = get_category_dims(data, category_cols),
+            cat_cardinality = get_category_cardinality(data, category_cols),
             required_token_dim = required_token_dim
         )
     return embedding_config

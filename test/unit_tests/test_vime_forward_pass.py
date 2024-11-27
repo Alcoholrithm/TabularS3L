@@ -1,6 +1,6 @@
 from ts3l.utils.vime_utils import VIMEConfig, VIMEDataset, VIMESecondPhaseCollateFN
 from ts3l.pl_modules import VIMELightning
-from ts3l.utils import get_category_dims
+from ts3l.utils import get_category_cardinality
 
 from torch.utils.data import DataLoader, SequentialSampler
 
@@ -22,7 +22,7 @@ def test_vime_first_phase_forward(load_data, embedding_type, backbone_type):
     data, label, continuous_cols, category_cols, output_dim, kwargs = prepare_test(load_data, embedding_type, backbone_type)
     
     config = VIMEConfig(
-        cat_dims = get_category_dims(data, category_cols),
+        cat_cardinality = get_category_cardinality(data, category_cols),
         num_continuous = len(continuous_cols),
         **kwargs
     )
@@ -45,7 +45,7 @@ def test_vime_second_phase_forward(load_data, embedding_type, backbone_type):
     data, label, continuous_cols, category_cols, output_dim, kwargs = prepare_test(load_data, embedding_type, backbone_type)
     
     config = VIMEConfig(
-        cat_dims = get_category_dims(data, category_cols),
+        cat_cardinality = get_category_cardinality(data, category_cols),
         num_continuous = len(continuous_cols),
         **kwargs
     )

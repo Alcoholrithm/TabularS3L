@@ -35,7 +35,7 @@ class VIMELightning(TS3LLightining):
         
         self.K = config.K
         
-        self.num_categoricals, self.num_continuous = len(config.cat_dims), config.num_continuous
+        self.num_categoricals, self.num_continuous = len(config.cat_cardinality), config.num_continuous
         
         self.u_label = config.u_label
         
