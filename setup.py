@@ -26,7 +26,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as requirements
 
 setup(
     name='ts3l',
-    version='v0.50',
+    version='v0.6.0',
     description='A PyTorch Lightning-based library for self- and semi-supervised learning on tabular data.',
     long_description=long_description,
     long_description_content_type='text/markdown',
