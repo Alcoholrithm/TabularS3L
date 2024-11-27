@@ -4,7 +4,7 @@ from torch import nn
 
 def first_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, List[torch.Tensor], torch.Tensor]:
     """Forward step of Denoising AutoEncoder during the first phase
 
     Args:
@@ -12,7 +12,7 @@ def first_phase_step(
         batch (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): The input batch
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: The predicted mask vector and the predicted feature vector
+        Tuple[torch.Tensor, List[torch.Tensor], torch.Tensor]: The predicted mask vector and the predicted feature vector
     """
     _, x_bar, _ = batch
     mask_preds, cat_preds, cont_preds = model(x_bar)
