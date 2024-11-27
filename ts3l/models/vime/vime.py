@@ -15,14 +15,16 @@ class VIME(TS3LModule):
         """Initialize VIME
 
         Args:
-            input_dim (int): The dimension of the encoder
-            predictor_dim (int): The hidden dimension of the predictor
-            output_dim (int): The output dimension of the predictor
+            embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
+            backbone_config (BaseBackboneConfig): Configuration for the backbone network.
+            num_continuous (int): The number of continuous features.
+            cat_dims (List[int]): The cardinality of categorical features.
+            predictor_dim (int): The hidden dimension of the predictor.
+            output_dim (int): The output dimension of the predictor.
         """
         super(VIME, self).__init__(embedding_config, backbone_config)
 
         self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
-        # self.feature_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
         self.feature_predictor = ReconstructionHead(self.backbone_module.output_dim, num_continuous, cat_dims)
         self.predictor = VIMEPredictor(self.backbone_module.output_dim, predictor_dim, output_dim)
         
