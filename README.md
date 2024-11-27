@@ -47,12 +47,13 @@ These latent representations can be utilized for a variety of downstream tasks.
   <summary>Quick Start</summary>
   
   ```python
+  
   # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
   # Prepare the DAELightning Module
   from ts3l.pl_modules import DAELightning
   from ts3l.utils.dae_utils import DAEDataset, DAECollateFN
-  from ts3l.utils import TS3LDataModule
+  from ts3l.utils import TS3LDataModule, get_category_cardinality
   from ts3l.utils.dae_utils import DAEConfig
   from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
   from ts3l.utils.backbone_utils import MLPBackboneConfig
@@ -79,10 +80,9 @@ These latent representations can be utilized for a variety of downstream tasks.
                   task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
                   embedding_config=embedding_config, backbone_config=backbone_config,
                   output_dim=output_dim,
-                  head_depth = head_depth,
                   noise_type = noise_type,
                   noise_ratio = noise_ratio,
-                  num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
+                  cat_cardinality=get_category_cardinality(data, category_cols), num_continuous=len(continuous_cols)
   )
 
   pl_dae = DAELightning(config)
@@ -146,95 +146,95 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
   
   ```python
 
-# Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
+  # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
-# Prepare the VIMELightning Module
-from ts3l.pl_modules import VIMELightning
-from ts3l.utils.vime_utils import VIMEDataset
-from ts3l.utils import TS3LDataModule
-from ts3l.utils.vime_utils import VIMEConfig
-from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
-from ts3l.utils.backbone_utils import MLPBackboneConfig
-from pytorch_lightning import Trainer
+  # Prepare the VIMELightning Module
+  from ts3l.pl_modules import VIMELightning
+  from ts3l.utils.vime_utils import VIMEDataset
+  from ts3l.utils import TS3LDataModule, get_category_cardinality
+  from ts3l.utils.vime_utils import VIMEConfig
+  from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+  from ts3l.utils.backbone_utils import MLPBackboneConfig
+  from pytorch_lightning import Trainer
 
-metric = "accuracy_score"
-input_dim = X_train.shape[1]
-predictor_dim = 1024
-output_dim = 2
-alpha1 = 2.0
-alpha2 = 2.0
-beta = 1.0
-K = 3
-p_m = 0.2
+  metric = "accuracy_score"
+  input_dim = X_train.shape[1]
+  predictor_dim = 1024
+  output_dim = 2
+  alpha1 = 2.0
+  alpha2 = 2.0
+  beta = 1.0
+  K = 3
+  p_m = 0.2
 
-batch_size = 128
-max_epochs = 20
+  batch_size = 128
+  max_epochs = 20
 
-X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
+  X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
-backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
+  embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+  backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
 
-config = VIMEConfig( 
-                    task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-                    embedding_config=embedding_config, backbone_config=backbone_config,
-                    predictor_dim=predictor_dim,
-                    output_dim=output_dim, alpha1=alpha1, alpha2=alpha2, 
-                    beta=beta, K=K, p_m = p_m,
-                    num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
-)
+  config = VIMEConfig( 
+                      task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                      embedding_config=embedding_config, backbone_config=backbone_config,
+                      predictor_dim=predictor_dim,
+                      output_dim=output_dim, alpha1=alpha1, alpha2=alpha2, 
+                      beta=beta, K=K, p_m = p_m,
+                      cat_cardinality=get_category_cardinality(data, category_cols), num_continuous=len(continuous_cols)
+  )
 
-pl_vime = VIMELightning(config)
+  pl_vime = VIMELightning(config)
 
-### First Phase Learning
-train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
-valid_ds = VIMEDataset(X = X_valid, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
+  ### First Phase Learning
+  train_ds = VIMEDataset(X = X_train, unlabeled_data = X_unlabeled, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
+  valid_ds = VIMEDataset(X = X_valid, config=config, continuous_cols = continuous_cols, category_cols = category_cols)
 
-datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random')
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random')
 
-trainer = Trainer(
-                    accelerator = 'cpu',
-                    max_epochs = max_epochs,
-                    num_sanity_val_steps = 2,
-    )
+  trainer = Trainer(
+                      accelerator = 'cpu',
+                      max_epochs = max_epochs,
+                      num_sanity_val_steps = 2,
+      )
 
-trainer.fit(pl_vime, datamodule)
+  trainer.fit(pl_vime, datamodule)
 
-### Second Phase Learning
-from ts3l.utils.vime_utils import VIMESecondPhaseCollateFN
+  ### Second Phase Learning
+  from ts3l.utils.vime_utils import VIMESecondPhaseCollateFN
 
-pl_vime.set_second_phase()
+  pl_vime.set_second_phase()
 
-train_ds = VIMEDataset(X_train, y_train.values, config, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
-valid_ds = VIMEDataset(X_valid, y_valid.values, config, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
-        
-datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESecondPhaseCollateFN())
+  train_ds = VIMEDataset(X_train, y_train.values, config, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+  valid_ds = VIMEDataset(X_valid, y_valid.values, config, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+          
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESecondPhaseCollateFN())
 
-trainer = Trainer(
-                    accelerator = 'cpu',
-                    max_epochs = max_epochs,
-                    num_sanity_val_steps = 2,
-    )
+  trainer = Trainer(
+                      accelerator = 'cpu',
+                      max_epochs = max_epochs,
+                      num_sanity_val_steps = 2,
+      )
 
-trainer.fit(pl_vime, datamodule)
+  trainer.fit(pl_vime, datamodule)
 
-# Evaluation
-from sklearn.metrics import accuracy_score
-import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader, SequentialSampler
+  # Evaluation
+  from sklearn.metrics import accuracy_score
+  import torch
+  from torch.nn import functional as F
+  from torch.utils.data import DataLoader, SequentialSampler
 
-test_ds = VIMEDataset(X_test, category_cols=category_cols, continuous_cols=continuous_cols, is_second_phase=True)
-test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
+  test_ds = VIMEDataset(X_test, category_cols=category_cols, continuous_cols=continuous_cols, is_second_phase=True)
+  test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
 
-preds = trainer.predict(pl_vime, test_dl)
-        
-preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+  preds = trainer.predict(pl_vime, test_dl)
+          
+  preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
 
-accuracy = accuracy_score(y_test, preds.argmax(1))
+  accuracy = accuracy_score(y_test, preds.argmax(1))
 
-print("Accuracy %.2f" % accuracy)
-```
+  print("Accuracy %.2f" % accuracy)
+  ```
 
 </details>
 
@@ -445,6 +445,7 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   <summary>Quick Start</summary>
   
   ```python
+  
   # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
   # Prepare the SwitchTabLightning Module
@@ -454,7 +455,7 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   from ts3l.utils.switchtab_utils import SwitchTabConfig
   from ts3l.utils.embedding_utils import FTEmbeddingConfig
   from ts3l.utils.backbone_utils import TransformerBackboneConfig
-  from ts3l.utils.misc import get_category_dims
+  from ts3l.utils.misc import get_category_cardinality
   from pytorch_lightning import Trainer
 
   metric = "accuracy_score"
@@ -471,7 +472,7 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
   embedding_config = FTEmbeddingConfig(input_dim = input_dim, emb_dim = 128, cont_nums = len(continuous_cols),
-                                          cat_dims=get_category_dims(data, category_cols), required_token_dim=2)
+                                          cat_cardinality=get_category_cardinality(data, category_cols), required_token_dim=2)
   backbone_config = TransformerBackboneConfig(d_model = embedding_config.emb_dim, encoder_depth = encoder_depth, n_head = n_head, hidden_dim = hidden_dim)
 
   config = SwitchTabConfig(
