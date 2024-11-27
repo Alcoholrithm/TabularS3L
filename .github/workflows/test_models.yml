@@ -32,17 +32,16 @@ jobs:
         pip install .
     - name: Test SCARF with pytest
       run: |
-        pytest test/test_scarf_total.py
+        pytest test/unit_tests/test_scarf_forward_pass.py
     - name: Test SubTab with pytest
       run: |
-        pytest test/test_subtab_total.py
-
+        pytest test/unit_tests/test_subtab_forward_pass.py
     - name: Test VIME with pytest
       run: |
-        pytest test/test_vime_total.py
+        pytest test/unit_tests/test_vime_forward_pass.py
     - name: Test DAE with pytest
       run: |
-        pytest test/test_dae_total.py
+        pytest test/unit_tests/test_dae_forward_pass.py
     - name: Test SwitchTab with pytest
       run: |
-        pytest test/test_switchtab_total.py
+        pytest test/unit_tests/test_switchtab_forward_pass.py
