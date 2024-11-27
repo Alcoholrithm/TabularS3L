@@ -28,7 +28,7 @@ pip install ts3l
 
 TabularS3L employs a two-phase learning approach, where the learning strategies differ between phases. Below is an overview of the models available within TabularS3L, highlighting the learning strategies employed in each phase. The abbreviations 'Self-SL', 'Semi-SL', and 'SL' represent self-supervised learning, semi-supervised learning, and supervised learning, respectively.
 
-According to the original implementation and the paper, the encoder of DAE, VIME, and SubTab is frozen during the second phase of learning. However, you can choose to freeze the encoder or not by setting the **freeze_encoder** flag in the **set_second_phase** method.
+According to the original implementation and the paper, the encoder of DAE, VIME, and SubTab is frozen during the second phase of learning. However, you can choose to freeze the encoder (i.e. backbone network) or not by setting the **freeze_encoder** flag in the **set_second_phase** method.
 
 | Model | First Phase | Second Phase |
 |:---:|:---:|:---:|
@@ -37,6 +37,15 @@ According to the original implementation and the paper, the encoder of DAE, VIME
 | **SubTab** ([NeurIPS'21](https://proceedings.neurips.cc/paper/2021/hash/9c8661befae6dbcd08304dbf4dcaf0db-Abstract.html)) | Self-SL | SL |
 | **SCARF** ([ICLR'22](https://iclr.cc/virtual/2022/spotlight/6297))| Self-SL | SL |
 | **SwitchTab** ([AAAI'24](https://ojs.aaai.org/index.php/AAAI/article/view/29523)) | Self-SL | SL |
+
+In addition, TabularS3L employs a modular design, allowing you to freely choose the embedding and backbone modules.
+
+The currently supported modules are:
+
+- **Embedding modules**: `identity`, `feature_tokenizer`
+- **Backbone modules**: `mlp`, `transformer`
+
+Note: The `transformer` backbone requires the `feature_tokenizer` as its embedding module.
 
 #### Denoising AutoEncoder (DAE)
 DAE processes input data that has been partially corrupted, producing clean data and predicting which features are corrupted during the self-supervised learning.
