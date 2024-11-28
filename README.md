@@ -42,8 +42,12 @@ In addition, TabularS3L employs a modular design, allowing you to freely choose 
 
 The currently supported modules are:
 
-- **Embedding modules**: `identity`, `feature_tokenizer`
-- **Backbone modules**: `mlp`, `transformer`
+- **Embedding modules**: 
+  - `identity`
+  - `feature_tokenizer` (from *Revisiting Deep Learning Models for Tabular Data*)
+- **Backbone modules**: 
+  - `mlp`
+  - `transformer`
 
 Note: The `transformer` backbone requires the `feature_tokenizer` as its embedding module.
 
@@ -546,9 +550,21 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
 
 ## Benchmark
 
-We provide a simple benchmark using TabularS3L against XGBoost. The train-validation-test ratio is 6:2:2 and we tuned each model over 50 trials using Optuna. The results are the average of the random seeds [0,4]. The best results are bold. 'acc', 'b-acc', and 'mse' mean 'Accuracy', 'Balanced Accuracy', and 'Mean Squared Error', respectively.
+This section provides a simple benchmark comparing TabularS3L with XGBoost. The train-validation-test ratio is 6:2:2, and each model is tuned over 50 trials using Optuna. The results are averaged over five random seeds (0 to 4). The best results are shown in bold. `acc`, `b-acc`, and `mse` stand for `Accuracy`, `Balanced Accuracy`, and `Mean Squared Error`, respectively.
+
+The embedding and backbone modules used for each model are as follows, which align with their original papers or repositories.
+
+| Model | embedding | backbone |
+|:---:|:---:|:---:|
+| DAE | <code>identity</code> | <code>mlp</code> |
+| VIME | <code>identity</code> | <code>mlp</code> |
+| SubTab | <code>identity</code> | <code>mlp</code> |
+| SCARF | <code>identity</code> | <code>mlp</code> |
+| SwitchTab | <code>feature_tokenizer</code> | <code>transformer</code> |
 
 Use this benchmark for reference only, as only a small number of random seeds were used.
+
+--------
 
 ##### 10% labeled samples 
 
