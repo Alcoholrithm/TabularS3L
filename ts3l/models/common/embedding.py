@@ -74,9 +74,7 @@ class FeatureTokenizer(nn.Module):
 
         return x
 
-    def __generate_flattened_token(self, 
-                x: torch.Tensor
-        ) -> torch.Tensor:
+    def __generate_flattened_token(self, x: torch.Tensor) -> torch.Tensor:
 
         x = self.__generate_tokens(x)
         
@@ -87,17 +85,11 @@ class TS3LEmbeddingModule(nn.Module):
         super().__init__()
         self.config = config
         self.input_dim = config.input_dim
+        self.output_dim = self.config.output_dim
         self.__set_embedding_layer()
-        self.__set_embedding_dim()
-    
+        
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.embeding_layer(x)
-        
-    def __set_embedding_dim(self):
-        if self.config.name == "identity":
-            self.output_dim = self.config.input_dim
-        else:
-            self.output_dim = self.config.emb_dim
     
     def __set_embedding_layer(self):
         if self.config.name == "identity":
