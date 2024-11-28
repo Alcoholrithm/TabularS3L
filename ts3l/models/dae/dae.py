@@ -5,7 +5,6 @@ import torch.nn as nn
 
 
 from ts3l.models.common import TS3LModule
-from ts3l.models.common import MLP
 from ts3l.models.common.reconstruction_head import ReconstructionHead
 
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
