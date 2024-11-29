@@ -602,7 +602,7 @@ Contributions to this implementation are highly appreciated. Whether it's sugges
 @software{Kim_TabularS3L_2024,
 author = {Kim, Minwook},
 doi = {10.5281/zenodo.10776538},
-month = jun,
+month = nov,
 title = {{TabularS3L}},
 url = {https://github.com/Alcoholrithm/TabularS3L},
 version = {0.6.0},
