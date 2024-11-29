@@ -28,7 +28,7 @@ jobs:
         python-version: '3.x'
     - name: Install dependencies
       run: |
-        pip install "twine==4.0.2" setuptools wheel
+        pip install twine setuptools wheel
         
     - name: Build package
       run: |
