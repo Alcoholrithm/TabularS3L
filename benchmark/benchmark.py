@@ -5,6 +5,8 @@ from pipelines import VIMEPipeLine, SubTabPipeLine, SCARFPipeLine, XGBPipeLine, 
 def main():
     parser = argparse.ArgumentParser(add_help=True)
 
+    parser.add_argument('--embedding', type=str, choices=["identity", "feature_tokenizer"], default="identity")
+    parser.add_argument('--backbone', type=str, choices=["mlp", "transformer"], default="mlp")
     parser.add_argument('--model', type=str, choices=["xgb", "vime", "subtab", "scarf", "dae", "switchtab"])
     parser.add_argument('--data', type=str, choices=["diabetes", "abalone", "cmc"])
     

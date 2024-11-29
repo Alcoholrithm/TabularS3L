@@ -2,12 +2,13 @@ import argparse
 import pandas as pd
 from typing import List, Type, Dict, Any
 from ts3l.utils import BaseConfig
+from ts3l.utils.embedding_utils import FTEmbeddingConfig
+from ts3l.utils.backbone_utils import TransformerBackboneConfig
 from ts3l.pl_modules.base_module import TS3LLightining
 
 from ts3l.pl_modules import SwitchTabLightning
 from ts3l.utils.switchtab_utils import SwitchTabConfig, SwitchTabDataset, SwitchTabFirstPhaseCollateFN
 from ts3l.utils import TS3LDataModule
-from ts3l.utils.misc import get_category_dims
 
 from hparams_range.switchtab import hparams_range
 
@@ -20,27 +21,26 @@ from torch.nn import functional as F
 from torch.utils.data import SequentialSampler, DataLoader
 import torch
 
+from copy import deepcopy
+
 class SwitchTabPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
         super().__init__(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
         
-        self.category_dims = get_category_dims(data, category_cols)
-            
+        
     def initialize(self):
         self.config_class = SwitchTabConfig
         self.pl_module_class = SwitchTabLightning
-        self.hparams_range = hparams_range
+        self.hparams_range = deepcopy(hparams_range)
+        
+        super().initialize()
         
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
-        hparams["hidden_dim"] = hparams["encoder_head_dim"] * hparams["n_head"]
-        del hparams["encoder_head_dim"]
         
-        hparams["category_dims"] = self.category_dims
-        
-        return self.config_class(input_dim = self.data.shape[1], output_dim = self.output_dim, **hparams)
+        return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         
@@ -59,7 +59,7 @@ class SwitchTabPipeLine(PipeLine):
                 verbose = False
             )
         ]
-        pretraining_path = f'benchmark_ckpt/' + self.args.data + '/pretraining/'
+        pretraining_path = f'benchmark_ckpt/pretraining/'
         checkpoint_callback = ModelCheckpoint(
             monitor='val_loss',
             dirpath=pretraining_path,
@@ -102,7 +102,7 @@ class SwitchTabPipeLine(PipeLine):
 
         checkpoint_path = None
 
-        checkpoint_path = f'benchmark_ckpt/' + self.args.data + '/'
+        checkpoint_path = f'benchmark_ckpt/'
         checkpoint_callback = ModelCheckpoint(
             monitor='val_' + self.metric.__name__,
             dirpath=checkpoint_path,

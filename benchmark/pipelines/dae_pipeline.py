@@ -19,6 +19,8 @@ from torch.nn import functional as F
 from torch.utils.data import SequentialSampler, DataLoader
 import torch
 
+from copy import deepcopy
+
 class DAEPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
@@ -27,15 +29,16 @@ class DAEPipeLine(PipeLine):
     def initialize(self):
         self.config_class = DAEConfig
         self.pl_module_class = DAELightning
-        self.hparams_range = hparams_range
+        self.hparams_range = deepcopy(hparams_range)
+        super().initialize()
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
         
+        hparams["cat_cardinality"] = self.cat_cardinality
         hparams["num_continuous"] = len(self.continuous_cols)
-        hparams["num_categoricals"] = len(self.category_cols)
         
-        return self.config_class(input_dim = self.data.shape[1], output_dim = self.output_dim, **hparams)
+        return self.config_class(embedding_config=self._embedding_config, backbone_config=self._backbone_config, output_dim = self.output_dim, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         

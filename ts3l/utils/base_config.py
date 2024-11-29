@@ -1,9 +1,12 @@
 from dataclasses import dataclass, field
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Type
 from torch import optim, nn
 import torchmetrics
 import sklearn
+
+from .embedding_utils import BaseEmbeddingConfig
+from .backbone_utils import BaseBackboneConfig
 
 import sys
 if sys.version_info >= (3, 8):
@@ -18,33 +21,32 @@ class BaseConfig:
 
     Attributes:
         task (str): Specify whether the problem is regression or classification.
-        input_dim (int): The dimension of the input.
+        embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
+        backbone_config (BaseBackboneConfig): Configuration for the backbone network.
         output_dim (int): The dimension of output.
         loss_fn (str): Name of the loss function to be used. Must be an attribute of 'torch.nn'.
+        loss_hparams (Dict[str, Any]): Hyperparameters for the loss function. Default is empty dictionary.
+        metric (str): Name of the metric to be used. Must be an attribute of 'torchmetrics.functional' or 'sklearn.metrics'. Default is None.
+        metric_hparams (Dict[str, Any]): Hyperparameters for the metric. Default is an empty dictionary.
         optim (str): Name of the optimizer to be used. Must be an attribute of 'torch.optim'. Default is 'AdamW'.
         optim_hparams (Dict[str, Any]): Hyperparameters for the optimizer. Default is {'lr': 0.0001, 'weight_decay': 0.00005}.
         scheduler (str): Name of the learning rate scheduler to be used. Must be an attribute of 'torch.optim.lr_scheduler' or None. Default is None.
         scheduler_hparams (Dict[str, Any]): Hyperparameters for the scheduler. Default is None, indicating no scheduler is used.
-        loss_hparams (Dict[str, Any]): Hyperparameters for the loss function. Default is empty dictionary.
-        metric (str): Name of the metric to be used. Must be an attribute of 'torchmetrics.functional' or 'sklearn.metrics'. Default is None.
-        metric_hparams (Dict[str, Any]): Hyperparameters for the metric. Default is an empty dictionary.
         initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
-
     Raises:
         ValueError: If the specified 'optim' is not a valid optimizer in 'torch.optim'.
         ValueError: If the specified 'scheduler' is not None and is not a valid scheduler in 'torch.optim.lr_scheduler'.
-
-        ValueError: If the specified 'loss_fn' is not None and is not a valid loss function in 'torch.nn'.
-        
+        ValueError: If the specified 'loss_fn' is not None and is not a valid loss function in 'torch.nn'.        
         ValueError: If the specified 'metric' is not a valid metric in 'torchmetrics' or 'sklearn.metrics'.
-        
         ValueError: If the specified 'task' is not a valid task in ['regression', 'classification']'.
-        
+        ValueError: If the combination of `backbone_config` and `embedding_config` is invalid.
     """
     task: str
     
-    input_dim: int
+    embedding_config: BaseEmbeddingConfig
+    
+    backbone_config: BaseBackboneConfig
     
     output_dim: int
     
@@ -73,6 +75,7 @@ class BaseConfig:
     
     random_seed: int = field(default=42)
     
+    
     def __post_init__(self):
 
         if (type(self.task) is not str or (self.task != "regression" and self.task != "classification")):
@@ -95,3 +98,9 @@ class BaseConfig:
                 
         elif (type(self.metric) is not str or (not hasattr(torchmetrics.functional, self.metric) and not hasattr(sklearn.metrics, self.metric))):
             raise ValueError(f"{self.metric} is not a valid metric in torchmetrics.functional or sklearn.metrics")
+        
+        if self.backbone_config.name == "transformer" and self.embedding_config.name == "identity":
+            raise ValueError(f"Transformer backbone and Identity Embedding are not compatible.")
+        
+        if self.backbone_config.name == "transformer" and self.embedding_config.required_token_dim == 1:
+            raise ValueError(f"Embedding's 'required_token_dim' should be 2 for transformer backbone, not {self.embedding_config.required_token_dim}")

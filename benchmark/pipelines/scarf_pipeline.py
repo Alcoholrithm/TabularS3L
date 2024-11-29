@@ -19,6 +19,8 @@ from torch.nn import functional as F
 from torch.utils.data import SequentialSampler, DataLoader
 import torch
 
+from copy import deepcopy
+
 class SCARFPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
@@ -27,17 +29,19 @@ class SCARFPipeLine(PipeLine):
     def initialize(self):
         self.config_class = SCARFConfig
         self.pl_module_class = SCARFLightning
-        self.hparams_range = hparams_range
+        self.hparams_range = deepcopy(hparams_range)
+        
+        super().initialize()
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
         
-        return self.config_class(input_dim = self.data.shape[1], output_dim = self.output_dim, **hparams)
+        return self.config_class(embedding_config=self._embedding_config, output_dim = self.output_dim, backbone_config=self._backbone_config, **hparams)
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         
-        train_ds = SCARFDataset(X = self.X_train, unlabeled_data=self.X_unlabeled, config=config)
-        test_ds = SCARFDataset(X = self.X_valid, config=config)
+        train_ds = SCARFDataset(X = self.X_train, unlabeled_data=self.X_unlabeled, config=config, continuous_cols=self.continuous_cols, category_cols=self.category_cols)
+        test_ds = SCARFDataset(X = self.X_valid, config=config, continuous_cols=self.continuous_cols, category_cols=self.category_cols)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size=self.args.batch_size, train_sampler="random")
 
@@ -78,8 +82,8 @@ class SCARFPipeLine(PipeLine):
 
         pl_module.set_second_phase()
         
-        train_ds = SCARFDataset(X = self.X_train, Y = self.y_train.values, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
-        test_ds = SCARFDataset(X = self.X_valid, Y = self.y_valid.values, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
+        train_ds = SCARFDataset(X = self.X_train, Y = self.y_train.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
+        test_ds = SCARFDataset(X = self.X_valid, Y = self.y_valid.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
         
         pl_datamodule = TS3LDataModule(train_ds, test_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted")
             
@@ -132,7 +136,7 @@ class SCARFPipeLine(PipeLine):
                     callbacks = None,
         )
 
-        test_ds = SCARFDataset(X = X, is_second_phase=True)
+        test_ds = SCARFDataset(X = X, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True)
         test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs)
 
         preds = trainer.predict(pl_module, test_dl)

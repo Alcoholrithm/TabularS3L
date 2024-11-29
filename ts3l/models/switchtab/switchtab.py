@@ -3,35 +3,8 @@ from torch import nn
 
 from typing import Tuple, List, Union
 from ts3l.models.common import TS3LModule
-from ts3l.models.switchtab.ft_transformer import FTTransformer
+from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
-class Encoder(nn.Module):
-    def __init__(self, 
-                    cont_nums: int,
-                    category_dims: List[int],
-                    ffn_factor: float,
-                    hidden_dim: int,
-                    dropout_rate: float,
-                    encoder_depth: int = 3,
-                    n_head: int = 2) -> None:
-        """Initializes the encoder module used in the SwitchTab, employing an FT-Transformer architecture
-
-        Args:
-            cont_nums (int): The number of continuous features.
-            category_dims (List[int]): A list of dimensions of the categorical features.
-            ffn_factor (float): The scaling factor for the size of the feedforward network within the transformer blocks.
-            hidden_dim (int): The dimensionality of the hidden layers within the network.
-            dropout_rate (float): The dropout rate used within the encoder.
-            encoder_depth (int, optional): The number of layers in the encoder. Defaults to 3.
-            n_head (int, optional): The number of attention heads in the encoder. Defaults to 2.
-        """
-        super().__init__()
-        
-        self.transformer = FTTransformer(cont_nums=cont_nums, cat_dims=category_dims, emb_dim=hidden_dim, n_heads=n_head, attn_dropout=dropout_rate, ffn_dropout=dropout_rate, ffn_factor_dim=ffn_factor, depth=encoder_depth)
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.transformer(x)
-    
 class Projector(nn.Module):
     def __init__(self, hidden_dim: int) -> None:
         """Initializes the projector module used in the SwitchTab
@@ -48,16 +21,16 @@ class Projector(nn.Module):
         return self.linear(self.activation(x))
 
 class Decoder(nn.Module):
-    def __init__(self, input_dim:int, hidden_dim: int) -> None:
+    def __init__(self, hidden_dim: int, output_dim:int) -> None:
         """Initializes the decoder module used in the SwitchTab
 
         Args:
-            input_dim (int): The dimensionality of input features of SwitchTab.
             hidden_dim (int): The dimensionality of the output of the projector.
+            output_dim (int): The dimensionality of input features of SwitchTab.
         """
         super().__init__()
         
-        self.linear = nn.Linear(hidden_dim * 2, input_dim)
+        self.linear = nn.Linear(hidden_dim * 2, output_dim)
         self.activation = nn.SiLU()
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -65,42 +38,31 @@ class Decoder(nn.Module):
 
 class SwitchTab(TS3LModule):
     def __init__(self,
-                    input_dim: int,
+                    embedding_config: BaseEmbeddingConfig,
+                    backbone_config: BaseBackboneConfig,
                     output_dim: int,
-                    category_dims: List[int],
-                    hidden_dim: int,
-                    ffn_factor: int,
-                    dropout_rate: float,
-                    encoder_depth: int = 3,
-                    n_head: int = 2) -> None:
+                    **kwargs) -> None:
         """Initialize SwitchTab
 
         Args:
-            input_dim (int): The dimensionality of the input features.
+            embedding_config (BaseEmbeddingConfig): Configuration for the embedding layer.
+            backbone_config (BaseBackboneConfig): Configuration for the backbone network.
             output_dim (int): The dimensionality of the output.
-            category_dims (List[int]): A list of dimensions of the categorical features.
-            hidden_dim (int): The dimensionality of the hidden layers within the network.
-            ffn_factor (int): The scaling factor for the size of the feedforward network inside the encoder.
-            dropout_rate (float): The dropout rate used within the encoder.
-            encoder_depth (int, optional): The number of layers in the encoder. Defaults to 3.
-            n_head (int, optional): The number of attention heads in the encoder. Defaults to 2.
         """
-        super(SwitchTab, self).__init__()
-        self.hidden_dim = hidden_dim
+        super(SwitchTab, self).__init__(embedding_config, backbone_config)
         self.output_dim = output_dim
         self.__return_salient_feature = False
         
+        self.projector_m = Projector(self.backbone_module.output_dim)
+        self.projector_s = Projector(self.backbone_module.output_dim)
         
-        self.__encoder = Encoder(input_dim - len(category_dims), category_dims, ffn_factor, hidden_dim, dropout_rate, encoder_depth, n_head)
-        self.projector_m = Projector(hidden_dim)
-        self.projector_s = Projector(hidden_dim)
-        self.decoder = Decoder(input_dim, hidden_dim)
-        self.head = nn.Linear(hidden_dim, output_dim)
+        self.decoder = Decoder(self.backbone_module.output_dim, self.embedding_module.input_dim)
+        self.head = nn.Linear(self.backbone_module.output_dim, output_dim)
         self.activation = nn.SiLU()
 
     @property
     def encoder(self) -> nn.Module:
-        return self.__encoder
+        return self.backbone_module
         
     @property
     def return_salient_feature(self) -> bool:
@@ -134,8 +96,9 @@ class SwitchTab(TS3LModule):
         """
         
         size = len(x) // 2
-        
+        x = self.embedding_module(x)
         zs = self.encoder(x)
+        
         ms = self.projector_m(zs)
         ss = self.projector_s(zs)
         
@@ -149,7 +112,6 @@ class SwitchTab(TS3LModule):
         x2_switch_recover = self.decoder(x2_hat_tilde)
         
         x_hat = torch.concat([x1_recover_switch, x2_switch_recover])
-
         y_hat = self.head(self.activation(zs))
 
         return x_hat, y_hat
@@ -168,6 +130,7 @@ class SwitchTab(TS3LModule):
                 where the first element is 'y_hat' and the second element is a tensor of salient features extracted
                 from the input.
         """
+        x = self.embedding_module(x)
         emb = self.encoder(x)
         y_hat = self.head(self.activation(emb))
         if not self.return_salient_feature:

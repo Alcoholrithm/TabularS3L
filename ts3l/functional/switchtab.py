@@ -20,12 +20,12 @@ def first_phase_step(
     """
 
     _, xcs, ys = batch
-
+    
     cls_idx = ys != u_label
 
     x_hat, y_hat = model(xcs)
 
-    labeled_y_hat, labeled_y = y_hat[cls_idx].squeeze(), ys[cls_idx]
+    labeled_y_hat, labeled_y = y_hat[cls_idx.squeeze(), :].squeeze(), ys[cls_idx]
 
     return x_hat, labeled_y, labeled_y_hat
 

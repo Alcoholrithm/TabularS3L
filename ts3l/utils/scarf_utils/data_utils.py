@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Dict, Any, Optional
+from typing import Union, Tuple, Optional, List
 from numpy.typing import NDArray
 
 from torch.utils.data import Dataset
@@ -16,6 +16,8 @@ class SCARFDataset(Dataset):
                         Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
                         unlabeled_data: Optional[pd.DataFrame] = None, 
                         config: Optional[SCARFConfig] = None,
+                        continuous_cols: Optional[List] = None, 
+                        category_cols: Optional[List] = None,
                         is_regression: Optional[bool] = False,
                         is_second_phase: Optional[bool] = False,
                         ) -> None:
@@ -30,7 +32,9 @@ class SCARFDataset(Dataset):
                 Use integers for classification labels and floats for regression targets. Defaults to None.
             unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 
                 self-supervised learning. Defaults to None.
-            config (SCARFConfig): The given hyperparameter set for SubTab.
+            config (SCARFConfig): The given hyperparameter set for SCARF.
+            continuous_cols (List, optional): List of continuous columns. Defaults to None.
+            category_cols (List, optional): List of categorical columns. Defaults to None.
             is_regression (bool, optional): Flag indicating whether the task is regression (True) or classification (False).
                 Defaults to False.
             is_second_phase (bool, optional): Flag indicating whether the dataset is for first phase or second phase learning. 
@@ -42,8 +46,11 @@ class SCARFDataset(Dataset):
             
         if unlabeled_data is not None:
             X = pd.concat([X, unlabeled_data])
-            
-        self.data = torch.FloatTensor(X.values)
+        
+        cat_data = torch.FloatTensor(X[category_cols].values)
+        cont_data = torch.FloatTensor(X[continuous_cols].values)
+        
+        self.data = torch.concat([cat_data, cont_data], dim=1)
         
         self.corruption_rate = self.config.corruption_rate if not is_second_phase else 0.0
         self.corruption_len = int(X.shape[1] * self.corruption_rate)

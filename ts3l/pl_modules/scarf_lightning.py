@@ -6,7 +6,7 @@ from ts3l.models import SCARF
 from ts3l.models.scarf import NTXentLoss
 from ts3l.utils.scarf_utils import SCARFConfig
 from ts3l import functional as F
-
+from ts3l.utils import BaseConfig
 
 class SCARFLightning(TS3LLightining):
 
@@ -18,15 +18,16 @@ class SCARFLightning(TS3LLightining):
         """
         super(SCARFLightning, self).__init__(config)
 
-    def _initialize(self, config: Dict[str, Any]):
+    def _initialize(self, config: BaseConfig):
         """Initializes the model with specific hyperparameters and sets up various components of SCARFLightning.
 
         Args:
             config (Dict[str, Any]): The given hyperparameter set for SCARF.
         """
-        self.contrastive_loss = NTXentLoss(config["tau"])
-        del config["tau"]
-        del config["corruption_rate"]
+        if not isinstance(config, SCARFConfig):
+            raise TypeError(f"Expected SCARFConfig, got {type(config)}")
+        
+        self.contrastive_loss = NTXentLoss(config.tau)
 
         self._init_model(SCARF, config)
 

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-class VIMESemiSupervised(nn.Module):
+class VIMEPredictor(nn.Module):
     def __init__(self, input_dim:int, hidden_dim:int, output_dim:int):
         """_summary_
 

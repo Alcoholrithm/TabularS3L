@@ -7,6 +7,8 @@ from .pipeline import PipeLine
 from xgboost import XGBClassifier, XGBRegressor
 from hparams_range.xgb import hparams_range
 
+from copy import deepcopy
+
 @dataclass
 class XGBConfig:
     
@@ -41,7 +43,7 @@ class XGBPipeLine(PipeLine):
             self.pl_module_class = XGBClassifier
         self.pl_module_class = XGBModule(self.pl_module_class)
         
-        self.hparams_range = hparams_range
+        self.hparams_range = deepcopy(hparams_range)
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams["early_stopping_rounds"] = self.args.second_phase_patience

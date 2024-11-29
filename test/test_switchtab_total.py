@@ -1,4 +1,5 @@
 from misc import get_args
+import pytest
 
 import sys
 import os
@@ -6,7 +7,8 @@ here = os.path.dirname(__file__)
 
 sys.path.append(os.path.join(here, '..'))
 
-def test_switchtab_classification():
+@pytest.mark.parametrize("embedding, backbone", [("feature_tokenizer", "transformer")])
+def test_switchtab_classification(embedding, backbone):
     
     from benchmark.datasets import load_diabetes
     data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams = load_diabetes()
@@ -16,13 +18,15 @@ def test_switchtab_classification():
     from benchmark.pipelines import SwitchTabPipeLine
     
     args = get_args()
-    args.data = "diabetes"
+    args.embedding = embedding
+    args.backbone = backbone
     
     pipeline = SwitchTabPipeLine(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
     
     pipeline.benchmark()
 
-def test_switchtab_regression():
+@pytest.mark.parametrize("embedding, backbone", [("feature_tokenizer", "transformer")])
+def test_switchtab_regression(embedding, backbone):
     
     from benchmark.datasets import load_abalone
     data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams = load_abalone()
@@ -32,12 +36,13 @@ def test_switchtab_regression():
     from benchmark.pipelines import SwitchTabPipeLine
     
     args = get_args()
-    args.data = "abalone"
+    args.embedding = embedding
+    args.backbone = backbone
     
     pipeline = SwitchTabPipeLine(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
     
     pipeline.benchmark()
     
 if __name__ == "__main__":
-    test_switchtab_classification()
-    test_switchtab_regression()
+    test_switchtab_classification("feature_tokenizer", "transformer")
+    test_switchtab_regression("feature_tokenizer", "transformer")

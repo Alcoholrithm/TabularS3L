@@ -24,33 +24,21 @@ class TS3LLightining(ABC, pl.LightningModule):
         """
         super(TS3LLightining, self).__init__()
         
-        _config = asdict(config)
-        
-        self.random_seed = _config["random_seed"]
-        del _config["random_seed"]
+        self.random_seed = config.random_seed
         
         pl.seed_everything(self.random_seed)
         
-        self.optim = getattr(torch.optim, _config["optim"])
-        del _config["optim"]
-        self.optim_hparams = _config["optim_hparams"]
-        del _config["optim_hparams"]
+        self.optim = getattr(torch.optim, config.optim)
+        self.optim_hparams = config.optim_hparams
         
-        self.sched = getattr(torch.optim.lr_scheduler, _config["scheduler"]) if _config["scheduler"] is not None else None
-        del _config["scheduler"]
-        self.scheduler_hparams = _config["scheduler_hparams"]
-        del _config["scheduler_hparams"]
+        self.sched = getattr(torch.optim.lr_scheduler, config.scheduler) if config.scheduler is not None else None
+        self.scheduler_hparams = config.scheduler_hparams
         
-        self.task_loss_fn = getattr(torch.nn, _config["loss_fn"])(**_config["loss_hparams"])
-        del _config["loss_fn"]
-        del _config["loss_hparams"]
+        self.task_loss_fn = getattr(torch.nn, config.loss_fn)(**config.loss_hparams)
         
-        self.__configure_metric(_config["task"], _config["metric"], _config["metric_hparams"])
-        del _config["task"]
-        del _config["metric"]
-        del _config["metric_hparams"]
+        self.__configure_metric(config.task, config.metric, config.metric_hparams)
         
-        self._initialize(_config)
+        self._initialize(config)
         
         self.set_first_phase()
 
@@ -60,14 +48,13 @@ class TS3LLightining(ABC, pl.LightningModule):
         self.save_hyperparameters()
     
     @abstractmethod
-    def _initialize(self, config: Dict[str, Any]) -> None:
+    def _initialize(self, config: BaseConfig) -> None:
         pass
     
-    def _init_model(self, model_class: Type[nn.Module], config: Dict[str, Any]) -> None:
-        initialization = config["initialization"]
-        del config["initialization"]
+    def _init_model(self, model_class: Type[nn.Module], config: BaseConfig) -> None:
+        initialization = config.initialization
         
-        self.model = model_class(**config)
+        self.model = model_class(**config.__dict__)
         initialize_weights(self.model, initialization)
         
     def __configure_metric(self, task, metric, metric_hparams):

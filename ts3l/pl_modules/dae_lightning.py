@@ -6,7 +6,7 @@ from .base_module import TS3LLightining
 from ts3l.models import DAE
 from ts3l.utils.dae_utils import DAEConfig
 from ts3l import functional as F
-
+from ts3l.utils import BaseConfig
 
 class DAELightning(TS3LLightining):
 
@@ -18,26 +18,21 @@ class DAELightning(TS3LLightining):
         """
         super(DAELightning, self).__init__(config)
 
-    def _initialize(self, config: Dict[str, Any]) -> None:
+    def _initialize(self, config: BaseConfig) -> None:
         """Initializes the model with specific hyperparameters and sets up various components of DAELightning.
 
         Args:
             config (Dict[str, Any]): The given hyperparameter set for DAE.
         """
-
-        self.mask_loss_weight = config["mask_loss_weight"]
-        del config["mask_loss_weight"]
+        if not isinstance(config, DAEConfig):
+            raise TypeError(f"Expected DAEConfig, got {type(config)}")
+        
+        self.mask_loss_weight = config.mask_loss_weight
 
         self.num_categoricals, self.num_continuous = (
-            config["num_categoricals"],
-            config["num_continuous"],
+            len(config.cat_cardinality),
+            config.num_continuous,
         )
-        del config["num_categoricals"]
-        del config["num_continuous"]
-
-        del config["noise_type"]
-        del config["noise_level"]
-        del config["noise_ratio"]
 
         self.mask_loss_fn = nn.BCELoss()
         self.categorical_feature_loss = nn.CrossEntropyLoss()
@@ -58,14 +53,14 @@ class DAELightning(TS3LLightining):
         """
         x, _, mask = batch
         
-        mask_preds, feature_preds = F.dae.first_phase_step(self.model, batch)
+        mask_preds, cat_preds, cont_preds = F.dae.first_phase_step(self.model, batch)
         
         mask_loss, feature_loss = F.dae.first_phase_loss(
             x[:, : self.num_categoricals],
             x[:, self.num_categoricals :],
             mask,
-            feature_preds[:, : self.num_categoricals],
-            feature_preds[:, self.num_categoricals :],
+            cat_preds, 
+            cont_preds,
             mask_preds,
             self.mask_loss_fn,
             self.categorical_feature_loss,

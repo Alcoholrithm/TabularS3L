@@ -28,7 +28,7 @@ pip install ts3l
 
 TabularS3L employs a two-phase learning approach, where the learning strategies differ between phases. Below is an overview of the models available within TabularS3L, highlighting the learning strategies employed in each phase. The abbreviations 'Self-SL', 'Semi-SL', and 'SL' represent self-supervised learning, semi-supervised learning, and supervised learning, respectively.
 
-According to the original implementation and the paper, the encoder of DAE, VIME, and SubTab is frozen during the second phase of learning. However, you can choose to freeze the encoder or not by setting the **freeze_encoder** flag in the **set_second_phase** method.
+According to the original implementation and the paper, the encoder of DAE, VIME, and SubTab is frozen during the second phase of learning. However, you can choose to freeze the encoder (i.e. backbone network) or not by setting the **freeze_encoder** flag in the **set_second_phase** method.
 
 | Model | First Phase | Second Phase |
 |:---:|:---:|:---:|
@@ -37,6 +37,19 @@ According to the original implementation and the paper, the encoder of DAE, VIME
 | **SubTab** ([NeurIPS'21](https://proceedings.neurips.cc/paper/2021/hash/9c8661befae6dbcd08304dbf4dcaf0db-Abstract.html)) | Self-SL | SL |
 | **SCARF** ([ICLR'22](https://iclr.cc/virtual/2022/spotlight/6297))| Self-SL | SL |
 | **SwitchTab** ([AAAI'24](https://ojs.aaai.org/index.php/AAAI/article/view/29523)) | Self-SL | SL |
+
+In addition, TabularS3L employs a modular design, allowing you to freely choose the embedding and backbone modules.
+
+The currently supported modules are:
+
+- **Embedding modules**: 
+  - `identity`
+  - `feature_tokenizer` (from *Revisiting Deep Learning Models for Tabular Data*)
+- **Backbone modules**: 
+  - `mlp`
+  - `transformer`
+
+Note: The `transformer` backbone requires the `feature_tokenizer` as its embedding module.
 
 #### Denoising AutoEncoder (DAE)
 DAE processes input data that has been partially corrupted, producing clean data and predicting which features are corrupted during the self-supervised learning.
@@ -47,15 +60,18 @@ These latent representations can be utilized for a variety of downstream tasks.
   <summary>Quick Start</summary>
   
   ```python
+  
   # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
   # Prepare the DAELightning Module
   from ts3l.pl_modules import DAELightning
   from ts3l.utils.dae_utils import DAEDataset, DAECollateFN
-  from ts3l.utils import TS3LDataModule
+  from ts3l.utils import TS3LDataModule, get_category_cardinality
   from ts3l.utils.dae_utils import DAEConfig
+  from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+  from ts3l.utils.backbone_utils import MLPBackboneConfig
   from pytorch_lightning import Trainer
-  
+
   metric = "accuracy_score"
   input_dim = X_train.shape[1]
   hidden_dim = 1024
@@ -64,69 +80,72 @@ These latent representations can be utilized for a variety of downstream tasks.
   head_depth = 2
   noise_type = "Swap"
   noise_ratio = 0.3
-  
+
   max_epochs = 20
   batch_size = 128
-  
+
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
-  
-  config = DAEConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, encoder_depth=encoder_depth,
-  head_depth = head_depth,
-  noise_type = noise_type,
-  noise_ratio = noise_ratio,
-  num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
+
+  embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+  backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
+
+  config = DAEConfig( 
+                  task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                  embedding_config=embedding_config, backbone_config=backbone_config,
+                  output_dim=output_dim,
+                  noise_type = noise_type,
+                  noise_ratio = noise_ratio,
+                  cat_cardinality=get_category_cardinality(data, category_cols), num_continuous=len(continuous_cols)
   )
-  
+
   pl_dae = DAELightning(config)
-  
+
   ### First Phase Learning
   train_ds = DAEDataset(X = X_train, unlabeled_data = X_unlabeled, continuous_cols = continuous_cols, category_cols = category_cols)
   valid_ds = DAEDataset(X = X_valid, continuous_cols = continuous_cols, category_cols = category_cols)
-  
+
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', train_collate_fn=DAECollateFN(config), valid_collate_fn=DAECollateFN(config))
-  
+
   trainer = Trainer(
                       accelerator = 'cpu',
                       max_epochs = max_epochs,
                       num_sanity_val_steps = 2,
       )
-  
+
   trainer.fit(pl_dae, datamodule)
-  
+
   ### Second Phase Learning
-  
+
   pl_dae.set_second_phase()
-  
+
   train_ds = DAEDataset(X = X_train, Y = y_train.values, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols)
   valid_ds = DAEDataset(X = X_valid, Y = y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols)
           
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
-  
+
   trainer = Trainer(
                       accelerator = 'cpu',
                       max_epochs = max_epochs,
                       num_sanity_val_steps = 2,
       )
-  
+
   trainer.fit(pl_dae, datamodule)
-  
+
   # Evaluation
   from sklearn.metrics import accuracy_score
   import torch
   from torch.nn import functional as F
   from torch.utils.data import DataLoader, SequentialSampler
-  
+
   test_ds = DAEDataset(X_test, category_cols=category_cols, continuous_cols=continuous_cols)
   test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
-  
+
   preds = trainer.predict(pl_dae, test_dl)
           
   preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
-  
+
   accuracy = accuracy_score(y_test, preds.argmax(1))
-  
+
   print("Accuracy %.2f" % accuracy)
   ```
 
@@ -139,18 +158,21 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
   <summary>Quick Start</summary>
   
   ```python
+
   # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
   # Prepare the VIMELightning Module
   from ts3l.pl_modules import VIMELightning
   from ts3l.utils.vime_utils import VIMEDataset
-  from ts3l.utils import TS3LDataModule
+  from ts3l.utils import TS3LDataModule, get_category_cardinality
   from ts3l.utils.vime_utils import VIMEConfig
+  from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+  from ts3l.utils.backbone_utils import MLPBackboneConfig
   from pytorch_lightning import Trainer
 
   metric = "accuracy_score"
   input_dim = X_train.shape[1]
-  hidden_dim = 1024
+  predictor_dim = 1024
   output_dim = 2
   alpha1 = 2.0
   alpha2 = 2.0
@@ -159,14 +181,20 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
   p_m = 0.2
 
   batch_size = 128
+  max_epochs = 20
 
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  config = VIMEConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, alpha1=alpha1, alpha2=alpha2, 
-  beta=beta, K=K, p_m = p_m,
-  num_categoricals=len(category_cols), num_continuous=len(continuous_cols)
+  embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+  backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
+
+  config = VIMEConfig( 
+                      task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                      embedding_config=embedding_config, backbone_config=backbone_config,
+                      predictor_dim=predictor_dim,
+                      output_dim=output_dim, alpha1=alpha1, alpha2=alpha2, 
+                      beta=beta, K=K, p_m = p_m,
+                      cat_cardinality=get_category_cardinality(data, category_cols), num_continuous=len(continuous_cols)
   )
 
   pl_vime = VIMELightning(config)
@@ -179,7 +207,7 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
 
   trainer = Trainer(
                       accelerator = 'cpu',
-                      max_epochs = 20,
+                      max_epochs = max_epochs,
                       num_sanity_val_steps = 2,
       )
 
@@ -194,6 +222,12 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
   valid_ds = VIMEDataset(X_valid, y_valid.values, config, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
           
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=VIMESecondPhaseCollateFN())
+
+  trainer = Trainer(
+                      accelerator = 'cpu',
+                      max_epochs = max_epochs,
+                      num_sanity_val_steps = 2,
+      )
 
   trainer.fit(pl_vime, datamodule)
 
@@ -224,86 +258,99 @@ SubTab turns the task of learning from tabular data into as a multi-view represe
 <details close>
   <summary>Quick Start</summary>
   
-  ```python
-  # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
+```python
+# Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
-  # Prepare the SubTabLightning Module
-  from ts3l.pl_modules import SubTabLightning
-  from ts3l.utils.subtab_utils import SubTabDataset, SubTabCollateFN
-  from ts3l.utils import TS3LDataModule
-  from ts3l.utils.subtab_utils import SubTabConfig
-  from pytorch_lightning import Trainer
+# Prepare the SubTabLightning Module
+from ts3l.pl_modules import SubTabLightning
+from ts3l.utils.subtab_utils import SubTabDataset
+from ts3l.utils import TS3LDataModule
+from ts3l.utils.subtab_utils import SubTabConfig
+from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+from ts3l.utils.backbone_utils import MLPBackboneConfig
+from pytorch_lightning import Trainer
 
-  metric = "accuracy_score"
-  input_dim = X_train.shape[1]
-  hidden_dim = 1024
-  output_dim = 2
-  tau = 1.0
-  use_cosine_similarity = True
-  use_contrastive = True
-  use_distance = True
-  n_subsets = 4
-  overlap_ratio = 0.75
+metric = "accuracy_score"
+input_dim = X_train.shape[1]
+projection_dim = 1024
+output_dim = 2
+tau = 1.0
+use_cosine_similarity = True
+use_contrastive = True
+use_distance = True
+n_subsets = 4
+overlap_ratio = 0.75
 
-  mask_ratio = 0.1
-  noise_type = "Swap"
-  noise_level = 0.1
+mask_ratio = 0.1
+noise_type = "Swap"
+noise_level = 0.1
 
-  batch_size = 128
-  max_epochs = 3
+batch_size = 128
+max_epochs = 20
 
-  X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
+X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  config = SubTabConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, tau=tau, use_cosine_similarity= use_cosine_similarity, use_contrastive=use_contrastive, use_distance=use_distance, 
-  n_subsets=n_subsets, overlap_ratio=overlap_ratio, mask_ratio=mask_ratio, noise_type=noise_type, noise_level=noise_level
-  )
+embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
 
-  pl_subtab = SubTabLightning(config)
+config = SubTabConfig( 
+                    task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                    embedding_config=embedding_config, backbone_config=backbone_config,
+                    projection_dim=projection_dim,
+                    output_dim=output_dim, tau=tau, use_cosine_similarity= use_cosine_similarity, use_contrastive=use_contrastive, use_distance=use_distance, 
+                    n_subsets=n_subsets, overlap_ratio=overlap_ratio, mask_ratio=mask_ratio, noise_type=noise_type, noise_level=noise_level
+)
 
-  ### First Phase Learning
-  train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled)
-  valid_ds = SubTabDataset(X_valid)
+pl_subtab = SubTabLightning(config)
 
-  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config), n_jobs = 4)
+### First Phase Learning
+train_ds = SubTabDataset(X_train, unlabeled_data=X_unlabeled, continuous_cols=continuous_cols, category_cols=category_cols)
+valid_ds = SubTabDataset(X_valid, continuous_cols=continuous_cols, category_cols=category_cols)
 
-  trainer = Trainer(
-                      accelerator = 'cpu',
-                      max_epochs = max_epochs,
-                      num_sanity_val_steps = 2,
-      )
+datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', n_jobs = 4)
 
-  trainer.fit(pl_subtab, datamodule)
+trainer = Trainer(
+                    accelerator = 'cpu',
+                    max_epochs = max_epochs,
+                    num_sanity_val_steps = 2,
+    )
 
-  ### Second Phase Learning
+trainer.fit(pl_subtab, datamodule)
 
-  pl_subtab.set_second_phase()
+### Second Phase Learning
 
-  train_ds = SubTabDataset(X_train, y_train.values)
-  valid_ds = SubTabDataset(X_valid, y_valid.values)
+pl_subtab.set_second_phase()
 
-  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted", train_collate_fn=SubTabCollateFN(config), valid_collate_fn=SubTabCollateFN(config))
+train_ds = SubTabDataset(X_train, y_train.values, continuous_cols=continuous_cols, category_cols=category_cols)
+valid_ds = SubTabDataset(X_valid, y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols)
 
-  trainer.fit(pl_subtab, datamodule)
+datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
 
-  # Evaluation
-  from sklearn.metrics import accuracy_score
-  import torch
-  from torch.nn import functional as F
-  from torch.utils.data import DataLoader, SequentialSampler
+trainer = Trainer(
+                    accelerator = 'cpu',
+                    max_epochs = max_epochs,
+                    num_sanity_val_steps = 2,
+    )
 
-  test_ds = SubTabDataset(X_test)
-  test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=4, collate_fn=SubTabCollateFN(config))
+trainer.fit(pl_subtab, datamodule)
 
-  preds = trainer.predict(pl_subtab, test_dl)
-          
-  preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+# Evaluation
+from sklearn.metrics import accuracy_score
+import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, SequentialSampler
 
-  accuracy = accuracy_score(y_test, preds.argmax(1))
+test_ds = SubTabDataset(X_test, continuous_cols=continuous_cols, category_cols=category_cols)
+test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=4)
 
-  print("Accuracy %.2f" % accuracy)
-  ```
+preds = trainer.predict(pl_subtab, test_dl)
+        
+preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+
+accuracy = accuracy_score(y_test, preds.argmax(1))
+
+print("Accuracy %.2f" % accuracy)
+```
 
 </details>
 
@@ -321,14 +368,15 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
   from ts3l.utils.scarf_utils import SCARFDataset
   from ts3l.utils import TS3LDataModule
   from ts3l.utils.scarf_utils import SCARFConfig
+  from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+  from ts3l.utils.backbone_utils import MLPBackboneConfig
   from pytorch_lightning import Trainer
 
   metric = "accuracy_score"
   input_dim = X_train.shape[1]
-  hidden_dim = 1024
+  pretraining_head_dim = 1024
   output_dim = 2
-  encoder_depth = 3
-  head_depth = 1
+  head_depth = 2
   dropout_rate = 0.04
 
   corruption_rate = 0.6
@@ -338,17 +386,22 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
 
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  config = SCARFConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, encoder_depth=encoder_depth, head_depth=head_depth,
-  dropout_rate=dropout_rate, corruption_rate = corruption_rate
+  embedding_config = IdentityEmbeddingConfig(input_dim = input_dim)
+  backbone_config = MLPBackboneConfig(input_dim = embedding_config.output_dim)
+
+  config = SCARFConfig( 
+                      task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+                      embedding_config=embedding_config, backbone_config=backbone_config,
+                      pretraining_head_dim=pretraining_head_dim,
+                      output_dim=output_dim, head_depth=head_depth,
+                      dropout_rate=dropout_rate, corruption_rate = corruption_rate
   )
 
   pl_scarf = SCARFLightning(config)
 
   ### First Phase Learning
-  train_ds = SCARFDataset(X_train, unlabeled_data=X_unlabeled, config = config)
-  valid_ds = SCARFDataset(X_valid, config=config)
+  train_ds = SCARFDataset(X_train, unlabeled_data=X_unlabeled, config = config, continuous_cols=continuous_cols, category_cols=category_cols)
+  valid_ds = SCARFDataset(X_valid, config=config, continuous_cols=continuous_cols, category_cols=category_cols)
 
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size=batch_size, train_sampler="random")
 
@@ -364,10 +417,16 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
 
   pl_scarf.set_second_phase()
 
-  train_ds = SCARFDataset(X_train, y_train.values, is_second_phase=True)
-  valid_ds = SCARFDataset(X_valid, y_valid.values, is_second_phase=True)
+  train_ds = SCARFDataset(X_train, y_train.values, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+  valid_ds = SCARFDataset(X_valid, y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
 
   datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="weighted")
+
+  trainer = Trainer(
+                      accelerator = 'cpu',
+                      max_epochs = max_epochs,
+                      num_sanity_val_steps = 2,
+      )
 
   trainer.fit(pl_scarf, datamodule)
 
@@ -377,7 +436,7 @@ SCARF introduces a contrastive learning framework specifically tailored for tabu
   from torch.nn import functional as F
   from torch.utils.data import DataLoader, SequentialSampler
 
-  test_ds = SCARFDataset(X_test, is_second_phase=True)
+  test_ds = SCARFDataset(X_test, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
   test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=4)
 
   preds = trainer.predict(pl_scarf, test_dl)
@@ -399,6 +458,7 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   <summary>Quick Start</summary>
   
   ```python
+  
   # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
 
   # Prepare the SwitchTabLightning Module
@@ -406,6 +466,9 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   from ts3l.utils.switchtab_utils import SwitchTabDataset, SwitchTabFirstPhaseCollateFN
   from ts3l.utils import TS3LDataModule
   from ts3l.utils.switchtab_utils import SwitchTabConfig
+  from ts3l.utils.embedding_utils import FTEmbeddingConfig
+  from ts3l.utils.backbone_utils import TransformerBackboneConfig
+  from ts3l.utils.misc import get_category_cardinality
   from pytorch_lightning import Trainer
 
   metric = "accuracy_score"
@@ -421,11 +484,15 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
 
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
-  config = SwitchTabConfig( task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
-  input_dim=input_dim, hidden_dim=hidden_dim,
-  output_dim=output_dim, encoder_depth=encoder_depth,
-  n_head = n_head,
-  u_label = u_label
+  embedding_config = FTEmbeddingConfig(input_dim = input_dim, emb_dim = 128, cont_nums = len(continuous_cols),
+                                          cat_cardinality=get_category_cardinality(data, category_cols), required_token_dim=2)
+  backbone_config = TransformerBackboneConfig(d_model = embedding_config.emb_dim, encoder_depth = encoder_depth, n_head = n_head, hidden_dim = hidden_dim)
+
+  config = SwitchTabConfig(
+      task="classification", loss_fn="CrossEntropyLoss", metric=metric, metric_hparams={},
+      embedding_config=embedding_config, backbone_config=backbone_config,
+      output_dim = output_dim,
+      u_label = u_label
   )
 
   pl_switchtab = SwitchTabLightning(config)
@@ -483,9 +550,21 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
 
 ## Benchmark
 
-We provide a simple benchmark using TabularS3L against XGBoost. The train-validation-test ratio is 6:2:2 and we tuned each model over 50 trials using Optuna. The results are the average of the random seeds [0,4]. The best results are bold. 'acc', 'b-acc', and 'mse' mean 'Accuracy', 'Balanced Accuracy', and 'Mean Squared Error', respectively.
+This section provides a simple benchmark comparing TabularS3L with XGBoost. The train-validation-test ratio is 6:2:2, and each model is tuned over 50 trials using Optuna. The results are averaged over five random seeds (0 to 4). The best results are shown in bold. `acc`, `b-acc`, and `mse` stand for `Accuracy`, `Balanced Accuracy`, and `Mean Squared Error`, respectively.
+
+The embedding and backbone modules used for each model are as follows, which align with their original papers or repositories.
+
+| Model | embedding | backbone |
+|:---:|:---:|:---:|
+| DAE | <code>identity</code> | <code>mlp</code> |
+| VIME | <code>identity</code> | <code>mlp</code> |
+| SubTab | <code>identity</code> | <code>mlp</code> |
+| SCARF | <code>identity</code> | <code>mlp</code> |
+| SwitchTab | <code>feature_tokenizer</code> | <code>transformer</code> |
 
 Use this benchmark for reference only, as only a small number of random seeds were used.
+
+--------
 
 ##### 10% labeled samples 
 
@@ -511,16 +590,29 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | SCARF | 0.7442 | **0.5521** | **4.4443** |
 | SwitchTab | 0.7585 | 0.5411 | 4.7489 |
 
-## To DO
-
-- [x] Release nn.Module and Dataset of VIME, SubTab, and SCARF
-- [x] Release LightningModules of VIME, SubTab, and SCARF
-- [x] Release Denoising AutoEncoder
-- [x] Release SwitchTab
-- [x] Add example codes
-- [ ] Release more tabular models
-
 ## Contributing
 
 Contributions to this implementation are highly appreciated. Whether it's suggesting improvements, reporting bugs, or proposing new features, feel free to open an issue or submit a pull request.
+
+## Citation
+
+#### BibTex
+
+```
+@software{Kim_TabularS3L_2024,
+author = {Kim, Minwook},
+doi = {10.5281/zenodo.10776538},
+month = nov,
+title = {{TabularS3L}},
+url = {https://github.com/Alcoholrithm/TabularS3L},
+version = {0.6.0},
+year = {2024}
+}
+```
+
+#### APA
+
+```
+Kim, M. (2024). TabularS3L (Version 0.6.0) [Computer software]. https://doi.org/10.5281/zenodo.10776538
+```
 

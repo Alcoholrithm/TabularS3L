@@ -1,12 +1,11 @@
 import pandas as pd
-from typing import Dict, Any, List, Union, Optional, Tuple
+from typing import Any, List, Union, Optional, Tuple
 from numpy.typing import NDArray
 
 import torch
 from torch.utils.data import Dataset
 
 import numpy as np
-from dataclasses import asdict
 from ts3l.utils.vime_utils import VIMEConfig
 
 class VIMEDataset(Dataset):
@@ -56,7 +55,7 @@ class VIMEDataset(Dataset):
                 self.label = self.label_class(Y)
             
                 if unlabeled_data is not None:
-                    self.label = torch.concat((self.label, self.label_class([u_label for _ in range(len(unlabeled_data))])), dim=0)
+                    self.label = torch.concat((self.label, self.label_class([u_label for _ in range(len(unlabeled_data))])), dim=0) # type: ignore
                 
                 if not is_regression:
                     class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]
@@ -156,7 +155,7 @@ class VIMEDataset(Dataset):
             torch.Tensor: x_tilde for consistency regularization
         """
         m_unlab = self.__mask_generator(self.config.p_m, cat_samples)
-        dcat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
+        cat_m_label, cat_x_tilde = self.__pretext_generator(m_unlab, cat_samples, self.cat_data)
         
         m_unlab = self.__mask_generator(self.config.p_m, cont_samples)
         cont_m_label, cont_x_tilde = self.__pretext_generator(m_unlab, cont_samples, self.cont_data)
@@ -208,7 +207,7 @@ class VIMEDataset(Dataset):
                 xs = torch.stack(_xs)
                 return xs, self.label_class([self.u_label for _ in range(len(xs))])
             else:
-                return x.unsqueeze(0), self.label[idx].unsqueeze(0)
+                return x, self.label[idx].unsqueeze(0)
         else:
             return x, self.u_label
             
@@ -226,4 +225,4 @@ class VIMESecondPhaseCollateFN(object):
     """
     
     def __call__(self, batch):
-        return torch.concat([x for x, _, in batch], dim=0), torch.concat([label for _, label in batch], dim=0)
+        return torch.concat([x.unsqueeze(0) if x.ndim == 1 else x for x, _, in batch], dim=0), torch.concat([label for _, label in batch], dim=0)

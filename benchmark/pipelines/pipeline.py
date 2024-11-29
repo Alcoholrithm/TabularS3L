@@ -3,6 +3,7 @@ import pandas as pd
 from typing import List, Type, Dict, Any
 from ts3l.utils import BaseConfig, RegressionMetric, ClassificationMetric
 from ts3l.pl_modules.base_module import TS3LLightining
+from ts3l.utils.misc import get_category_cardinality
 
 from abc import ABC, abstractmethod
 import optuna
@@ -45,13 +46,13 @@ class PipeLine(ABC):
         self.config_class = None
         self.pl_module_class = None
         self.hparams_range = None
-    
+
         self.__configure_metric()
+        
         self.initialize()
         
         self.check_attributes()
         
-    
     def __objective(self, trial: optuna.trial.Trial,
             ) -> float:
         
@@ -60,6 +61,7 @@ class PipeLine(ABC):
             hparams[k] = getattr(trial, v[0])(*v[1])
 
         config = self._get_config(hparams)
+
         pl_module = self.pl_module_class(config)
 
         pl_module = self.fit_model(pl_module, config)
@@ -76,8 +78,44 @@ class PipeLine(ABC):
     
     @abstractmethod
     def initialize(self):
-        pass
-    
+        
+        if self.args.embedding == "identity":
+            from ts3l.utils.embedding_utils import IdentityEmbeddingConfig
+            self._embedding_config_cls = IdentityEmbeddingConfig
+        elif self.args.embedding == "feature_tokenizer":
+            from ts3l.utils.embedding_utils import FTEmbeddingConfig
+            from hparams_range.embeddings.feature_tokenizer import hparams_range as embedding_hparams_range
+            
+            for k, v in embedding_hparams_range.items():
+                v = deepcopy(embedding_hparams_range[k])
+                v[1][0] = "embedding_" + v[1][0]
+                self.hparams_range["embedding_" + k] = v
+                
+            self._embedding_config_cls = FTEmbeddingConfig
+            
+        if self.args.backbone == "mlp":
+            from hparams_range.backbones.mlp import hparams_range as backbone_hprams_range
+            from ts3l.utils.backbone_utils import MLPBackboneConfig
+            
+            self._backbone_config_cls = MLPBackboneConfig
+            
+            for k, v in backbone_hprams_range.items():
+                v = deepcopy(backbone_hprams_range[k])
+                v[1][0] = "backbone_" + v[1][0]
+                self.hparams_range["backbone_" + k] = v
+                
+        elif self.args.backbone == "transformer":
+            from hparams_range.backbones.transformer import hparams_range as backbone_hprams_range
+            for k, v in backbone_hprams_range.items():
+                v = deepcopy(backbone_hprams_range[k])
+                v[1][0] = "backbone_" + v[1][0]
+                self.hparams_range["backbone_" + k] = v
+                
+            from ts3l.utils.backbone_utils import TransformerBackboneConfig
+            self._backbone_config_cls = TransformerBackboneConfig
+        
+        self.cat_cardinality = get_category_cardinality(self.data, self.category_cols)
+        
     def check_attributes(self):
         if self.config_class is None:
             raise NotImplementedError('self.config_class must be defined')
@@ -107,11 +145,14 @@ class PipeLine(ABC):
             self.metric = RegressionMetric(self.metric, self.metric_hparams)
         else:
             self.metric = ClassificationMetric(self.metric, self.metric_hparams)
-    
+        
     @abstractmethod
     def _get_config(self, _hparams: Dict[str, Any]):
         hparams = deepcopy(_hparams)
 
+        hparams = self._set_embedding_config(hparams)
+        hparams = self._set_backbone_config(hparams)
+        
         hparams["optim_hparams"] = {
             "lr" : hparams["lr"],
             "weight_decay": hparams["weight_decay"]
@@ -126,11 +167,50 @@ class PipeLine(ABC):
         hparams["random_seed"] = self.args.random_seed
         
         return hparams
+    
+    def _set_embedding_config(self, hparams: Dict[str, Any]):
+        if self.args.embedding == "identity":
+            self._embedding_config = self._embedding_config_cls(input_dim=self.data.shape[1])
+        elif self.args.embedding == "feature_tokenizer":
+            required_token_dim = 2 if self.args.backbone == "transformer" else 1
+            
+            self._embedding_config = self._embedding_config_cls(input_dim=self.data.shape[1],
+                                                        emb_dim = hparams["embedding_emb_dim"], 
+                                                        cont_nums = self.data.shape[1] - len(self.category_cols), 
+                                                        cat_cardinality = self.cat_cardinality, 
+                                                        required_token_dim=required_token_dim)
+
+            del hparams["embedding_emb_dim"]
+
+        return hparams
+    
+    def _set_backbone_config(self, hparams: Dict[str, Any]):
+        backbone_hparams = {}
         
+        for k, v in hparams.items():
+            if "backbone_" in k:
+                backbone_hparams[k.split("backbone_")[1]] = v
+                
+        if self.args.backbone == "mlp":
+            self._backbone_config = self._backbone_config_cls(
+                input_dim = self._embedding_config.output_dim,
+                **backbone_hparams
+            )
+        elif self.args.backbone == "transformer":
+
+            self._backbone_config = self._backbone_config_cls(
+                d_model = self._embedding_config.emb_dim,
+                **backbone_hparams
+            )
+        
+        for k, v in backbone_hparams.items():
+            del hparams["backbone_" + k]
+
+        return hparams
     
     def benchmark(self):
         hparams = self.__tune_hyperparameters()
-        
+
         config = self._get_config(hparams)
         pl_module = self.pl_module_class(config)
 
