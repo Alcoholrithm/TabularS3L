@@ -95,7 +95,7 @@ These latent representations can be utilized for a variety of downstream tasks.
                   output_dim=output_dim,
                   noise_type = noise_type,
                   noise_ratio = noise_ratio,
-                  cat_cardinality=get_category_cardinality(data, category_cols), num_continuous=len(continuous_cols)
+                  cat_cardinality=get_category_cardinality(X_train, category_cols), num_continuous=len(continuous_cols)
   )
 
   pl_dae = DAELightning(config)
@@ -194,7 +194,7 @@ VIME enhances tabular data learning through a dual approach. In its first phase,
                       predictor_dim=predictor_dim,
                       output_dim=output_dim, alpha1=alpha1, alpha2=alpha2, 
                       beta=beta, K=K, p_m = p_m,
-                      cat_cardinality=get_category_cardinality(data, category_cols), num_continuous=len(continuous_cols)
+                      cat_cardinality=get_category_cardinality(X_train, category_cols), num_continuous=len(continuous_cols)
   )
 
   pl_vime = VIMELightning(config)
@@ -485,7 +485,7 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
 
   embedding_config = FTEmbeddingConfig(input_dim = input_dim, emb_dim = 128, cont_nums = len(continuous_cols),
-                                          cat_cardinality=get_category_cardinality(data, category_cols), required_token_dim=2)
+                                          cat_cardinality=get_category_cardinality(X_train, category_cols), required_token_dim=2)
   backbone_config = TransformerBackboneConfig(d_model = embedding_config.emb_dim, encoder_depth = encoder_depth, n_head = n_head, hidden_dim = hidden_dim)
 
   config = SwitchTabConfig(
