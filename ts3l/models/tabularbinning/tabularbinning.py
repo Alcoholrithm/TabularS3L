@@ -32,11 +32,11 @@ class TabularBinning(TS3LModule):
     def encoder(self) -> nn.Module:
         return self.backbone_module
 
-    def _first_phase_step(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _first_phase_step(self, x: torch.Tensor) -> torch.Tensor:
         x = self.embedding_module(x)
         z_e = self.encoder(x)
         z_d = self.decoder(z_e)
-        return x, z_d
+        return z_d
 
     def _second_phase_step(self, 
                 x : torch.Tensor) -> torch.Tensor:
