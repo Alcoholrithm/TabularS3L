@@ -605,7 +605,7 @@ doi = {10.5281/zenodo.10776538},
 month = nov,
 title = {{TabularS3L}},
 url = {https://github.com/Alcoholrithm/TabularS3L},
-version = {0.60},
+version = {0.61},
 year = {2024}
 }
 ```
@@ -613,6 +613,6 @@ year = {2024}
 #### APA
 
 ```
-Kim, M. (2024). TabularS3L (Version 0.60) [Computer software]. https://doi.org/10.5281/zenodo.10776538
+Kim, M. (2024). TabularS3L (Version 0.61) [Computer software]. https://doi.org/10.5281/zenodo.10776538
 ```
 
