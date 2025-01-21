@@ -15,13 +15,13 @@ def first_phase_step(
         torch.Tensor: The predicted bins of the given batch.
     """
     x, _ = batch
-    bins_preds = model(x)
-    return bins_preds
+    bin_preds = model(x)
+    return bin_preds
 
 
 def first_phase_loss(
     bins: torch.Tensor,
-    bins_preds: torch.Tensor,
+    bin_preds: torch.Tensor,
     bin_loss_fn: nn.Module
 ) -> torch.Tensor:
     """Calculate the first phase loss of TabularBinning
@@ -34,7 +34,7 @@ def first_phase_loss(
     Returns:
         torch.Tensor: The loss between the predicted bins and the original bins.
     """
-    loss = bin_loss_fn(bins_preds, bins)
+    loss = bin_loss_fn(bin_preds, bins)
     return loss
 
 

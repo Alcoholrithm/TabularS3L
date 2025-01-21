@@ -4,7 +4,7 @@ from torch import nn
 
 from .base_module import TS3LLightining
 from ts3l.models import TabularBinning
-from ts3l.utils.tabularbinning import TabularBinningConfig
+from ts3l.utils.tabularbinning_utils import TabularBinningConfig
 from ts3l import functional as F
 from ts3l.utils import BaseConfig
 
@@ -27,6 +27,11 @@ class TabularBinningLightning(TS3LLightining):
         if not isinstance(config, TabularBinningConfig):
             raise TypeError(f"Expected TabularBinningConfig, got {type(config)}")
         
+        if config.pretext_task == "BinRecon":
+            self.bin_loss_fn = nn.MSELoss()
+        else:
+            self.bin_loss_fn = nn.CrossEntropyLoss()
+
         self._init_model(TabularBinning, config)
     
     def _get_first_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
@@ -38,8 +43,10 @@ class TabularBinningLightning(TS3LLightining):
         Returns:
             torch.FloatTensor: The final loss of first phase step
         """
-        
-        return batch[0]
+        bin_preds = F.tabularbinning.first_phase_step(self.model, batch)
+        loss = F.tabularbinning.first_phase_loss(batch[1], bin_preds, self.bin_loss_fn)
+
+        return loss
     
     def _get_second_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate the second phase loss
@@ -52,8 +59,11 @@ class TabularBinningLightning(TS3LLightining):
             torch.Tensor: The label of the labeled data
             torch.Tensor: The predicted label of the labeled data
         """
-        
-        return batch[0], batch[0], batch[0]
+        _, y = batch
+        y_hat = F.tabularbinning.second_phase_step(self.model, batch)
+        task_loss = F.tabularbinning.second_phase_loss(y, y_hat, self.task_loss_fn)
+
+        return task_loss, y, y_hat
     
     def set_second_phase(self, freeze_encoder: bool = False) -> None:
         """Set the module to fine-tuning
@@ -75,5 +85,6 @@ class TabularBinningLightning(TS3LLightining):
         Returns:
             torch.Tensor: The predicted output (logit).
         """
+        y_hat = F.tabularbinning.second_phase_step(self.model, batch)
 
-        return batch[0]
+        return y_hat
