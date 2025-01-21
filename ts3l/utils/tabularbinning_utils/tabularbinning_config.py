@@ -27,18 +27,18 @@ class TabularBinningConfig(BaseConfig):
     
      New Attributes:
         n_bins (int): The number of bins for the pretext task.
-        pretext_loss (str): The loss for the pretext task.
+        pretext_task (str): The pretext task for the first phase learning.
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
-        ValueError: If the specified 'pretext_loss' is not in ["BinRecon", "BinXent"].
+        ValueError: If the specified 'pretext_task' is not in ["BinRecon", "BinXent"].
     """
 
     n_bins: int = field(default=10)
 
-    pretext_loss: str = field(default="BinRecon")
+    pretext_task: str = field(default="BinRecon")
 
     def __post_init__(self):
         super().__post_init__()
 
-        if self.pretext_loss not in ["BinRecon", "BinXent"]:
-            raise ValueError('The pretext loss must be one of ["BinRecon", "BinXent"], but %s.' % self.pretext_loss)
+        if self.pretext_task not in ["BinRecon", "BinXent"]:
+            raise ValueError('The pretext task must be one of ["BinRecon", "BinXent"], but %s.' % self.pretext_task)
