@@ -43,6 +43,8 @@ class TabularBinningConfig(BaseConfig):
 
     decoder_depth: int = field(default=3)
 
+    dropout_rate: float = field(default=0.2)
+
     def __post_init__(self):
         super().__post_init__()
         
