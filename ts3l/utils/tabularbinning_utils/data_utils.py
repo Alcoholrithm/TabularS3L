@@ -133,16 +133,85 @@ class TabularBinningFirstPhaseCollateFN(object):
     for training during first phase learning.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, constant_x_bar = None):
+        """
+        Args:
+            config:
+            constant_x_bar (np.NDArray): The average values for each feature in the training dataset for the constant noise.
+        
+        Raise:
+        """
 
         if config.pretext_task == "BinXent":
             self.__custom_call = self.__return_flatten_label
+        
+        if config.mask_type == "constant" and constant_x_bar is None:
+            raise ValueError("constant_x_bar cannot be None when the mask type is constant")
 
+        self.p_m = config.p_m
+        
+        if config.mask_type == "constant":
+            self.__noise_generator = self.__constant_noise_generator
+            self.constant_x_bar = torch.from_numpy(constant_x_bar).unsqueeze(0)
+        else:
+            self.__noise_generator = self.__random_noise_generator
+
+    def __mask_generator(self, x):
+        """Generate mask vector.
+        
+        Args:
+            - p_m: corruption probability
+            - x: feature matrix
+            
+        Returns:
+            - mask: binary mask matrix 
+        """
+        mask = torch.bernoulli(torch.full(x.shape, self.p_m, device=x.device))
+
+        return mask
+    
+    def __random_noise_generator(self, x) -> torch.Tensor:  
+        """Generate random noised samples.
+        
+        Args:
+            x (torch.Tensor): The original sample.
+            
+        Returns:
+            torch.Tensor: The noisy samples.
+        """
+        
+        no, dim = x.shape
+        
+        # Initialize corruption array
+        x_bar = torch.zeros(x.shape).to(x.device)
+
+        # Randomly (and column-wise) shuffle data
+        
+        # Generate random permutations for all columns
+        permutations = torch.stack([torch.randperm(no).reshape((-1, 1)) for _ in range(dim)], dim=1).to(x.device)
+        permutations = permutations.reshape(x.shape)
+
+        # Use advanced indexing to permute the tensor
+        x_bar = torch.gather(x, 0, permutations)
+
+        return x_bar
+
+    def __constant_noise_generator(self, x: torch.Tensor) -> torch.Tensor:
+        return self.constant_x_bar.repeat(x.size(0), 1).to(dtype=x.dtype, device=x.device)
+    
     def __call__(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
         return self.__custom_call(batch)
 
+    def __x_generator(self, batch: Tuple) -> torch.Tensor:
+
+        x = torch.stack([x for x, _ in batch])
+        mask = self.__mask_generator(x)
+        x_bar = self.__noise_generator(x)
+
+        return x * (1-mask) + x_bar * mask
+    
     def __custom_call(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
-        return torch.stack([x for x, _ in batch]), torch.stack([y for _, y in batch])
+        return self.__x_generator(batch), torch.stack([y for _, y in batch])
 
     def __return_flatten_label(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -153,4 +222,4 @@ class TabularBinningFirstPhaseCollateFN(object):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]
         """
-        return torch.stack([x for x, _ in batch]), torch.cat([y for _, y in batch])
+        return self.__x_generator(batch), torch.cat([y for _, y in batch])

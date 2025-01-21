@@ -1,5 +1,7 @@
 import argparse
 import pandas as pd
+import numpy as np
+
 from typing import List, Type, Dict, Any
 from ts3l.utils import BaseConfig
 from ts3l.pl_modules.base_module import TS3LLightining
@@ -42,7 +44,12 @@ class TabularBinningPipeLine(PipeLine):
         train_ds = TabularBinningDataset(config, X = self.X_train, unlabeled_data = self.X_unlabeled, continuous_cols = self.continuous_cols, category_cols = self.category_cols)
         valid_ds = TabularBinningDataset(config, X = self.X_valid, continuous_cols = self.continuous_cols, category_cols = self.category_cols)
 
-        pl_datamodule = TS3LDataModule(train_ds, valid_ds, self.args.batch_size, train_sampler='random', train_collate_fn=TabularBinningFirstPhaseCollateFN(config), valid_collate_fn=TabularBinningFirstPhaseCollateFN(config), n_jobs=self.args.n_jobs)
+        if config.mask_type == "constant":
+            constant_x_bar = np.mean(self.X_train.values, 0)
+        else:
+            constant_x_bar = None
+
+        pl_datamodule = TS3LDataModule(train_ds, valid_ds, self.args.batch_size, train_sampler='random', train_collate_fn=TabularBinningFirstPhaseCollateFN(config, constant_x_bar), valid_collate_fn=TabularBinningFirstPhaseCollateFN(config, constant_x_bar), n_jobs=self.args.n_jobs)
 
         pl_module.set_first_phase()
 

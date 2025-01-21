@@ -43,13 +43,15 @@ class TabularBinningConfig(BaseConfig):
 
     decoder_depth: int = field(default=3)
 
+    p_m: float = field(default=0.2)
+
+    mask_type: str = field(default="constant")
+
     dropout_rate: float = field(default=0.2)
 
     def __post_init__(self):
         super().__post_init__()
         
-        
-
         if self.pretext_task not in ["BinRecon", "BinXent"]:
             raise ValueError('The pretext task must be one of ["BinRecon", "BinXent"], but %s.' % self.pretext_task)
         

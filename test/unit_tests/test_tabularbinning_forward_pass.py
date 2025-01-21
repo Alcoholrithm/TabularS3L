@@ -11,24 +11,33 @@ here = os.path.dirname(__file__)
 sys.path.append(os.path.join(here, '../..'))
 sys.path.append(os.path.join(here, '..'))
 
+import numpy as np
+
 from misc import embedding_backbone_list, prepare_test
 from benchmark.datasets import load_diabetes, load_cmc, load_abalone
 
 @pytest.mark.parametrize("load_data", [load_diabetes])#, load_cmc, load_abalone])
 @pytest.mark.parametrize("embedding_type, backbone_type", embedding_backbone_list)
 @pytest.mark.parametrize("pretext_task", ["BinRecon", "BinXent"])
-def test_tabularbinning_first_phase_forward(load_data, embedding_type, backbone_type, pretext_task):
+@pytest.mark.parametrize("mask_type", ["random", "constant"])
+def test_tabularbinning_first_phase_forward(load_data, embedding_type, backbone_type, pretext_task, mask_type):
     
     data, label, continuous_cols, category_cols, output_dim, kwargs = prepare_test(load_data, embedding_type, backbone_type)
     
     config = TabularBinningConfig(n_bin = 10, 
                                   pretext_task = pretext_task, 
+                                  mask_type = mask_type,
                                   **kwargs)
     
     pl_module = TabularBinningLightning(config)
     
+    if mask_type == "constant":
+        constant_x_bar = np.mean(data.values, 0)
+    else:
+        constant_x_bar = None
+
     test_ds = TabularBinningDataset(config, data, category_cols=category_cols, continuous_cols=continuous_cols)
-    test_dl = DataLoader(test_ds, 128, shuffle=False, sampler = SequentialSampler(test_ds), collate_fn=TabularBinningFirstPhaseCollateFN(config))
+    test_dl = DataLoader(test_ds, 128, shuffle=False, sampler = SequentialSampler(test_ds), collate_fn=TabularBinningFirstPhaseCollateFN(config, constant_x_bar))
     
     batch = next(iter(test_dl))
 
@@ -38,13 +47,11 @@ def test_tabularbinning_first_phase_forward(load_data, embedding_type, backbone_
 
 @pytest.mark.parametrize("load_data", [load_diabetes])#, load_cmc, load_abalone])
 @pytest.mark.parametrize("embedding_type, backbone_type", embedding_backbone_list)
-@pytest.mark.parametrize("pretext_task", ["BinRecon", "BinXent"])
-def test_tabularbinning_second_phase_forward(load_data, embedding_type, backbone_type, pretext_task):
+def test_tabularbinning_second_phase_forward(load_data, embedding_type, backbone_type):
     
     data, label, continuous_cols, category_cols, output_dim, kwargs = prepare_test(load_data, embedding_type, backbone_type)
     
     config = TabularBinningConfig(n_bin = 10, 
-                                  pretext_task = pretext_task, 
                                   **kwargs)
 
     pl_module = TabularBinningLightning(config)
@@ -60,5 +67,5 @@ def test_tabularbinning_second_phase_forward(load_data, embedding_type, backbone
     print("Passed The Second Phase Forward")
     
 if __name__ == "__main__":
-    test_tabularbinning_first_phase_forward(load_diabetes, "feature_tokenizer", "transformer", "BinRecon")
-    test_tabularbinning_second_phase_forward(load_diabetes, "feature_tokenizer", "transformer", "BinRecon")
+    test_tabularbinning_first_phase_forward(load_diabetes, "feature_tokenizer", "transformer", "BinRecon", "constant")
+    test_tabularbinning_second_phase_forward(load_diabetes, "feature_tokenizer", "transformer")
