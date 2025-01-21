@@ -9,10 +9,10 @@ import numpy as np
 from ts3l.utils.tabularbinning_utils import TabularBinningConfig
 
 class TabularBinningDataset(Dataset):
-    def __init__(self, X: pd.DataFrame, 
+    def __init__(self, config: TabularBinningConfig,
+                        X: pd.DataFrame, 
                         Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
                         unlabeled_data: Optional[pd.DataFrame] = None, 
-                        config: Optional[TabularBinningConfig] = None,
                         continuous_cols: Optional[List] = None, 
                         category_cols: Optional[List] = None,
                         is_regression: Optional[bool] = False,
@@ -37,9 +37,6 @@ class TabularBinningDataset(Dataset):
             is_second_phase (bool, optional): Flag indicating whether the dataset is for first phase or second phase learning. 
                 Default is False.
         """
-        
-        if config is not None:
-            self.config = config
         
         self.n_bins = config.n_bins
         self.pretext_task = config.pretext_task
