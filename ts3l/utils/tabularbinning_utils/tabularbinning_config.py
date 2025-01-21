@@ -39,8 +39,6 @@ class TabularBinningConfig(BaseConfig):
 
     pretext_task: str = field(default="BinRecon")
 
-    n_decoder: int = field(default=None)
-
     decoder_dim: int = field(default=128)
 
     decoder_depth: int = field(default=3)
