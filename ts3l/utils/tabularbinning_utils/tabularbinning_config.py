@@ -29,7 +29,7 @@ class TabularBinningConfig(BaseConfig):
         n_bins (int): The number of bins for the pretext task.
         pretext_task (str): The pretext task for the first phase learning.
         decoder_depth (int): The depth of the decoder.
-        
+
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
         ValueError: If the specified 'pretext_task' is not in ["BinRecon", "BinXent"].
@@ -39,6 +39,8 @@ class TabularBinningConfig(BaseConfig):
 
     pretext_task: str = field(default="BinRecon")
 
+    decoder_dim: int = field(default=128)
+    
     decoder_depth: int = field(default=3)
 
     def __post_init__(self):
