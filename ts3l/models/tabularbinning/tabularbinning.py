@@ -38,7 +38,6 @@ class TabularBinning(TS3LModule):
         z_d = self.decoder(z_e)
         return x, z_d
 
-    
     def _second_phase_step(self, 
                 x : torch.Tensor) -> torch.Tensor:
         x = self.embedding_module(x)
