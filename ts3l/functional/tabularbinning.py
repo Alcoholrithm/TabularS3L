@@ -4,7 +4,7 @@ from torch import nn
 
 def first_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> torch.Tensor:
     """Forward step of TabularBinning during the first phase
 
     Args:

@@ -28,17 +28,17 @@ class TabularBinningLightning(TS3LLightining):
             raise TypeError(f"Expected TabularBinningConfig, got {type(config)}")
         
         if config.pretext_task == "BinRecon":
-            self.bin_loss_fn = nn.MSELoss()
+            self.bin_loss_fn = nn.MSELoss() # type: ignore
         else:
-            self.bin_loss_fn = nn.CrossEntropyLoss()
+            self.bin_loss_fn = nn.CrossEntropyLoss() # type: ignore
 
         self._init_model(TabularBinning, config)
     
-    def _get_first_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]):
+    def _get_first_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Calculate the first phase loss
 
         Args:
-            batch (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): The input batch
+            batch (Tuple[torch.Tensor, torch.Tensor]): The input batch
 
         Returns:
             torch.FloatTensor: The final loss of first phase step
