@@ -26,7 +26,7 @@ class TabularBinningConfig(BaseConfig):
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
     
      New Attributes:
-        n_bins (int): The number of bins for the pretext task.
+        n_bin (int): The number of bin for the pretext task.
         pretext_task (str): The pretext task for the first phase learning.
         decoder_depth (int): The depth of the decoder.
 
@@ -35,16 +35,27 @@ class TabularBinningConfig(BaseConfig):
         ValueError: If the specified 'pretext_task' is not in ["BinRecon", "BinXent"].
     """
 
-    n_bins: int = field(default=10)
+    n_bin: int = field(default=10)
 
     pretext_task: str = field(default="BinRecon")
 
+    n_decoder: int = field(default=None)
+
     decoder_dim: int = field(default=128)
-    
+
     decoder_depth: int = field(default=3)
 
     def __post_init__(self):
         super().__post_init__()
+        
+        
 
         if self.pretext_task not in ["BinRecon", "BinXent"]:
             raise ValueError('The pretext task must be one of ["BinRecon", "BinXent"], but %s.' % self.pretext_task)
+        
+        if self.pretext_task == "BinRecon":
+            self.n_decoder = 1
+            self.first_phase_output_dim = self.embedding_config.input_dim
+        else:
+            self.n_decoder = self.embedding_config.input_dim
+            self.first_phase_output_dim = self.n_bin

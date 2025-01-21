@@ -38,7 +38,7 @@ class TabularBinningDataset(Dataset):
                 Default is False.
         """
         
-        self.n_bins = config.n_bins
+        self.n_bin = config.n_bin
         self.pretext_task = config.pretext_task
 
         if unlabeled_data is not None:
@@ -71,11 +71,11 @@ class TabularBinningDataset(Dataset):
 
 
     def __binning_feature(self, feature: torch.Tensor) -> NDArray[np.int_]:
-        if len(torch.unique(feature)) < self.n_bins:
+        if len(torch.unique(feature)) < self.n_bin:
             bins = feature.unique()
             return np.digitize(feature, bins=bins[1:], right=False)
         else:
-            bins = np.percentile(feature, np.arange(0, 100, step= 100 / self.n_bins))
+            bins = np.percentile(feature, np.arange(0, 100, step= 100 / self.n_bin))
             bins[-1] = np.inf
             return np.digitize(feature, bins=bins[1:], right=False)
     
@@ -83,7 +83,7 @@ class TabularBinningDataset(Dataset):
         binned_features = []
         for idx in range(data.shape[1]):
             binned_features.append(self.__binning_feature(data[:, idx]))
-
+            
         binned_data = torch.from_numpy(np.stack(binned_features, axis=-1)).type(torch.int64)
 
         if self.pretext_task == "BinRecon":
@@ -126,3 +126,31 @@ class TabularBinningDataset(Dataset):
             int: The size of the dataset.
         """
         return len(self.data)
+    
+class TabularBinningFirstPhaseCollateFN(object):
+    """A callable class designed for batch processing, specifically tailored for the first phase learning with TabularBinning. 
+    This class is meant to be used as a collate function in a DataLoader, where it efficiently organizes batch data 
+    for training during first phase learning.
+    """
+
+    def __init__(self, config):
+
+        if config.pretext_task == "BinXent":
+            self.__custom_call = self.__return_flatten_label
+
+    def __call__(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
+        return self.__custom_call(batch)
+
+    def __custom_call(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
+        return torch.stack([x for x, _ in batch]), torch.stack([y for _, y in batch])
+
+    def __return_flatten_label(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+
+        Args:
+            batch (Tuple): The batch to process.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]
+        """
+        return torch.stack([x for x, _ in batch]), torch.cat([y for _, y in batch])
