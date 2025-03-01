@@ -89,7 +89,7 @@ class SwitchTabPipeLine(PipeLine):
         train_ds = SwitchTabDataset(X = self.X_train, Y = self.y_train.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim == 1 else False)
         valid_ds = SwitchTabDataset(X = self.X_valid, Y = self.y_valid.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim == 1 else False)
                 
-        pl_datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted")
+        pl_datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", n_jobs=self.args.n_jobs)
 
         callbacks = [
             EarlyStopping(
