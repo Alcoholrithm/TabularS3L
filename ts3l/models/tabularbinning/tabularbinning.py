@@ -51,8 +51,7 @@ class TabularBinning(TS3LModule):
         z_e = self.encoder(x)
         
         batch_size = z_e.size(0)
-        z_d = torch.empty(batch_size, len(self.decoders), self.decoders[0].output_dim, 
-                         device=z_e.device)
+        z_d = torch.empty(batch_size, len(self.decoders), self.decoders[0].output_dim, device=z_e.device) # type: ignore
         
         for i, decoder in enumerate(self.decoders):
             z_d[:, i] = decoder(z_e)
