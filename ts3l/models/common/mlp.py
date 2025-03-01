@@ -5,7 +5,7 @@ from typing import OrderedDict, List, Union, Optional
 class MLP(nn.Sequential):
     """Simple multi-layer perceptron with activation and optional batch normalization layer and dropout layer"""
 
-    def __init__(self, input_dim: int, hidden_dims: Union[int, List[int]], output_dim: int = None, n_hiddens: Optional[int] = None, activation: str ="ReLU", use_batch_norm: bool =True, dropout_rate: float =0.0, **kwargs):
+    def __init__(self, input_dim: int, hidden_dims: Union[int, List[int]], output_dim: Optional[int] = None, n_hiddens: Optional[int] = None, activation: str ="ReLU", use_batch_norm: bool =True, dropout_rate: float =0.0, **kwargs):
         layers = []
         in_dim = input_dim
         
