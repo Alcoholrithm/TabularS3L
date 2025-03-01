@@ -27,7 +27,6 @@ class TabularBinning(TS3LModule):
 
         self.first_phase_output_dim = first_phase_output_dim
         
-        # 디코더 생성 최적화
         decoder_output_dim = self.embedding_module.input_dim if n_decoder == 1 else n_bin
         self.decoders = nn.ModuleList()
         for _ in range(n_decoder):
@@ -51,7 +50,6 @@ class TabularBinning(TS3LModule):
         x = self.embedding_module(x)
         z_e = self.encoder(x)
         
-        # 더 효율적인 디코더 출력 처리
         batch_size = z_e.size(0)
         z_d = torch.empty(batch_size, len(self.decoders), self.decoders[0].output_dim, 
                          device=z_e.device)

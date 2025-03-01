@@ -60,7 +60,7 @@ class FeatureTokenizer(nn.Module):
         
         if x_cats is not None:
             x = torch.cat(
-                [x, self.cat_weights(x_cats + self.category_offsets[None])],
+                [x, self.cat_weights(x_cats + self.category_offsets[None])], #type: ignore
                 dim=1,
             )
         if self.bias is not None:

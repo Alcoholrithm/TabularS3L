@@ -106,4 +106,4 @@ class SwitchTabLightning(TS3LLightining):
             flag (bool): A boolean flag that determines the behavior of returning salient features.
                         If True, the model will include salient features in its output; if False, it will not.
         """
-        self.model.return_salient_feature(flag)
+        self.model.return_salient_feature(flag) # type: ignore
