@@ -30,7 +30,7 @@ class FeatureTokenizer(nn.Module):
 
             category_offsets = torch.tensor([0] + cat_cardinality[:-1]).cumsum(0)
             self.register_buffer('category_offsets', category_offsets)
-
+            
             self.cat_weights = nn.Embedding(sum(cat_cardinality), emb_dim)
         
         self.weight = nn.Parameter(torch.Tensor(cont_nums + 1, emb_dim))
@@ -57,7 +57,7 @@ class FeatureTokenizer(nn.Module):
         )
 
         x = self.weight[None] * x_conts[:, :, None]
-
+        
         if x_cats is not None:
             x = torch.cat(
                 [x, self.cat_weights(x_cats + self.category_offsets[None])],
