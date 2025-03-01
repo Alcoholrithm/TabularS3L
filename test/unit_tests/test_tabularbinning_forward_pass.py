@@ -16,7 +16,7 @@ import numpy as np
 from misc import embedding_backbone_list, prepare_test
 from benchmark.datasets import load_diabetes, load_cmc, load_abalone
 
-@pytest.mark.parametrize("load_data", [load_diabetes])#, load_cmc, load_abalone])
+@pytest.mark.parametrize("load_data", [load_diabetes, load_cmc, load_abalone])
 @pytest.mark.parametrize("embedding_type, backbone_type", embedding_backbone_list)
 @pytest.mark.parametrize("pretext_task", ["BinRecon", "BinXent"])
 @pytest.mark.parametrize("mask_type", ["random", "constant"])
@@ -32,7 +32,9 @@ def test_tabularbinning_first_phase_forward(load_data, embedding_type, backbone_
     pl_module = TabularBinningLightning(config)
     
     if mask_type == "constant":
-        constant_x_bar = np.mean(data.values, 0)
+        constant_x_bar = data.mean()
+        constant_x_bar[category_cols] = np.round(constant_x_bar[category_cols])
+        constant_x_bar = np.concat((constant_x_bar[category_cols].values, constant_x_bar[continuous_cols].values))
     else:
         constant_x_bar = None
 
@@ -45,7 +47,7 @@ def test_tabularbinning_first_phase_forward(load_data, embedding_type, backbone_
     pl_module._get_first_phase_loss(batch)
     print("Passed The First Phase Forward")
 
-@pytest.mark.parametrize("load_data", [load_diabetes])#, load_cmc, load_abalone])
+@pytest.mark.parametrize("load_data", [load_diabetes, load_cmc, load_abalone])
 @pytest.mark.parametrize("embedding_type, backbone_type", embedding_backbone_list)
 def test_tabularbinning_second_phase_forward(load_data, embedding_type, backbone_type):
     
@@ -57,7 +59,7 @@ def test_tabularbinning_second_phase_forward(load_data, embedding_type, backbone
     pl_module = TabularBinningLightning(config)
 
     pl_module.set_second_phase()
-    test_ds = TabularBinningDataset(config, data, label, category_cols=category_cols, continuous_cols=continuous_cols, is_second_phase=True)
+    test_ds = TabularBinningDataset(config, data, label, category_cols=category_cols, continuous_cols=continuous_cols, is_regression= True if output_dim == 1 else False, is_second_phase=True)
     test_dl = DataLoader(test_ds, 128, shuffle=False, sampler = SequentialSampler(test_ds))
     
     batch = next(iter(test_dl))
@@ -67,5 +69,5 @@ def test_tabularbinning_second_phase_forward(load_data, embedding_type, backbone
     print("Passed The Second Phase Forward")
     
 if __name__ == "__main__":
-    test_tabularbinning_first_phase_forward(load_diabetes, "feature_tokenizer", "transformer", "BinRecon", "constant")
-    test_tabularbinning_second_phase_forward(load_diabetes, "feature_tokenizer", "transformer")
+    test_tabularbinning_first_phase_forward(load_cmc, "feature_tokenizer", "transformer", "BinRecon", "constant")
+    test_tabularbinning_second_phase_forward(load_abalone, "feature_tokenizer", "transformer")

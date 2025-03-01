@@ -1,23 +1,34 @@
 import pandas as pd
-from typing import List, Union, Optional, Tuple
+from typing import List, Union, Optional, Tuple, Any, Callable
 from numpy.typing import NDArray
 
 import torch
 from torch.utils.data import Dataset
+from torch import Tensor
 
 import numpy as np
 from ts3l.utils.tabularbinning_utils import TabularBinningConfig
 
 class TabularBinningDataset(Dataset):
+    n_bin: int
+    pretext_task: str
+    data: Tensor
+    binned_data: Optional[Tensor]
+    is_regression: bool
+    is_second_phase: bool
+    label_class: Any  # torch.FloatTensor or torch.LongTensor
+    label: Optional[Tensor]
+    weights: Optional[List[float]]
+
     def __init__(self, config: TabularBinningConfig,
-                        X: pd.DataFrame, 
-                        Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
-                        unlabeled_data: Optional[pd.DataFrame] = None, 
-                        continuous_cols: Optional[List] = None, 
-                        category_cols: Optional[List] = None,
-                        is_regression: Optional[bool] = False,
-                        is_second_phase: Optional[bool] = False,
-                        ) -> None:
+                 X: pd.DataFrame, 
+                 Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
+                 unlabeled_data: Optional[pd.DataFrame] = None, 
+                 continuous_cols: Optional[List[str]] = None, 
+                 category_cols: Optional[List[str]] = None,
+                 is_regression: bool = False,
+                 is_second_phase: bool = False,
+                ) -> None:
         """A dataset class for TabularBinning that handles labeled and unlabeled data.
 
         This class is designed to manage data for the TabularBinning, accommodating both labeled and unlabeled datasets
@@ -42,12 +53,9 @@ class TabularBinningDataset(Dataset):
         self.pretext_task = config.pretext_task
 
         if unlabeled_data is not None:
-            X = pd.concat([X, unlabeled_data])
+            X = pd.concat([X, unlabeled_data], copy=False)
         
-        cat_data = torch.FloatTensor(X[category_cols].values)
-        cont_data = torch.FloatTensor(X[continuous_cols].values)
-        
-        self.data = torch.concat([cat_data, cont_data], dim=1)
+        self.data = torch.from_numpy(X[category_cols + continuous_cols].values).float()
 
         self.is_regression = is_regression
         self.is_second_phase = is_second_phase
@@ -57,45 +65,58 @@ class TabularBinningDataset(Dataset):
 
         self.label_class = torch.FloatTensor if is_regression else torch.LongTensor
             
-        if Y is None:
-            self.label = None
-        else:
+        if Y is not None:
             self.label = self.label_class(Y)
             
             if self.label_class == torch.LongTensor:
-                class_counts = [sum((self.label == i)) for i in set(self.label.numpy())]
+                _, counts = torch.unique(self.label, return_counts=True)
                 num_samples = len(self.label)
-
-                class_weights = [num_samples/class_counts[i] for i in range(len(class_counts))]
-                self.weights = [class_weights[self.label[i]] for i in range(int(num_samples))]
-
-
-    def __binning_feature(self, feature: torch.Tensor) -> NDArray[np.int_]:
-        if len(torch.unique(feature)) < self.n_bin:
-            bins = feature.unique()
-            return np.digitize(feature, bins=bins[1:], right=False)
+                class_weights = num_samples / counts
+                self.weights = class_weights[self.label]
         else:
-            bins = np.percentile(feature, np.arange(0, 100, step= 100 / self.n_bin))
-            bins[-1] = np.inf
-            return np.digitize(feature, bins=bins[1:], right=False)
+            self.label = None
+
+    def __binning_feature(self, feature: Tensor) -> Tensor:
+        """Discretizes feature data into a specified number of bins.
+
+        Args:
+            feature (torch.Tensor): Feature vector to be discretized
+
+        Returns:
+            torch.Tensor: Discretized feature vector with values ranging from 0 to (n_bin-1)
+        """
+        unique_vals = torch.unique(feature)
+        if len(unique_vals) < self.n_bin:
+            bins = unique_vals
+            return torch.bucketize(feature, bins[1:], right=False)
+        else:
+            percentiles = torch.linspace(0, 100, self.n_bin + 1)[1:-1]
+            bins = torch.quantile(feature, percentiles/100)
+            bins = torch.cat([bins, torch.tensor([float('inf')])])
+            return torch.bucketize(feature, bins, right=False)
     
-    def __get_binned_data(self, data: torch.Tensor):
-        binned_features = []
-        for idx in range(data.shape[1]):
-            binned_features.append(self.__binning_feature(data[:, idx]))
-            
-        binned_data = torch.from_numpy(np.stack(binned_features, axis=-1)).type(torch.int64)
+    def __get_binned_data(self, data: Tensor) -> Tensor:
+        """Performs binning on all features and applies normalization if required.
+
+        Args:
+            data (torch.Tensor): Original feature matrix of shape (n_samples, n_features)
+
+        Returns:
+            torch.Tensor: Discretized and normalized feature matrix
+        """
+        binned_features = torch.stack([self.__binning_feature(data[:, idx]) 
+                                     for idx in range(data.shape[1])], dim=1)
 
         if self.pretext_task == "BinRecon":
-            binned_data = binned_data.type(torch.float32)
-            mean = binned_data.mean(0, keepdim=True)[0]
-            std = binned_data.std(0, keepdim=True)[0]
-            binned_data = (binned_data - mean) / (std + 1e-10)
+            binned_features = binned_features.float()
+            mean = binned_features.mean(dim=0, keepdim=True)
+            std = binned_features.std(dim=0, keepdim=True)
+            binned_features = (binned_features - mean) / (std + 1e-10)
         
-        return binned_data
+        return binned_features
 
     
-    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
         """Retrieves the feature tensor for a given index, along with an label.
 
         In the first phase of learning, this method return the original feature tensor together with its binned version as the label.
@@ -119,7 +140,7 @@ class TabularBinningDataset(Dataset):
         else:
             return self.data[idx], self.binned_data[idx]
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Returns the total number of items in the dataset.
 
         Returns:
@@ -128,18 +149,27 @@ class TabularBinningDataset(Dataset):
         return len(self.data)
     
 class TabularBinningFirstPhaseCollateFN(object):
+    p_m: float
+    constant_x_bar: Optional[Tensor]
+    __noise_generator: Callable[[Tensor], Tensor]
+    __custom_call: Callable[[List[Tuple[Tensor, Tensor]]], Tuple[Tensor, Tensor]]
+
     """A callable class designed for batch processing, specifically tailored for the first phase learning with TabularBinning. 
     This class is meant to be used as a collate function in a DataLoader, where it efficiently organizes batch data 
     for training during first phase learning.
     """
 
-    def __init__(self, config, constant_x_bar = None):
-        """
+    def __init__(self, config: TabularBinningConfig, 
+                 constant_x_bar: Optional[NDArray[np.float64]] = None) -> None:
+        """Initialize the collate function for first phase learning.
+
         Args:
-            config:
-            constant_x_bar (np.NDArray): The average values for each feature in the training dataset for the constant noise.
-        
-        Raise:
+            config (TabularBinningConfig): Configuration object for TabularBinning
+            constant_x_bar (np.NDArray, optional): Feature-wise mean values for constant noise.
+                Required when mask_type is 'constant'.
+
+        Raises:
+            ValueError: When mask_type is 'constant' and constant_x_bar is None
         """
 
         if config.pretext_task == "BinXent":
@@ -152,74 +182,81 @@ class TabularBinningFirstPhaseCollateFN(object):
         
         if config.mask_type == "constant":
             self.__noise_generator = self.__constant_noise_generator
-            self.constant_x_bar = torch.from_numpy(constant_x_bar).unsqueeze(0)
+            self.constant_x_bar = torch.as_tensor(constant_x_bar).unsqueeze(0)
         else:
             self.__noise_generator = self.__random_noise_generator
 
-    def __mask_generator(self, x):
-        """Generate mask vector.
-        
-        Args:
-            - p_m: corruption probability
-            - x: feature matrix
-            
-        Returns:
-            - mask: binary mask matrix 
-        """
-        mask = torch.bernoulli(torch.full(x.shape, self.p_m, device=x.device))
+    def __mask_generator(self, x: Tensor) -> Tensor:
+        """Generates a mask vector for feature corruption.
 
-        return mask
-    
-    def __random_noise_generator(self, x) -> torch.Tensor:  
-        """Generate random noised samples.
-        
         Args:
-            x (torch.Tensor): The original sample.
-            
+            x (torch.Tensor): Input feature tensor
+
         Returns:
-            torch.Tensor: The noisy samples.
+            torch.Tensor: Binary mask tensor of zeros and ones
         """
-        
+        return torch.bernoulli(torch.full_like(x, self.p_m))
+
+    def __random_noise_generator(self, x: Tensor) -> Tensor:
+        """Generates randomly shuffled noise samples.
+
+        Args:
+            x (torch.Tensor): Original feature tensor
+
+        Returns:
+            torch.Tensor: Feature-wise randomly shuffled tensor
+        """
         no, dim = x.shape
-        
-        # Initialize corruption array
-        x_bar = torch.zeros(x.shape).to(x.device)
+        idx = torch.stack([torch.randperm(no) for _ in range(dim)], dim=1)
+        return x[idx, torch.arange(dim)]
 
-        # Randomly (and column-wise) shuffle data
-        
-        # Generate random permutations for all columns
-        permutations = torch.stack([torch.randperm(no).reshape((-1, 1)) for _ in range(dim)], dim=1).to(x.device)
-        permutations = permutations.reshape(x.shape)
+    def __constant_noise_generator(self, x: Tensor) -> Tensor:
+        """Generates constant noise using mean values.
 
-        # Use advanced indexing to permute the tensor
-        x_bar = torch.gather(x, 0, permutations)
+        Args:
+            x (torch.Tensor): Original feature tensor
 
-        return x_bar
-
-    def __constant_noise_generator(self, x: torch.Tensor) -> torch.Tensor:
+        Returns:
+            torch.Tensor: Tensor filled with feature-wise mean values
+        """
         return self.constant_x_bar.repeat(x.size(0), 1).to(dtype=x.dtype, device=x.device)
     
-    def __call__(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __call__(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
         return self.__custom_call(batch)
 
-    def __x_generator(self, batch: Tuple) -> torch.Tensor:
+    def __x_generator(self, batch: List[Tuple[Tensor, Tensor]]) -> Tensor:
+        """Generates masked input by combining original and noise data.
 
+        Args:
+            batch (Tuple): Batch of (feature, label) pairs
+
+        Returns:
+            torch.Tensor: Feature tensor with applied masking and noise
+        """
         x = torch.stack([x for x, _ in batch])
         mask = self.__mask_generator(x)
         x_bar = self.__noise_generator(x)
 
         return x * (1-mask) + x_bar * mask
     
-    def __custom_call(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.__x_generator(batch), torch.stack([y for _, y in batch])
-
-    def __return_flatten_label(self, batch: Tuple) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+    def __custom_call(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
+        """Default batch processing function.
 
         Args:
-            batch (Tuple): The batch to process.
+            batch (Tuple): Batch of (feature, label) pairs
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]
+            Tuple[torch.Tensor, torch.Tensor]: Tuple of (transformed features, labels)
+        """
+        return self.__x_generator(batch), torch.stack([y for _, y in batch])
+
+    def __return_flatten_label(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
+        """Batch processing function for BinXent learning.
+
+        Args:
+            batch (Tuple): Batch of (feature, label) pairs
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: Tuple of (transformed features, flattened labels)
         """
         return self.__x_generator(batch), torch.cat([y for _, y in batch])

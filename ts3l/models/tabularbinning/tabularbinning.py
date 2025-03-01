@@ -1,8 +1,6 @@
 import torch
 from torch import nn
 
-from typing import Tuple
-
 from ts3l.models.common import TS3LModule
 from ts3l.models.common import MLP
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
@@ -29,7 +27,18 @@ class TabularBinning(TS3LModule):
 
         self.first_phase_output_dim = first_phase_output_dim
         
-        self.decoders = nn.ModuleList((MLP(input_dim = self.backbone_module.output_dim, hidden_dims=decoder_dim, n_hiddens=decoder_depth, output_dim=self.embedding_module.input_dim if n_decoder == 1 else n_bin, dropout_rate=dropout_rate) for _ in range(n_decoder)))
+        # 디코더 생성 최적화
+        decoder_output_dim = self.embedding_module.input_dim if n_decoder == 1 else n_bin
+        self.decoders = nn.ModuleList()
+        for _ in range(n_decoder):
+            decoder = MLP(
+                input_dim=self.backbone_module.output_dim,
+                hidden_dims=decoder_dim,
+                n_hiddens=decoder_depth,
+                output_dim=decoder_output_dim,
+                dropout_rate=dropout_rate
+            )
+            self.decoders.append(decoder)
 
         self.head = nn.Linear(self.backbone_module.output_dim, output_dim)
 
@@ -38,11 +47,19 @@ class TabularBinning(TS3LModule):
         return self.backbone_module
 
     def _first_phase_step(self, x: torch.Tensor) -> torch.Tensor:
+        
         x = self.embedding_module(x)
         z_e = self.encoder(x)
-        z_d = torch.stack([decoder(z_e) for decoder in self.decoders], dim=1)
-        z_d = z_d.reshape((-1, self.first_phase_output_dim))
-        return z_d
+        
+        # 더 효율적인 디코더 출력 처리
+        batch_size = z_e.size(0)
+        z_d = torch.empty(batch_size, len(self.decoders), self.decoders[0].output_dim, 
+                         device=z_e.device)
+        
+        for i, decoder in enumerate(self.decoders):
+            z_d[:, i] = decoder(z_e)
+            
+        return z_d.reshape(-1, self.first_phase_output_dim)
 
     def _second_phase_step(self, 
                 x : torch.Tensor) -> torch.Tensor:
