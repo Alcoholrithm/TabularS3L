@@ -45,3 +45,6 @@ jobs:
     - name: Test SwitchTab with pytest
       run: |
         pytest test/unit_tests/test_switchtab_forward_pass.py
+    - name: Test TabularBinning with pytest
+      run: |
+        pytest test/unit_tests/test_tabularbinning_forward_pass.py
