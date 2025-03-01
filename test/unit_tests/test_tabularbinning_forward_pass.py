@@ -22,7 +22,7 @@ from benchmark.datasets import load_diabetes, load_cmc, load_abalone
 @pytest.mark.parametrize("mask_type", ["random", "constant"])
 def test_tabularbinning_first_phase_forward(load_data, embedding_type, backbone_type, pretext_task, mask_type):
     
-    data, label, continuous_cols, category_cols, output_dim, kwargs = prepare_test(load_data, embedding_type, backbone_type)
+    data, _, continuous_cols, category_cols, _, kwargs = prepare_test(load_data, embedding_type, backbone_type)
     
     config = TabularBinningConfig(n_bin = 10, 
                                   pretext_task = pretext_task, 
@@ -34,7 +34,7 @@ def test_tabularbinning_first_phase_forward(load_data, embedding_type, backbone_
     if mask_type == "constant":
         constant_x_bar = data.mean()
         constant_x_bar[category_cols] = np.round(constant_x_bar[category_cols])
-        constant_x_bar = np.concat((constant_x_bar[category_cols].values, constant_x_bar[continuous_cols].values))
+        constant_x_bar = np.concatenate((constant_x_bar[category_cols].values, constant_x_bar[continuous_cols].values))
     else:
         constant_x_bar = None
 
