@@ -24,8 +24,8 @@ class TabularBinningDataset(Dataset):
                  X: pd.DataFrame, 
                  Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
                  unlabeled_data: Optional[pd.DataFrame] = None, 
-                 continuous_cols: Optional[List[str]] = None, 
-                 category_cols: Optional[List[str]] = None,
+                 continuous_cols: List[str] = [], 
+                 category_cols: List[str] = [],
                  is_regression: bool = False,
                  is_second_phase: bool = False,
                 ) -> None:
@@ -138,7 +138,7 @@ class TabularBinningDataset(Dataset):
             else:
                 return self.data[idx], self.label[idx]
         else:
-            return self.data[idx], self.binned_data[idx]
+            return self.data[idx], self.binned_data[idx] # type: ignore
 
     def __len__(self) -> int:
         """Returns the total number of items in the dataset.
@@ -219,7 +219,7 @@ class TabularBinningFirstPhaseCollateFN(object):
         Returns:
             torch.Tensor: Tensor filled with feature-wise mean values
         """
-        return self.constant_x_bar.repeat(x.size(0), 1).to(dtype=x.dtype, device=x.device)
+        return self.constant_x_bar.repeat(x.size(0), 1).to(dtype=x.dtype, device=x.device) #type: ignore
     
     def __call__(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
         return self.__custom_call(batch)
@@ -239,7 +239,7 @@ class TabularBinningFirstPhaseCollateFN(object):
 
         return x * (1-mask) + x_bar * mask
     
-    def __custom_call(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
+    def __custom_call(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]: #type: ignore
         """Default batch processing function.
 
         Args:
