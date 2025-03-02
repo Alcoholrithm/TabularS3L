@@ -9,15 +9,16 @@ from ts3l.models.common.reconstruction_head import ReconstructionHead
 
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
+
 class DAE(TS3LModule):
     def __init__(
         self,
         embedding_config: BaseEmbeddingConfig,
         backbone_config: BaseBackboneConfig,
-        num_continuous: int, 
+        num_continuous: int,
         cat_cardinality: List[int],
-        dropout_rate = 0.04,
-        output_dim = 2,
+        dropout_rate=0.04,
+        output_dim=2,
         **kwargs
     ):
         """Implementation of Denoising AutoEncoder.
@@ -34,8 +35,10 @@ class DAE(TS3LModule):
         """
         super(DAE, self).__init__(embedding_config, backbone_config)
 
-        self.mask_predictor = nn.Linear(self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
-        self.feature_predictor = ReconstructionHead(self.backbone_module.output_dim, num_continuous, cat_cardinality)
+        self.mask_predictor = nn.Linear(
+            self.backbone_module.output_dim, embedding_config.input_dim, bias=True)
+        self.feature_predictor = ReconstructionHead(
+            self.backbone_module.output_dim, num_continuous, cat_cardinality)
 
         self.head = nn.Sequential(
             OrderedDict([
@@ -45,7 +48,7 @@ class DAE(TS3LModule):
                 ("head_linear", nn.Linear(self.backbone_module.output_dim, output_dim))
             ])
         )
-    
+
     @property
     def encoder(self) -> nn.Module:
         return self.backbone_module
@@ -57,7 +60,7 @@ class DAE(TS3LModule):
         cat_preds, cont_preds = self.feature_predictor(emb)
 
         return mask, cat_preds, cont_preds
-    
+
     def _second_phase_step(self, x: torch.Tensor) -> torch.Tensor:
         x = self.embedding_module(x)
         emb = self.encoder(x)

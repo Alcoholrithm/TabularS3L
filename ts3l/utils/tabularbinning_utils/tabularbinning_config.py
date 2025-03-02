@@ -3,6 +3,7 @@ from ts3l.utils import BaseConfig
 
 from typing import Any, List, Optional
 
+
 @dataclass
 class TabularBinningConfig(BaseConfig):
     """
@@ -24,7 +25,7 @@ class TabularBinningConfig(BaseConfig):
         scheduler_hparams (Dict[str, Any]): Hyperparameters for the scheduler. Default is None, indicating no scheduler is used.
         initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
-    
+
      New Attributes:
         n_bin (int): The number of bin for the pretext task.
         pretext_task (str): The pretext task for the first phase learning.
@@ -51,10 +52,11 @@ class TabularBinningConfig(BaseConfig):
 
     def __post_init__(self):
         super().__post_init__()
-        
+
         if self.pretext_task not in ["BinRecon", "BinXent"]:
-            raise ValueError('The pretext task must be one of ["BinRecon", "BinXent"], but %s.' % self.pretext_task)
-        
+            raise ValueError(
+                'The pretext task must be one of ["BinRecon", "BinXent"], but %s.' % self.pretext_task)
+
         if self.pretext_task == "BinRecon":
             self.n_decoder = 1
             self.first_phase_output_dim = self.embedding_config.input_dim

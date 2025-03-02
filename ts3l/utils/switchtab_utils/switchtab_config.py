@@ -3,6 +3,7 @@ from ts3l.utils import BaseConfig
 
 from typing import Any, List, Optional
 
+
 @dataclass
 class SwitchTabConfig(BaseConfig):
     """ Configuration class for initializing components of the SwitchTabLightning Module, including hyperparameters of SwitchTab,
@@ -23,7 +24,7 @@ class SwitchTabConfig(BaseConfig):
         scheduler_hparams (Dict[str, Any]): Hyperparameters for the scheduler. Default is None, indicating no scheduler is used.
         initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
-        
+
     New Attributes:
         u_label (Any): The special token for unlabeled samples.
         corruption_rate (float): The proportion of features to be corrupted. Default is 0.3.
@@ -33,9 +34,9 @@ class SwitchTabConfig(BaseConfig):
     """
 
     u_label: Any = field(default=-1)
-    
+
     corruption_rate: float = field(default=0.3)
-    
+
     alpha: float = field(default=1.0)
 
     def __post_init__(self):

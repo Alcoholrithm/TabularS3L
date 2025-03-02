@@ -8,6 +8,7 @@ from ts3l.models.common import TS3LModule
 from ts3l.models.common import MLP
 from ts3l.utils import BaseEmbeddingConfig, BaseBackboneConfig
 
+
 class SCARF(TS3LModule):
     def __init__(
         self,
@@ -15,7 +16,7 @@ class SCARF(TS3LModule):
         backbone_config: BaseBackboneConfig,
         pretraining_head_dim: int,
         output_dim: int,
-        head_depth: int =2,
+        head_depth: int = 2,
         dropout_rate: float = 0.04,
         **kwargs
     ) -> None:
@@ -33,7 +34,8 @@ class SCARF(TS3LModule):
         """
         super(SCARF, self).__init__(embedding_config, backbone_config)
 
-        self.pretraining_head = MLP(input_dim = self.backbone_module.output_dim, hidden_dims=pretraining_head_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
+        self.pretraining_head = MLP(input_dim=self.backbone_module.output_dim,
+                                    hidden_dims=pretraining_head_dim, n_hiddens=head_depth, dropout_rate=dropout_rate)
 
         self.head = nn.Sequential(
             OrderedDict([
@@ -47,20 +49,20 @@ class SCARF(TS3LModule):
     @property
     def encoder(self) -> nn.Module:
         return self.backbone_module
-        
+
     def _first_phase_step(self, x: torch.Tensor, x_corrupted: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        
+
         size = len(x)
         x = torch.concat((x, x_corrupted))
-        
+
         x = self.embedding_module(x)
         emb_anchor = self.encoder(x)
-        
+
         emb_anchor = self.pretraining_head(emb_anchor)
         emb_anchor = F.normalize(emb_anchor, p=2)
-        
+
         return emb_anchor[:size], emb_anchor[size:]
-    
+
     def _second_phase_step(self, x) -> torch.Tensor:
         x = self.embedding_module(x)
         emb = self.encoder(x)

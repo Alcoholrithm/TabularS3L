@@ -2,6 +2,7 @@ from typing import Tuple
 import torch
 from torch import nn
 
+
 def first_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -16,11 +17,11 @@ def first_phase_step(
     """
     x, x_corrupted = batch
     emb_anchor, emb_corrupted = model(x, x_corrupted)
-    return emb_anchor, emb_corrupted    
+    return emb_anchor, emb_corrupted
 
 
 def first_phase_loss(
-    emb_anchor: torch.Tensor, 
+    emb_anchor: torch.Tensor,
     emb_corrupted: torch.Tensor,
     contrastive_loss_fn: nn.Module
 ) -> torch.Tensor:

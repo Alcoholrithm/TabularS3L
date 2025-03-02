@@ -9,6 +9,7 @@ from torch import Tensor
 import numpy as np
 from ts3l.utils.tabularbinning_utils import TabularBinningConfig
 
+
 class TabularBinningDataset(Dataset):
     n_bin: int
     pretext_task: str
@@ -21,14 +22,15 @@ class TabularBinningDataset(Dataset):
     weights: Optional[List[float]]
 
     def __init__(self, config: TabularBinningConfig,
-                 X: pd.DataFrame, 
-                 Y: Optional[Union[NDArray[np.int_], NDArray[np.float64]]] = None,
-                 unlabeled_data: Optional[pd.DataFrame] = None, 
-                 continuous_cols: List[str] = [], 
+                 X: pd.DataFrame,
+                 Y: Optional[Union[NDArray[np.int_],
+                                   NDArray[np.float64]]] = None,
+                 unlabeled_data: Optional[pd.DataFrame] = None,
+                 continuous_cols: List[str] = [],
                  category_cols: List[str] = [],
                  is_regression: bool = False,
                  is_second_phase: bool = False,
-                ) -> None:
+                 ) -> None:
         """A dataset class for TabularBinning that handles labeled and unlabeled data.
 
         This class is designed to manage data for the TabularBinning, accommodating both labeled and unlabeled datasets
@@ -36,26 +38,27 @@ class TabularBinningDataset(Dataset):
 
         Args:
             X (pd.DataFrame): DataFrame containing the features of the labeled data.
-            Y (Union[NDArray[np.int_], NDArray[np.float64]], optional): Numpy array containing the labels for the data. 
+            Y (Union[NDArray[np.int_], NDArray[np.float64]], optional): Numpy array containing the labels for the data.
                 Use integers for classification labels and floats for regression targets. Defaults to None.
-            unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for 
+            unlabeled_data (pd.DataFrame): DataFrame containing the features of the unlabeled data, used for
                 self-supervised learning. Defaults to None.
             config (TabularBinningConfig): The given hyperparameter set for TabularBinning.
             continuous_cols (List, optional): List of continuous columns. Defaults to None.
             category_cols (List, optional): List of categorical columns. Defaults to None.
             is_regression (bool, optional): Flag indicating whether the task is regression (True) or classification (False).
                 Defaults to False.
-            is_second_phase (bool, optional): Flag indicating whether the dataset is for first phase or second phase learning. 
+            is_second_phase (bool, optional): Flag indicating whether the dataset is for first phase or second phase learning.
                 Default is False.
         """
-        
+
         self.n_bin = config.n_bin
         self.pretext_task = config.pretext_task
 
         if unlabeled_data is not None:
             X = pd.concat([X, unlabeled_data], copy=False)
-        
-        self.data = torch.from_numpy(X[category_cols + continuous_cols].values).float()
+
+        self.data = torch.from_numpy(
+            X[category_cols + continuous_cols].values).float()
 
         self.is_regression = is_regression
         self.is_second_phase = is_second_phase
@@ -64,10 +67,10 @@ class TabularBinningDataset(Dataset):
             self.binned_data = self.__get_binned_data(self.data)
 
         self.label_class = torch.FloatTensor if is_regression else torch.LongTensor
-            
+
         if Y is not None:
             self.label = self.label_class(Y)
-            
+
             if self.label_class == torch.LongTensor:
                 _, counts = torch.unique(self.label, return_counts=True)
                 num_samples = len(self.label)
@@ -91,10 +94,10 @@ class TabularBinningDataset(Dataset):
             return torch.bucketize(feature, bins[1:], right=False)
         else:
             percentiles = torch.linspace(0, 100, self.n_bin + 1)[1:-1]
-            bins = torch.quantile(feature, percentiles/100)
+            bins = torch.quantile(feature, percentiles / 100)
             bins = torch.cat([bins, torch.tensor([float('inf')])])
             return torch.bucketize(feature, bins, right=False)
-    
+
     def __get_binned_data(self, data: Tensor) -> Tensor:
         """Performs binning on all features and applies normalization if required.
 
@@ -104,18 +107,17 @@ class TabularBinningDataset(Dataset):
         Returns:
             torch.Tensor: Discretized and normalized feature matrix
         """
-        binned_features = torch.stack([self.__binning_feature(data[:, idx]) 
-                                     for idx in range(data.shape[1])], dim=1)
+        binned_features = torch.stack([self.__binning_feature(data[:, idx])
+                                       for idx in range(data.shape[1])], dim=1)
 
         if self.pretext_task == "BinRecon":
             binned_features = binned_features.float()
             mean = binned_features.mean(dim=0, keepdim=True)
             std = binned_features.std(dim=0, keepdim=True)
             binned_features = (binned_features - mean) / (std + 1e-10)
-        
+
         return binned_features
 
-    
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
         """Retrieves the feature tensor for a given index, along with an label.
 
@@ -127,7 +129,7 @@ class TabularBinningDataset(Dataset):
 
         Returns:
         torch.Tensor: Only the feature tensor for the given index, suitable for test-time inference.
-            Tuple[torch.Tensor, torch.Tensor]: A tuple containing the original feature tensor and its binned version for the first phase learning, 
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing the original feature tensor and its binned version for the first phase learning,
                 or the feature tensor and its corresponding label for second phase learning,
                 or the feature tensor and dummy label for test-time inference.
         """
@@ -138,7 +140,7 @@ class TabularBinningDataset(Dataset):
             else:
                 return self.data[idx], self.label[idx]
         else:
-            return self.data[idx], self.binned_data[idx] # type: ignore
+            return self.data[idx], self.binned_data[idx]  # type: ignore
 
     def __len__(self) -> int:
         """Returns the total number of items in the dataset.
@@ -147,19 +149,21 @@ class TabularBinningDataset(Dataset):
             int: The size of the dataset.
         """
         return len(self.data)
-    
+
+
 class TabularBinningFirstPhaseCollateFN(object):
     p_m: float
     constant_x_bar: Optional[Tensor]
     __noise_generator: Callable[[Tensor], Tensor]
-    __custom_call: Callable[[List[Tuple[Tensor, Tensor]]], Tuple[Tensor, Tensor]]
+    __custom_call: Callable[[
+        List[Tuple[Tensor, Tensor]]], Tuple[Tensor, Tensor]]
 
-    """A callable class designed for batch processing, specifically tailored for the first phase learning with TabularBinning. 
-    This class is meant to be used as a collate function in a DataLoader, where it efficiently organizes batch data 
+    """A callable class designed for batch processing, specifically tailored for the first phase learning with TabularBinning.
+    This class is meant to be used as a collate function in a DataLoader, where it efficiently organizes batch data
     for training during first phase learning.
     """
 
-    def __init__(self, config: TabularBinningConfig, 
+    def __init__(self, config: TabularBinningConfig,
                  constant_x_bar: Optional[NDArray[np.float64]] = None) -> None:
         """Initialize the collate function for first phase learning.
 
@@ -174,12 +178,13 @@ class TabularBinningFirstPhaseCollateFN(object):
 
         if config.pretext_task == "BinXent":
             self.__custom_call = self.__return_flatten_label
-        
+
         if config.mask_type == "constant" and constant_x_bar is None:
-            raise ValueError("constant_x_bar cannot be None when the mask type is constant")
+            raise ValueError(
+                "constant_x_bar cannot be None when the mask type is constant")
 
         self.p_m = config.p_m
-        
+
         if config.mask_type == "constant":
             self.__noise_generator = self.__constant_noise_generator
             self.constant_x_bar = torch.as_tensor(constant_x_bar).unsqueeze(0)
@@ -219,9 +224,10 @@ class TabularBinningFirstPhaseCollateFN(object):
         Returns:
             torch.Tensor: Tensor filled with feature-wise mean values
         """
-        return self.constant_x_bar.repeat(x.size(0), 1).to(dtype=x.dtype, device=x.device) #type: ignore
-    
-    def __call__(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
+        return self.constant_x_bar.repeat(x.size(0), 1).to(dtype=x.dtype, device=x.device)  # type: ignore
+
+    def __call__(
+            self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
         return self.__custom_call(batch)
 
     def __x_generator(self, batch: List[Tuple[Tensor, Tensor]]) -> Tensor:
@@ -237,9 +243,11 @@ class TabularBinningFirstPhaseCollateFN(object):
         mask = self.__mask_generator(x)
         x_bar = self.__noise_generator(x)
 
-        return x * (1-mask) + x_bar * mask
-    
-    def __custom_call(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]: #type: ignore
+        return x * (1 - mask) + x_bar * mask
+
+    def __custom_call(self,  # type: ignore
+                      batch: List[Tuple[Tensor, Tensor]]
+                      ) -> Tuple[Tensor, Tensor]:
         """Default batch processing function.
 
         Args:
@@ -250,7 +258,8 @@ class TabularBinningFirstPhaseCollateFN(object):
         """
         return self.__x_generator(batch), torch.stack([y for _, y in batch])
 
-    def __return_flatten_label(self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
+    def __return_flatten_label(
+            self, batch: List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, Tensor]:
         """Batch processing function for BinXent learning.
 
         Args:

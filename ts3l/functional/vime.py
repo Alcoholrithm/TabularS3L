@@ -52,9 +52,11 @@ def first_phase_loss(
 
     if x_cat.shape[1] > 0:
         for idx in range(x_cat.shape[1]):
-            categorical_feature_loss += categorical_loss_fn(cat_feature_preds[idx], x_cat[:, idx].long())
+            categorical_feature_loss += categorical_loss_fn(
+                cat_feature_preds[idx], x_cat[:, idx].long())
     if x_cont.shape[1] > 0:
-        continuous_feature_loss += continuous_loss_fn(cont_feature_preds, x_cont)
+        continuous_feature_loss += continuous_loss_fn(
+            cont_feature_preds, x_cont)
 
     return mask_loss, categorical_feature_loss, continuous_feature_loss
 
@@ -72,7 +74,7 @@ def second_phase_step(
         torch.Tensor: The predicted label (logit)
     """
     x, _ = batch
-    
+
     return model(x).squeeze()
 
 
@@ -103,7 +105,7 @@ def second_phase_loss(
         return task_loss, torch.tensor(0.0, device=y.device)
 
     consistency_len = K + 1
-    
+
     # Select targets at intervals of consistency_len
     target = unlabeled_y_hat[::consistency_len]
     target = target.repeat_interleave(K, dim=0)
@@ -111,7 +113,8 @@ def second_phase_loss(
     # Select predictions that are not at intervals of consistency_len
     mask = torch.ones(len(unlabeled_y_hat), dtype=torch.bool, device=y.device)
     mask[::consistency_len] = False
-    preds = unlabeled_y_hat[mask].view(-1, unlabeled_y_hat[mask].shape[-1]).squeeze()
+    preds = unlabeled_y_hat[mask].view(-1,
+                                       unlabeled_y_hat[mask].shape[-1]).squeeze()
 
     consistency_loss = consistency_loss_fn(preds, target)
 

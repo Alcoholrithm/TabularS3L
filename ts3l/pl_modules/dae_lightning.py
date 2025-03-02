@@ -8,6 +8,7 @@ from ts3l.utils.dae_utils import DAEConfig
 from ts3l import functional as F
 from ts3l.utils import BaseConfig
 
+
 class DAELightning(TS3LLightining):
 
     def __init__(self, config: DAEConfig) -> None:
@@ -26,7 +27,7 @@ class DAELightning(TS3LLightining):
         """
         if not isinstance(config, DAEConfig):
             raise TypeError(f"Expected DAEConfig, got {type(config)}")
-        
+
         self.mask_loss_weight = config.mask_loss_weight
 
         self.num_categoricals, self.num_continuous = (
@@ -52,21 +53,22 @@ class DAELightning(TS3LLightining):
             torch.FloatTensor: The final loss of first phase step
         """
         x, _, mask = batch
-        
-        mask_preds, cat_preds, cont_preds = F.dae.first_phase_step(self.model, batch)
-        
+
+        mask_preds, cat_preds, cont_preds = F.dae.first_phase_step(
+            self.model, batch)
+
         mask_loss, feature_loss = F.dae.first_phase_loss(
             x[:, : self.num_categoricals],
-            x[:, self.num_categoricals :],
+            x[:, self.num_categoricals:],
             mask,
-            cat_preds, 
+            cat_preds,
             cont_preds,
             mask_preds,
             self.mask_loss_fn,
             self.categorical_feature_loss,
             self.continuous_feature_loss,
         )
-        
+
         return mask_loss * self.mask_loss_weight + feature_loss
 
     def _get_second_phase_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]):
@@ -90,13 +92,13 @@ class DAELightning(TS3LLightining):
 
     def set_second_phase(self, freeze_encoder: bool = True) -> None:
         """Set the module to fine-tuning
-        
+
         Args:
             freeze_encoder (bool): If True, the encoder will be frozen during fine-tuning. Otherwise, the encoder will be trainable.
                                     Default is True.
         """
         return super().set_second_phase(freeze_encoder)
-    
+
     def predict_step(self, batch, batch_idx: int) -> torch.FloatTensor:
         """The predict step of DAE
 

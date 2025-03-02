@@ -3,6 +3,7 @@ from ts3l.utils import BaseConfig
 
 from typing import Any, List
 
+
 @dataclass
 class SCARFConfig(BaseConfig):
     """ Configuration class for initializing components of the SCARFLightning Module, including hyperparameters of SCARF,
@@ -23,29 +24,29 @@ class SCARFConfig(BaseConfig):
         scheduler_hparams (Dict[str, Any]): Hyperparameters for the scheduler. Default is None, indicating no scheduler is used.
         initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
-        
+
     New Attributes:
         pretraining_head_dim (int): The dimension of the pretraining head. Default is 256.
         head_depth (bool): The depth of head. Default is 2.
         dropout_rate (bool): A hyperparameter that is to control dropout layer. Default is 0.04.
         tau (float): A hyperparameter that is to scale similarity between views during the first phase.
-        corruption_rate (float): The proportion of features to be corrupted, simulating noisy conditions for robustness. 
+        corruption_rate (float): The proportion of features to be corrupted, simulating noisy conditions for robustness.
                 For the second phase dataset, it should be 0. Defaults to 0.0.
 
     Raises:
         ValueError: Inherited from 'BaseConfig' to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
-        
+
     """
-    
+
     pretraining_head_dim: int = field(default=256)
-    
+
     head_depth: int = field(default=2)
-    
+
     dropout_rate: float = field(default=0.04)
-    
+
     tau: float = field(default=0.1)
-    
+
     corruption_rate: float = field(default=0)
-    
+
     def __post_init__(self):
         super().__post_init__()

@@ -3,6 +3,7 @@ from ts3l.utils import BaseConfig
 
 from typing import Any, List, Optional
 
+
 @dataclass
 class VIMEConfig(BaseConfig):
     """ Configuration class for initializing components of the VIMELightning Module, including hyperparameters of VIME,
@@ -23,20 +24,20 @@ class VIMEConfig(BaseConfig):
         scheduler_hparams (Dict[str, Any]): Hyperparameters for the scheduler. Default is None, indicating no scheduler is used.
         initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
-        
+
     New Attributes:
         predictor_dim (int): The hidden dimension of predictor. Default is 256.
         cat_cardinality (List[int]): The cardinality of categorical features.
         num_continuous (int): The number of continuous features.
         u_label (Any): The special token for unlabeled samples.
-        alpha1 (float): A hyperparameter that is to control the trade-off between 
-                        the mask estimation and categorical feature estimation loss during first phase. 
+        alpha1 (float): A hyperparameter that is to control the trade-off between
+                        the mask estimation and categorical feature estimation loss during first phase.
                         Default is 2.0.
-        alpha2 (float): A hyperparameter that is to control the trade-off between 
-                        the mask estimation and continuous feature estimation loss during first phase. 
+        alpha2 (float): A hyperparameter that is to control the trade-off between
+                        the mask estimation and continuous feature estimation loss during first phase.
                         Default is 2.0.
-        beta (float): A hyperparameter that is to control the trade-off between 
-                        the supervised and unsupervised loss during second phase. 
+        beta (float): A hyperparameter that is to control the trade-off between
+                        the supervised and unsupervised loss during second phase.
                         Default is 1.0.
         K (int): The number of augmented samples for consistency regularization. Default is 3.
         p_m (float): A hyperparameter that is to control the masking ratio during the first phase learning. Default is 0.3.
@@ -44,32 +45,32 @@ class VIMEConfig(BaseConfig):
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
         ValueError: Raised if both `num_categoricals` and `num_continuous` are None, indicating that at least one attribute must be specified.
-        
+
     """
-    
+
     predictor_dim: int = field(default=256)
-    
-    # num_categoricals: Optional[int] = field(default=None)
+
     cat_cardinality: List[int] = field(default_factory=lambda: [])
-    
+
     num_continuous: Optional[int] = field(default=None)
-    
+
     u_label: Any = field(default=-1)
-    
+
     alpha1: float = field(default=2.0)
-    
+
     alpha2: float = field(default=2.0)
-    
+
     beta: float = field(default=1.0)
-    
+
     K: int = field(default=3)
-    
+
     p_m: float = field(default=0.3)
-    
+
     def __post_init__(self):
         super().__post_init__()
-        
+
         if len(self.cat_cardinality) == 0 and self.num_continuous is None:
-            raise ValueError("At least one attribute (num_categorical or num_continuous) must be specified.")
+            raise ValueError(
+                "At least one attribute (num_categorical or num_continuous) must be specified.")
         else:
             self.num_continuous = self.num_continuous if self.num_continuous is not None else 0

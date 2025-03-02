@@ -3,6 +3,7 @@ from .base_backbone_config import BaseBackboneConfig
 from typing import Union, List, Optional
 from torch import nn
 
+
 @dataclass
 class MLPBackboneConfig(BaseBackboneConfig):
     input_dim: Optional[int] = field(default=None)
@@ -14,19 +15,22 @@ class MLPBackboneConfig(BaseBackboneConfig):
 
     def __post_init__(self):
         self.name = "mlp"
-        
+
         if isinstance(self.hidden_dims, int):
             if self.n_hiddens > 1:
-                self.hidden_dims = [self.hidden_dims for _ in range(self.n_hiddens - 1)]
+                self.hidden_dims = [
+                    self.hidden_dims for _ in range(self.n_hiddens - 1)]
             else:
                 self.output_dim = self.hidden_dims
                 self.hidden_dims = []
-        
+
         if self.input_dim is None:
-            raise TypeError("__init__ missing 1 required positional argument: 'input_dim'")
-        
+            raise TypeError(
+                "__init__ missing 1 required positional argument: 'input_dim'")
+
         if self.output_dim is None:
             self.output_dim = self.hidden_dims[-1]
 
         if not hasattr(nn, self.activation):
-            raise ValueError(f"{self.activation} is not a valid activation of torch.nn")
+            raise ValueError(
+                f"{self.activation} is not a valid activation of torch.nn")
