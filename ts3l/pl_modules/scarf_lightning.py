@@ -8,6 +8,7 @@ from ts3l.utils.scarf_utils import SCARFConfig
 from ts3l import functional as F
 from ts3l.utils import BaseConfig
 
+
 class SCARFLightning(TS3LLightining):
 
     def __init__(self, config: SCARFConfig) -> None:
@@ -26,7 +27,7 @@ class SCARFLightning(TS3LLightining):
         """
         if not isinstance(config, SCARFConfig):
             raise TypeError(f"Expected SCARFConfig, got {type(config)}")
-        
+
         self.contrastive_loss = NTXentLoss(config.tau)
 
         self._init_model(SCARF, config)
@@ -70,13 +71,13 @@ class SCARFLightning(TS3LLightining):
 
     def set_second_phase(self, freeze_encoder: bool = False) -> None:
         """Set the module to fine-tuning
-        
+
         Args:
             freeze_encoder (bool): If True, the encoder will be frozen during fine-tuning. Otherwise, the encoder will be trainable.
                                     Default is False.
         """
         return super().set_second_phase(freeze_encoder)
-    
+
     def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
         """The perdict step of SCARF
 

@@ -2,6 +2,7 @@ from typing import Tuple, List
 import torch
 from torch import nn
 
+
 def first_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 ) -> Tuple[torch.Tensor, List[torch.Tensor], torch.Tensor]:
@@ -48,10 +49,11 @@ def first_phase_loss(
     """
     mask_loss = mask_loss_fn(mask_preds, mask)
     feature_loss = torch.tensor(0.0, device=mask_preds.device)
-    
+
     if x_cat.shape[1] > 0:
         for idx in range(x_cat.shape[1]):
-            feature_loss += categorical_loss_fn(cat_feature_preds[idx], x_cat[:, idx].long())
+            feature_loss += categorical_loss_fn(
+                cat_feature_preds[idx], x_cat[:, idx].long())
     if x_cont.shape[1] > 0:
         feature_loss += continuous_loss_fn(cont_feature_preds, x_cont)
 

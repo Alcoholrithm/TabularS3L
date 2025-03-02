@@ -14,6 +14,7 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
+
 @dataclass
 class BaseConfig:
     """ Configuration class for initializing components of the TabularS3L Lightning Module, including optimizers, 
@@ -43,64 +44,74 @@ class BaseConfig:
         ValueError: If the combination of `backbone_config` and `embedding_config` is invalid.
     """
     task: str
-    
+
     embedding_config: BaseEmbeddingConfig
-    
+
     backbone_config: BaseBackboneConfig
-    
+
     output_dim: int
-    
+
     loss_fn: str
-    
+
     loss_hparams: Dict[str, Any] = field(default_factory=dict)
-    
+
     metric: Optional[str] = field(default=None)
-    
+
     metric_hparams: Dict[str, Any] = field(default_factory=dict)
-    
+
     optim: str = field(default="AdamW")
-    
+
     optim_hparams: Dict[str, Any] = field(
-                                            default_factory=lambda: {
-                                                    "lr" : 0.0001,
-                                                    "weight_decay" : 0.00005
-                                            }
-                                        )
-    
+        default_factory=lambda: {
+            "lr": 0.0001,
+            "weight_decay": 0.00005
+        }
+    )
+
     scheduler: Optional[str] = field(default=None)
-    
-    scheduler_hparams: Optional[Dict[str, Any]] = field(default = None)
-    
-    initialization: Literal['xavier_uniform', 'xavier_normal', 'kaiming_uniform', 'kaiming_normal', 'uniform', 'normal'] = "kaiming_uniform"
-    
+
+    scheduler_hparams: Optional[Dict[str, Any]] = field(default=None)
+
+    initialization: Literal['xavier_uniform', 'xavier_normal',
+                            'kaiming_uniform', 'kaiming_normal', 'uniform',
+                            'normal'] = "kaiming_uniform"
+
     random_seed: int = field(default=42)
-    
-    
+
     def __post_init__(self):
 
         if (type(self.task) is not str or (self.task != "regression" and self.task != "classification")):
-            raise ValueError(f"{self.task} is not a valid task. Choices are: ['regression', 'classification']")
-        
+            raise ValueError(
+                f"{self.task} is not a valid task. Choices are: ['regression', 'classification']")
+
         if type(self.optim) is not str or not hasattr(optim, self.optim):
-            raise ValueError(f"{self.optim} is not a valid optimizer in torch.optim")
-        
-        if self.scheduler is not None and (type(self.scheduler) is not str or not hasattr(optim.lr_scheduler, self.scheduler)):
-            raise ValueError(f"{self.scheduler} is not a valid scheduler in torch.optim.lr_scheduler")
+            raise ValueError(
+                f"{self.optim} is not a valid optimizer in torch.optim")
+
+        if self.scheduler is not None and (
+                type(self.scheduler)
+                is not str or not hasattr(optim.lr_scheduler, self.scheduler)):
+            raise ValueError(
+                f"{self.scheduler} is not a valid scheduler in torch.optim.lr_scheduler")
 
         if type(self.loss_fn) is not str or not hasattr(nn, self.loss_fn):
-            raise ValueError(f"{self.loss_fn} is not a valid loss function in torch.nn")
-        
+            raise ValueError(
+                f"{self.loss_fn} is not a valid loss function in torch.nn")
+
         if self.metric is None:
             if self.task == "regression":
                 self.metric = "mean_squared_error"
             else:
                 self.metric = "accuracy_score"
-                
+
         elif (type(self.metric) is not str or (not hasattr(torchmetrics.functional, self.metric) and not hasattr(sklearn.metrics, self.metric))):
-            raise ValueError(f"{self.metric} is not a valid metric in torchmetrics.functional or sklearn.metrics")
-        
+            raise ValueError(
+                f"{self.metric} is not a valid metric in torchmetrics.functional or sklearn.metrics")
+
         if self.backbone_config.name == "transformer" and self.embedding_config.name == "identity":
-            raise ValueError(f"Transformer backbone and Identity Embedding are not compatible.")
-        
+            raise ValueError(
+                f"Transformer backbone and Identity Embedding are not compatible.")
+
         if self.backbone_config.name == "transformer" and self.embedding_config.required_token_dim == 1:
-            raise ValueError(f"Embedding's 'required_token_dim' should be 2 for transformer backbone, not {self.embedding_config.required_token_dim}")
+            raise ValueError(
+                f"Embedding's 'required_token_dim' should be 2 for transformer backbone, not {self.embedding_config.required_token_dim}")

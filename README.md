@@ -546,6 +546,124 @@ Moreover, the pre-trained salient embeddings can be utilized as plug-and-play fe
   print("Accuracy %.2f" % accuracy)
   ```
 
+
+</details>
+
+#### TabularBinning: Binning as a Pretext Task - Improving Self-Supervised Learning in Tabular Domains
+
+TabularBinning is a novel pretext task based on the classical binning method for auto-encoding-based self-supervised learning (SSL) in tabular domains.
+The idea is straightforward: reconstructing the bin indices (either orders or classes) rather than the original values. 
+This pretext task provides the encoder with an inductive bias to capture the irregular dependencies, mapping from continuous inputs to discretized bins, and mitigates the feature heterogeneity by setting all features to have category-type targets.
+
+<details close>
+  <summary>Quick Start</summary>
+  
+  ```python
+  
+  # Assume that we have X_train, X_valid, X_test, y_train, y_valid, y_test, categorical_cols, and continuous_cols
+
+  # Prepare the TabularBinningLightning Module
+
+
+  from ts3l.pl_modules import TabularBinningLightning
+  from ts3l.utils.tabularbinning_utils import TabularBinningConfig, TabularBinningDataset, TabularBinningFirstPhaseCollateFN
+  from ts3l.utils import TS3LDataModule
+
+  from sklearn.model_selection import train_test_split
+  import numpy as np
+
+  from ts3l.utils import TS3LDataModule
+  from ts3l.utils.embedding_utils import FTEmbeddingConfig
+  from ts3l.utils.backbone_utils import TransformerBackboneConfig
+  from ts3l.utils.misc import get_category_cardinality
+  from pytorch_lightning import Trainer
+
+  metric = "accuracy_score"
+  input_dim = X_train.shape[1]
+  hidden_dim = 1024
+  output_dim = 2
+
+  encoder_depth = 3
+  n_head = 2
+
+  pretext_task = "BinRecon"
+  mask_type = "constant"
+
+  constant_x_bar = data.mean()
+  constant_x_bar[category_cols] = np.round(constant_x_bar[category_cols])
+  constant_x_bar = np.concatenate((constant_x_bar[category_cols].values, constant_x_bar[continuous_cols].values))
+
+  batch_size = 128
+
+  X_train, X_unlabeled, y_train, _ = train_test_split(X_train, y_train, train_size = 0.1, random_state=0, stratify=y_train)
+
+  embedding_config = FTEmbeddingConfig(input_dim = input_dim, emb_dim = 128, cont_nums = len(continuous_cols),
+                                          cat_cardinality=get_category_cardinality(X_train, category_cols), required_token_dim=2)
+  backbone_config = TransformerBackboneConfig(d_model = embedding_config.emb_dim, encoder_depth = encoder_depth, n_head = n_head, hidden_dim = hidden_dim)
+
+  config = TabularBinningConfig(task="classification", 
+                                loss_fn="CrossEntropyLoss", 
+                                metric=metric, 
+                                metric_hparams={},
+                                embedding_config=embedding_config, 
+                                backbone_config=backbone_config,
+                                output_dim = output_dim, 
+                                n_bin = 10, 
+                                pretext_task = pretext_task, 
+                                mask_type = mask_type)
+
+  pl_tabularbinning = TabularBinningLightning(config)
+
+  ### First Phase Learning
+  train_ds = TabularBinningDataset(config, X = X_train, unlabeled_data = X_unlabeled, continuous_cols = continuous_cols, category_cols = category_cols)
+  valid_ds = TabularBinningDataset(config, X = X_valid, continuous_cols = continuous_cols, category_cols = category_cols)
+
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size, train_sampler='random', train_collate_fn=TabularBinningFirstPhaseCollateFN(config, constant_x_bar), valid_collate_fn=TabularBinningFirstPhaseCollateFN(config, constant_x_bar))
+
+  trainer = Trainer(
+                  accelerator = 'cpu',
+                  max_epochs = 20,
+                  num_sanity_val_steps = 2,
+  )
+
+  trainer.fit(pl_tabularbinning, datamodule)
+
+  ### Second Phase Learning
+
+  pl_tabularbinning.set_second_phase()
+
+  train_ds = TabularBinningDataset(config, X = X_train, Y = y_train.values, continuous_cols=continuous_cols, category_cols=category_cols, is_regression=True if output_dim == 1 else False, is_second_phase=True)
+  valid_ds = TabularBinningDataset(config, X = X_valid, Y = y_valid.values, continuous_cols=continuous_cols, category_cols=category_cols, is_regression=True if output_dim == 1 else False, is_second_phase=True)
+                  
+  datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = batch_size, train_sampler="random" if output_dim == 1 else "weighted")
+
+  trainer = Trainer(
+                  accelerator = 'cpu',
+                  max_epochs = 20,
+                  num_sanity_val_steps = 2,
+  )
+
+  trainer.fit(pl_tabularbinning, datamodule)
+
+  # Evaluation
+  from sklearn.metrics import accuracy_score
+  import torch
+  from torch.nn import functional as F
+  from torch.utils.data import DataLoader, SequentialSampler
+
+  test_ds = TabularBinningDataset(config, X = X_test, continuous_cols=continuous_cols, category_cols=category_cols, is_second_phase=True)
+  test_dl = DataLoader(test_ds, batch_size, shuffle=False, sampler = SequentialSampler(test_ds))
+
+  preds = trainer.predict(pl_tabularbinning, test_dl)
+      
+  preds = F.softmax(torch.concat([out.cpu() for out in preds]).squeeze(),dim=1)
+
+  accuracy = accuracy_score(y_test, preds.argmax(1))
+
+  print("Accuracy %.2f" % accuracy)
+  ```
+
+
 </details>
 
 ## Benchmark
@@ -561,6 +679,7 @@ The embedding and backbone modules used for each model are as follows, which ali
 | SubTab | <code>identity</code> | <code>mlp</code> |
 | SCARF | <code>identity</code> | <code>mlp</code> |
 | SwitchTab | <code>feature_tokenizer</code> | <code>transformer</code> |
+| TabularBinning | <code>identity</code> | <code>mlp</code> |
 
 Use this benchmark for reference only, as only a small number of random seeds were used.
 
@@ -574,8 +693,9 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | DAE | 0.7208 | 0.4885 | 5.6168 | 
 | VIME | 0.7182 | **0.5087** | 5.6637 |
 | SubTab | 0.7312 | 0.4930 | 7.2418 |
-| SCARF | **0.7416** | 0.4710 | 5.8888 |
+| SCARF | 0.7416 | 0.4710 | 5.8888 |
 | SwitchTab |  0.7156 | 0.4886 | 5.9907 |
+| TabularBinning | **0.7450** | 0.5061 | 5.9346 |
 
 --------
 
@@ -589,6 +709,7 @@ Use this benchmark for reference only, as only a small number of random seeds we
 | SubTab | 0.7390 | 0.5432 | 6.3104 |
 | SCARF | 0.7442 | **0.5521** | **4.4443** |
 | SwitchTab | 0.7585 | 0.5411 | 4.7489 |
+| TabularBinning | 0.7597 | 0.5486 | 4.5805 |
 
 ## Contributing
 
@@ -602,17 +723,17 @@ Contributions to this implementation are highly appreciated. Whether it's sugges
 @software{Kim_TabularS3L_2024,
 author = {Kim, Minwook},
 doi = {10.5281/zenodo.10776538},
-month = nov,
+month = mar,
 title = {{TabularS3L}},
 url = {https://github.com/Alcoholrithm/TabularS3L},
-version = {0.60},
-year = {2024}
+version = {0.70},
+year = {2025}
 }
 ```
 
 #### APA
 
 ```
-Kim, M. (2024). TabularS3L (Version 0.60) [Computer software]. https://doi.org/10.5281/zenodo.10776538
+Kim, M. (2024). TabularS3L (Version 0.61) [Computer software]. https://doi.org/10.5281/zenodo.10776538
 ```
 

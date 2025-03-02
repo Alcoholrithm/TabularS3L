@@ -5,47 +5,47 @@ from torch import nn
 
 def first_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Forward step of SCARF during the first phase
+) -> torch.Tensor:
+    """Forward step of TabularBinning during the first phase
 
     Args:
-        model (nn.Module): An instance of SCARF.
+        model (nn.Module): An instance of TabularBinning.
         batch (Tuple[torch.Tensor, torch.Tensor]): The input batch.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: The anchor vector and the corrupted vector.
+        torch.Tensor: The predicted bins of the given batch.
     """
-    x, x_corrupted = batch
-    emb_anchor, emb_corrupted = model(x, x_corrupted)
-    return emb_anchor, emb_corrupted
+    x, _ = batch
+    bin_preds = model(x)
+    return bin_preds
 
 
 def first_phase_loss(
-    emb_anchor: torch.Tensor,
-    emb_corrupted: torch.Tensor,
-    contrastive_loss_fn: nn.Module
+    bins: torch.Tensor,
+    bin_preds: torch.Tensor,
+    bin_loss_fn: nn.Module
 ) -> torch.Tensor:
-    """Calculate the first phase loss of SCARF
+    """Calculate the first phase loss of TabularBinning
 
     Args:
-        emb_anchor (torch.Tensor): The anchor vector.
-        emb_corrupted (torch.Tensor): The corrupted vector.
-        contrastive_loss_fn (nn.Module): The loss function for the contrastive learning.
+        bins (torch.Tensor): The original bin tensor.
+        bins_preds (torch.Tensor): The predicted bin tensor.
+        bin_loss_fn (nn.Module): The loss function for the first phase learning of TabularBinning.
 
     Returns:
-        torch.Tensor: The contrastive loss between the anchor vector and the corrupted vector.
+        torch.Tensor: The loss between the predicted bins and the original bins.
     """
-    loss = contrastive_loss_fn(emb_anchor, emb_corrupted)
+    loss = bin_loss_fn(bin_preds, bins)
     return loss
 
 
 def second_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
 ) -> torch.Tensor:
-    """Forward step of SCARF during the second phase.
+    """Forward step of TabularBinning during the second phase.
 
     Args:
-        model (nn.Module): An instance of SCARF.
+        model (nn.Module): An instance of TabularBinning.
         batch (Tuple[torch.Tensor, torch.Tensor]): The input batch.
 
     Returns:
@@ -59,7 +59,7 @@ def second_phase_step(
 def second_phase_loss(
     y: torch.Tensor, y_hat: torch.Tensor, task_loss_fn: nn.Module
 ) -> torch.Tensor:
-    """Calculate the second phase loss of SCARF.
+    """Calculate the second phase loss of TabularBinning.
 
     Args:
         y (torch.Tensor): The ground truth label.

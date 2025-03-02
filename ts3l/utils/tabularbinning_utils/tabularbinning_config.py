@@ -5,8 +5,9 @@ from typing import Any, List, Optional
 
 
 @dataclass
-class SwitchTabConfig(BaseConfig):
-    """ Configuration class for initializing components of the SwitchTabLightning Module, including hyperparameters of SwitchTab,
+class TabularBinningConfig(BaseConfig):
+    """
+    Configuration class for initializing components of the TabularBinningLightning Module, including hyperparameters of TabularBinning,
     optimizers, learning rate schedulers, and loss functions, along with their respective hyperparameters.
 
     Inherits Attributes:
@@ -25,19 +26,40 @@ class SwitchTabConfig(BaseConfig):
         initialization (str): The way to initialize neural network parameters. Default is 'kaiming_uniform'.
         random_seed (int): Seed for random number generators to ensure reproducibility. Defaults to 42.
 
-    New Attributes:
-        u_label (Any): The special token for unlabeled samples.
-        corruption_rate (float): The proportion of features to be corrupted. Default is 0.3.
-        alpha (float): A hyperparameter that is to control the trade-off between the reconstruction loss and task loss during first phase. Default is 1.0.
+     New Attributes:
+        n_bin (int): The number of bin for the pretext task.
+        pretext_task (str): The pretext task for the first phase learning.
+        decoder_depth (int): The depth of the decoder.
+
     Raises:
         ValueError: Inherited from `BaseConfig` to indicate that a configuration for the task, optimizer, scheduler, loss function, or metric is either invalid or not specified.
+        ValueError: If the specified 'pretext_task' is not in ["BinRecon", "BinXent"].
     """
 
-    u_label: Any = field(default=-1)
+    n_bin: int = field(default=10)
 
-    corruption_rate: float = field(default=0.3)
+    pretext_task: str = field(default="BinRecon")
 
-    alpha: float = field(default=1.0)
+    decoder_dim: int = field(default=128)
+
+    decoder_depth: int = field(default=3)
+
+    p_m: float = field(default=0.2)
+
+    mask_type: str = field(default="constant")
+
+    dropout_rate: float = field(default=0.2)
 
     def __post_init__(self):
         super().__post_init__()
+
+        if self.pretext_task not in ["BinRecon", "BinXent"]:
+            raise ValueError(
+                'The pretext task must be one of ["BinRecon", "BinXent"], but %s.' % self.pretext_task)
+
+        if self.pretext_task == "BinRecon":
+            self.n_decoder = 1
+            self.first_phase_output_dim = self.embedding_config.input_dim
+        else:
+            self.n_decoder = self.embedding_config.input_dim
+            self.first_phase_output_dim = self.n_bin

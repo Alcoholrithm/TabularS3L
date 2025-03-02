@@ -1,16 +1,16 @@
 import argparse
 import pandas as pd
+import numpy as np
+
 from typing import List, Type, Dict, Any
 from ts3l.utils import BaseConfig
-from ts3l.utils.embedding_utils import FTEmbeddingConfig
-from ts3l.utils.backbone_utils import TransformerBackboneConfig
 from ts3l.pl_modules.base_module import TS3LLightining
 
-from ts3l.pl_modules import SwitchTabLightning
-from ts3l.utils.switchtab_utils import SwitchTabConfig, SwitchTabDataset, SwitchTabFirstPhaseCollateFN
+from ts3l.pl_modules import TabularBinningLightning
+from ts3l.utils.tabularbinning_utils import TabularBinningConfig, TabularBinningDataset, TabularBinningFirstPhaseCollateFN
 from ts3l.utils import TS3LDataModule
 
-from hparams_range.switchtab import hparams_range
+from hparams_range.tabularbinning import hparams_range
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -23,19 +23,16 @@ import torch
 
 from copy import deepcopy
 
-class SwitchTabPipeLine(PipeLine):
+class TabularBinningPipeLine(PipeLine):
     
     def __init__(self, args: argparse.Namespace, data: pd.DataFrame, label: pd.Series, continuous_cols: List[str], category_cols: List[str], output_dim: int, metric: str, metric_hparams: Dict[str, Any] = {}):
         super().__init__(args, data, label, continuous_cols, category_cols, output_dim, metric, metric_hparams)
         
-        
     def initialize(self):
-        self.config_class = SwitchTabConfig
-        self.pl_module_class = SwitchTabLightning
+        self.config_class = TabularBinningConfig
+        self.pl_module_class = TabularBinningLightning
         self.hparams_range = deepcopy(hparams_range)
-        
         super().initialize()
-        
     
     def _get_config(self, hparams: Dict[str, Any]):
         hparams = super()._get_config(hparams)
@@ -44,10 +41,15 @@ class SwitchTabPipeLine(PipeLine):
     
     def fit_model(self, pl_module: TS3LLightining, config: Type[BaseConfig]):
         
-        train_ds = SwitchTabDataset(X = self.X_train, unlabeled_data = self.X_unlabeled, Y = self.y_train.values, config=config, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_regression=True if self.output_dim == 1 else False)
-        valid_ds = SwitchTabDataset(X = self.X_valid, Y = self.y_valid.values, config=config, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_regression=True if self.output_dim == 1 else False)
+        train_ds = TabularBinningDataset(config, X = self.X_train, unlabeled_data = self.X_unlabeled, continuous_cols = self.continuous_cols, category_cols = self.category_cols)
+        valid_ds = TabularBinningDataset(config, X = self.X_valid, continuous_cols = self.continuous_cols, category_cols = self.category_cols)
 
-        pl_datamodule = TS3LDataModule(train_ds, valid_ds, self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", train_collate_fn=SwitchTabFirstPhaseCollateFN(), valid_collate_fn=SwitchTabFirstPhaseCollateFN())
+        if config.mask_type == "constant":
+            constant_x_bar = np.mean(self.X_train.values, 0)
+        else:
+            constant_x_bar = None
+
+        pl_datamodule = TS3LDataModule(train_ds, valid_ds, self.args.batch_size, train_sampler='random', train_collate_fn=TabularBinningFirstPhaseCollateFN(config, constant_x_bar), valid_collate_fn=TabularBinningFirstPhaseCollateFN(config, constant_x_bar), n_jobs=self.args.n_jobs)
 
         pl_module.set_first_phase()
 
@@ -59,7 +61,7 @@ class SwitchTabPipeLine(PipeLine):
                 verbose = False
             )
         ]
-        pretraining_path = f'benchmark_ckpt/pretraining/'
+        pretraining_path = f'benchmark_ckpt/pretraining'
         checkpoint_callback = ModelCheckpoint(
             monitor='val_loss',
             dirpath=pretraining_path,
@@ -86,8 +88,8 @@ class SwitchTabPipeLine(PipeLine):
 
         pl_module.set_second_phase()
         
-        train_ds = SwitchTabDataset(X = self.X_train, Y = self.y_train.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim == 1 else False)
-        valid_ds = SwitchTabDataset(X = self.X_valid, Y = self.y_valid.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True, is_regression=True if self.output_dim == 1 else False)
+        train_ds = TabularBinningDataset(config, X = self.X_train, Y = self.y_train.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
+        valid_ds = TabularBinningDataset(config, X = self.X_valid, Y = self.y_valid.values, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_regression=True if self.output_dim == 1 else False, is_second_phase=True)
                 
         pl_datamodule = TS3LDataModule(train_ds, valid_ds, batch_size = self.args.batch_size, train_sampler="random" if self.output_dim == 1 else "weighted", n_jobs=self.args.n_jobs)
 
@@ -139,8 +141,8 @@ class SwitchTabPipeLine(PipeLine):
                     num_sanity_val_steps = 2,
                     callbacks = None,
         )
-
-        test_ds = SwitchTabDataset(X, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True)
+        
+        test_ds = TabularBinningDataset(config, X = X, continuous_cols=self.continuous_cols, category_cols=self.category_cols, is_second_phase=True)
         test_dl = DataLoader(test_ds, self.args.batch_size, shuffle=False, sampler = SequentialSampler(test_ds), num_workers=self.args.n_jobs)
 
         preds = trainer.predict(pl_module, test_dl)

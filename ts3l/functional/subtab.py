@@ -2,6 +2,7 @@ from typing import Tuple, Dict, Any
 import torch
 from torch import nn
 
+
 def get_duplicated_input(x: torch.Tensor, n_subsets: int) -> torch.Tensor:
     """Duplicates the input tensor across the batch dimension to match the number of subsets for reconstruction loss.
 
@@ -14,8 +15,9 @@ def get_duplicated_input(x: torch.Tensor, n_subsets: int) -> torch.Tensor:
     """
     x_duplicated = x
     for _ in range(1, n_subsets):
-        x_duplicated = torch.concat((x_duplicated, x), dim = 0)
+        x_duplicated = torch.concat((x_duplicated, x), dim=0)
     return x_duplicated
+
 
 def arrange_tensors(x: torch.Tensor, n_subsets: int) -> torch.Tensor:
     """
@@ -38,11 +40,12 @@ def arrange_tensors(x: torch.Tensor, n_subsets: int) -> torch.Tensor:
     """
     no, dim = x.shape
     samples = int(no / n_subsets)
-    
+
     x = x.reshape((n_subsets, samples, dim))
-    
+
     return torch.concat([x[:, i] for i in range(samples)])
-    
+
+
 def first_phase_step(
     model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -57,17 +60,17 @@ def first_phase_step(
     """
 
     x, _ = batch
-    
+
     projections, x_recons = model(x)
-    
+
     return projections, x_recons
 
 
 def first_phase_loss(
-    projections: torch.Tensor, 
-    x_recons: torch.Tensor, 
-    x_originals: torch.Tensor, 
-    n_subsets: int, 
+    projections: torch.Tensor,
+    x_recons: torch.Tensor,
+    x_originals: torch.Tensor,
+    n_subsets: int,
     joint_loss_fn: nn.Module
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Calculate the first phase loss of SubTab.
@@ -83,13 +86,14 @@ def first_phase_loss(
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: The total loss, contrastive loss, reconstruction loss, 
                                                                         and distance loss during the first phase of learning.
     """
-    
+
     x_originals = get_duplicated_input(x_originals, n_subsets)
-    
+
     arranged_projections = arrange_tensors(projections, n_subsets)
-    
-    total_loss, contrastive_loss, recon_loss, dist_loss = joint_loss_fn(arranged_projections, x_recons, x_originals)
-    
+
+    total_loss, contrastive_loss, recon_loss, dist_loss = joint_loss_fn(
+        arranged_projections, x_recons, x_originals)
+
     return total_loss, contrastive_loss, recon_loss, dist_loss
 
 
@@ -108,6 +112,7 @@ def second_phase_step(
     x, _ = batch
     return model(x).squeeze()
 
+
 def second_phase_loss(
     y: torch.Tensor,
     y_hat: torch.Tensor,
@@ -124,5 +129,5 @@ def second_phase_loss(
     """
 
     task_loss = task_loss_fn(y_hat, y)
-    
+
     return task_loss
