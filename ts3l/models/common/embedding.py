@@ -61,8 +61,7 @@ class FeatureTokenizer(nn.Module):
         x = self.weight[None] * x_conts[:, :, None]
 
         if x_cats is not None:
-            x = torch.cat(
-                # type: ignore
+            x = torch.cat(  # type: ignore
                 [x, self.cat_weights(x_cats + self.category_offsets[None])],
                 dim=1,
             )
