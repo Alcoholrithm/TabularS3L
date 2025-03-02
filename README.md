@@ -734,6 +734,6 @@ year = {2025}
 #### APA
 
 ```
-Kim, M. (2024). TabularS3L (Version 0.61) [Computer software]. https://doi.org/10.5281/zenodo.10776538
+Kim, M. (2024). TabularS3L (Version 0.70) [Computer software]. https://doi.org/10.5281/zenodo.10776538
 ```
 
